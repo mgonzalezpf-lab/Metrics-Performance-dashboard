@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --pitch-950:#14143A;
@@ -79,6 +80,10 @@
   .upload-status{margin-top:6px;font-size:10.5px;max-width:260px;min-height:14px;transition:opacity .3s ease;opacity:0;}
   .upload-status.ok{color:var(--good);}
   .upload-status.error{color:var(--bad);}
+  .auth-screen{position:fixed;inset:0;z-index:100;background:rgba(20,20,58,.96);display:flex;align-items:center;justify-content:center;padding:22px;}
+  .auth-card{width:min(420px,100%);padding:30px;border:1px solid var(--line-strong);border-radius:18px;background:linear-gradient(180deg,var(--pitch-800),var(--pitch-900));box-shadow:0 24px 80px rgba(0,0,0,.35);}
+  .auth-card h2{font-family:'Big Shoulders Display',sans-serif;font-size:30px;margin:0 0 6px;letter-spacing:.04em;}.auth-card p{color:var(--mist);font-size:13px;line-height:1.5;margin:0 0 20px;}
+  .auth-card label{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mist);margin:14px 0 6px;}.auth-card input,.auth-card select{width:100%;padding:11px 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:14px 'IBM Plex Sans';outline:none;}.auth-card input:focus,.auth-card select:focus{border-color:var(--gold);}.auth-submit{width:100%;margin-top:20px;padding:11px;border:0;border-radius:8px;background:var(--gold);color:var(--pitch-950);font:700 13px 'IBM Plex Mono';cursor:pointer;}.auth-switch{width:100%;background:none;border:0;color:var(--gold-bright);padding:14px 0 0;cursor:pointer;font:12px 'IBM Plex Sans';}.auth-message{min-height:20px;margin-top:12px;font-size:12px;color:var(--mist);}.auth-message.error{color:var(--bad);}.auth-message.ok{color:var(--good);}
 
   /* ---------- KPI STRIP ---------- */
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px;}
@@ -315,6 +320,28 @@
 </style>
 </head>
 <body>
+<div id="authScreen" class="auth-screen">
+  <form id="authForm" class="auth-card">
+    <h2 id="authTitle">Acceso al dashboard</h2>
+    <p id="authDescription">Inicia sesión para consultar y actualizar los datos del equipo.</p>
+    <label for="authEmail">Email</label><input id="authEmail" type="email" autocomplete="email" required>
+    <label for="authPassword">Contraseña</label><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required>
+    <button id="authSubmit" class="auth-submit" type="submit">Ingresar</button>
+    <button id="authSwitch" class="auth-switch" type="button">Crear mi acceso</button>
+    <div id="authMessage" class="auth-message" aria-live="polite"></div>
+  </form>
+</div>
+
+<div id="nameScreen" class="auth-screen" style="display:none;">
+  <form id="nameForm" class="auth-card">
+    <h2>¿Quién eres?</h2>
+    <p>Selecciona tu nombre en la lista del plantel. Una vez elegido, tu cuenta queda vinculada a ese jugador y solo verás tus propios datos.</p>
+    <label for="nameSelect">Jugador</label>
+    <select id="nameSelect"></select>
+    <button class="auth-submit" type="submit">Confirmar</button>
+    <div id="nameMessage" class="auth-message" aria-live="polite"></div>
+  </form>
+</div>
 <div class="wrap">
 
   <header class="top">
@@ -328,15 +355,16 @@
     <div class="meta-right">
       <div><span class="live-dot"></span>DATOS ACTUALIZADOS AL <b id="lastDate">--</b></div>
       <div id="rangeMeta">23 jugadores activos</div>
-      <button id="uploadBtn" class="upload-btn">⟳ Actualizar datos (subir Excel)</button>
+      <button id="uploadBtn" class="upload-btn" style="display:none;">⟳ Actualizar datos (subir Excel)</button>
+      <button id="restoreBtn" class="upload-btn" style="display:none;border-color:var(--mist);color:var(--mist);margin-left:6px;">Restablecer datos iniciales</button>
       <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none;">
       <div id="uploadStatus" class="upload-status"></div>
     </div>
   </header>
 
-  <div class="kpis" id="kpiStrip"></div>
+  <div class="kpis team-only" id="kpiStrip"></div>
 
-  <div class="panel" style="margin-bottom:18px;">
+  <div class="panel team-only" style="margin-bottom:18px;">
     <div class="panel-head">
       <h3>Evolución del plantel</h3>
       <span class="tag" id="teamTimelineTag">—</span>
@@ -353,9 +381,9 @@
     </div>
   </div>
 
-  <div class="main-grid">
+  <div class="main-grid" id="mainGrid">
     <!-- LEFT RAIL -->
-    <div class="panel">
+    <div class="panel team-only">
       <div class="panel-head"><h3>Plantel</h3><span class="tag" id="railCount">23</span></div>
       <div class="rail-search"><input id="searchInput" placeholder="Buscar jugador…" /></div>
       <div class="player-list" id="playerList"></div>
@@ -403,7 +431,7 @@
     </div>
   </div>
 
-  <div class="panel" style="margin-bottom:18px;">
+  <div class="panel team-only" style="margin-bottom:18px;">
     <div class="panel-head">
       <h3>Alertas de carga · ACWR</h3>
       <span class="tag">agudo (7 días) : crónico (28 días) · sobre Player Load</span>
@@ -437,7 +465,7 @@
     </div>
   </div>
 
-  <div class="panel" style="margin-bottom:18px;">
+  <div class="panel team-only" style="margin-bottom:18px;">
     <div class="panel-head">
       <h3>Comparar jugadores</h3>
       <span class="tag">cabeza a cabeza</span>
@@ -458,7 +486,7 @@
     </div>
   </div>
 
-  <div class="panel" style="margin-bottom:18px;">
+  <div class="panel team-only" style="margin-bottom:18px;">
     <div class="panel-head">
       <h3>Ranking del plantel</h3>
       <span class="tag" id="lbMetricTag">promedio últimas sesiones</span>
@@ -468,7 +496,7 @@
     <div class="lb-body" id="leaderboard"></div>
   </div>
 
-  <div class="panel" style="margin-bottom:18px;">
+  <div class="panel team-only" style="margin-bottom:18px;">
     <div class="panel-head">
       <h3>Récords personales</h3>
       <span class="tag">actualizado desde Base de Datos y Partidos</span>
@@ -478,7 +506,7 @@
     </div>
   </div>
 
-  <div class="panel">
+  <div class="panel team-only">
     <div class="panel-head">
       <h3>Comparativo de partidos</h3>
       <span class="tag">totales de equipo</span>
@@ -494,6 +522,148 @@ const EMBEDDED_EVENTS = [{"fecha": "2026-07-24", "jugador": "Dawood Altarif", "t
 const EMBEDDED_TEAMTOTALS = {"vs Dibba FC": {"fecha": "2026-07-27", "dist": 93935, "sprint_dist": 1378, "hsr": 5265, "sprint_count": 91, "acc": 233, "desa": 306, "rhie": 305, "pl": 8849}, "vs El-Obour SC": {"fecha": "2026-07-29", "dist": 91520, "sprint_dist": 761, "hsr": 3439, "sprint_count": 34, "acc": 204, "desa": 279, "rhie": 272, "pl": 8320}, "vs Modern Sport SC": {"fecha": "2026-07-31", "dist": 93882, "sprint_dist": 778, "hsr": 3635, "sprint_count": 44, "acc": 208, "desa": 314, "rhie": 290, "pl": 8798}, "vs Orange Sport": {"fecha": "2026-08-03", "dist": 85821, "sprint_dist": 692, "hsr": 3569, "sprint_count": 40, "acc": 206, "desa": 270, "rhie": 288, "pl": 8391}, "vs Al Najma": {"fecha": "2026-08-06", "dist": 104861, "sprint_dist": 1845, "hsr": 6020, "sprint_count": 82, "acc": 259, "desa": 421, "rhie": 370, "pl": 10377}};
 let ACTIVE_EVENTS = EMBEDDED_EVENTS;
 let ACTIVE_TEAMTOTALS = EMBEDDED_TEAMTOTALS;
+const STORAGE_KEY = 'saqer-gps-dashboard-data-v1';
+const SUPABASE_URL = 'https://sbrngckhkdurndrewvdo.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_sV0k2jMH1RN7nY1nE_4d5g_gyLqG0Rw';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+const CURRENT_CLUB = 'Al Saqer FC';
+let authMode = 'login';
+let myProfile = null;
+
+function authMessage(message, kind=''){
+  const el=document.getElementById('authMessage'); el.textContent=message; el.className='auth-message '+kind;
+}
+function updateAuthForm(){
+  const creating=authMode==='signup';
+  document.getElementById('authTitle').textContent=creating?'Crear acceso':'Acceso al dashboard';
+  document.getElementById('authDescription').textContent=creating?'Registra tu email y contraseña. Te llegará un correo para confirmar el acceso.':'Inicia sesión para consultar y actualizar los datos del equipo.';
+  document.getElementById('authSubmit').textContent=creating?'Crear cuenta':'Ingresar';
+  document.getElementById('authSwitch').textContent=creating?'Ya tengo acceso':'Crear mi acceso';
+  document.getElementById('authPassword').autocomplete=creating?'new-password':'current-password'; authMessage('');
+}
+async function loadRemoteData(){
+  const {data,error}=await supabaseClient.from('dashboard_data').select('payload').eq('club',CURRENT_CLUB).single();
+  if(error) throw error;
+  if(data?.payload?.events?.length){ ACTIVE_EVENTS=data.payload.events; ACTIVE_TEAMTOTALS=data.payload.teamTotals||EMBEDDED_TEAMTOTALS; deriveAll(ACTIVE_EVENTS); }
+}
+async function saveRemoteData(events,teamTotals){
+  const {error}=await supabaseClient.from('dashboard_data').update({payload:{events,teamTotals},updated_at:new Date().toISOString()}).eq('club',CURRENT_CLUB);
+  if(error) throw error;
+}
+
+// ---------- perfiles de jugador (rol admin / player) ----------
+async function getMyProfile(){
+  const {data:{user}}=await supabaseClient.auth.getUser();
+  if(!user) return null;
+  const {data,error}=await supabaseClient.from('player_profiles').select('*').eq('user_id',user.id).maybeSingle();
+  if(error){ console.warn(error); return null; }
+  return data;
+}
+async function ensureProfile(){
+  const {data:{user}}=await supabaseClient.auth.getUser();
+  await supabaseClient.from('player_profiles').insert({user_id:user.id,club:CURRENT_CLUB,role:'player',player_name:null});
+  return await getMyProfile();
+}
+async function getTakenPlayerNames(){
+  const {data,error}=await supabaseClient.from('player_profiles').select('player_name').eq('club',CURRENT_CLUB).eq('role','player').not('player_name','is',null);
+  if(error){ console.warn(error); return []; }
+  return data.map(r=>r.player_name);
+}
+async function claimPlayerName(name){
+  const {data:{user}}=await supabaseClient.auth.getUser();
+  const {error}=await supabaseClient.from('player_profiles').update({player_name:name}).eq('user_id',user.id);
+  if(error) throw error;
+}
+function showNamePicker(availableNames){
+  document.getElementById('authScreen').style.display='none';
+  const screen=document.getElementById('nameScreen');
+  screen.style.display='flex';
+  const select=document.getElementById('nameSelect');
+  select.innerHTML = availableNames.length
+    ? availableNames.map(n=>`<option value="${n}">${n}</option>`).join('')
+    : '<option value="">— No hay nombres disponibles, contacta al staff —</option>';
+}
+function applyPlayerModeUI(){
+  document.querySelectorAll('.team-only').forEach(el=>el.style.display='none');
+  const mainGrid=document.getElementById('mainGrid');
+  if(mainGrid) mainGrid.style.gridTemplateColumns='1fr';
+  document.querySelector('.top .brand-sub').textContent = 'Tus métricas individuales — ' + CURRENT_CLUB;
+}
+async function handleAuthSubmit(event){
+  event.preventDefault(); const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value;
+  authMessage('Comprobando acceso…');
+  const result=authMode==='login'?await supabaseClient.auth.signInWithPassword({email,password}):await supabaseClient.auth.signUp({email,password});
+  if(result.error){ authMessage(result.error.message,'error'); return; }
+  if(authMode==='signup'&&!result.data.session){ authMessage('Revisa tu correo y confirma el acceso antes de iniciar sesión.','ok'); return; }
+  await routeAfterLogin();
+}
+async function routeAfterLogin(){
+  myProfile = await getMyProfile();
+  if(!myProfile){ myProfile = await ensureProfile(); }
+  if(myProfile.role==='player' && !myProfile.player_name){
+    const taken = await getTakenPlayerNames();
+    const allNames = [...new Set(ACTIVE_EVENTS.map(e=>e.jugador))].sort();
+    const available = allNames.filter(n=>!taken.includes(n));
+    showNamePicker(available);
+    return;
+  }
+  await startDashboard();
+}
+async function handleNameSubmit(event){
+  event.preventDefault();
+  const name=document.getElementById('nameSelect').value;
+  if(!name){ document.getElementById('nameMessage').textContent='Selecciona un nombre válido.'; return; }
+  try{
+    await claimPlayerName(name);
+    myProfile = await getMyProfile();
+    document.getElementById('nameScreen').style.display='none';
+    await startDashboard();
+  }catch(error){
+    document.getElementById('nameMessage').textContent = 'Ese nombre ya fue tomado por otra cuenta, elige otro.';
+    const taken = await getTakenPlayerNames();
+    const allNames = [...new Set(ACTIVE_EVENTS.map(e=>e.jugador))].sort();
+    showNamePicker(allNames.filter(n=>!taken.includes(n)));
+  }
+}
+async function startDashboard(){
+  try{ await loadRemoteData(); }catch(error){ console.warn(error); }
+  document.getElementById('authScreen').style.display='none';
+  document.getElementById('nameScreen').style.display='none';
+  if(myProfile && myProfile.role==='player'){
+    ACTIVE_EVENTS = ACTIVE_EVENTS.filter(e=>e.jugador===myProfile.player_name);
+    applyPlayerModeUI();
+  }
+  deriveAll(ACTIVE_EVENTS);
+  renderAll(myProfile && myProfile.role==='player' ? myProfile.player_name : undefined);
+}
+
+function hasSavedData(){
+  try { return !!localStorage.getItem(STORAGE_KEY); } catch { return false; }
+}
+function saveData(events, teamTotals){
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({events, teamTotals, savedAt:new Date().toISOString()})); }
+  catch(err){ console.warn('No se pudieron guardar los datos en este navegador.', err); }
+}
+function loadSavedData(){
+  try{
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if(saved && Array.isArray(saved.events) && saved.events.length){
+      ACTIVE_EVENTS = saved.events;
+      ACTIVE_TEAMTOTALS = saved.teamTotals || EMBEDDED_TEAMTOTALS;
+      return true;
+    }
+  }catch(err){ console.warn('Los datos guardados no son válidos.', err); }
+  return false;
+}
+function restoreInitialData(){
+  try { localStorage.removeItem(STORAGE_KEY); } catch {}
+  ACTIVE_EVENTS = EMBEDDED_EVENTS;
+  ACTIVE_TEAMTOTALS = EMBEDDED_TEAMTOTALS;
+  deriveAll(ACTIVE_EVENTS);
+  renderAll();
+  document.getElementById('restoreBtn').style.display = 'none';
+  showStatus('Se restauraron los datos iniciales del dashboard.', 'ok');
+}
 
 const METRICS = {
   dist: {label:'Distancia Total', unit:'m', dec:0, key:'dist'},
@@ -1359,6 +1529,8 @@ async function handleFile(file){
     const prevPlayer = state.player;
     ACTIVE_EVENTS = events;
     ACTIVE_TEAMTOTALS = teamTotals;
+    await saveRemoteData(ACTIVE_EVENTS, ACTIVE_TEAMTOTALS);
+    saveData(ACTIVE_EVENTS, ACTIVE_TEAMTOTALS);
     deriveAll(ACTIVE_EVENTS);
     renderAll(prevPlayer);
     const lastDate = [...new Set(events.map(e=>e.fecha))].sort().pop();
@@ -1370,14 +1542,23 @@ async function handleFile(file){
 }
 
 // ---------- init ----------
-function init(){
+async function init(){
+  const restored = loadSavedData();
+  if(restored) deriveAll(ACTIVE_EVENTS);
   buildMetricTabs();
   buildTeamMetricTabs();
   buildLbMetricTabs();
-  renderAll();
+  const {data:{session}} = await supabaseClient.auth.getSession();
+  if(session) await routeAfterLogin();
   document.getElementById('searchInput').addEventListener('input', (e)=> buildPlayerList(e.target.value));
+  document.getElementById('authForm').addEventListener('submit', handleAuthSubmit);
+  document.getElementById('authSwitch').addEventListener('click', ()=>{ authMode=authMode==='login'?'signup':'login'; updateAuthForm(); });
+  document.getElementById('nameForm').addEventListener('submit', handleNameSubmit);
   const fileInput = document.getElementById('fileInput');
   const uploadBtn = document.getElementById('uploadBtn');
+  const restoreBtn = document.getElementById('restoreBtn');
+  if(hasSavedData()) restoreBtn.style.display = 'inline-block';
+  restoreBtn.addEventListener('click', restoreInitialData);
   if(uploadBtn && fileInput){
     uploadBtn.addEventListener('click', ()=> fileInput.click());
     fileInput.addEventListener('change', (e)=>{ if(e.target.files[0]) handleFile(e.target.files[0]); e.target.value=''; });
