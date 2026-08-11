@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Metrics Performance Rendimiento Físico</title>
+<title>SAQER GPS · Centro de Rendimiento Físico</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
@@ -328,6 +328,7 @@
     <label for="authPassword">Contraseña</label><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required>
     <button id="authSubmit" class="auth-submit" type="submit">Ingresar</button>
     <button id="authSwitch" class="auth-switch" type="button">Crear mi acceso</button>
+    <button id="forgotPassword" class="auth-switch" type="button" style="padding-top:6px;">¿Olvidaste tu contraseña?</button>
     <div id="authMessage" class="auth-message" aria-live="polite"></div>
   </form>
 </div>
@@ -357,6 +358,7 @@
       <div id="rangeMeta">23 jugadores activos</div>
       <button id="uploadBtn" class="upload-btn" style="display:none;">⟳ Actualizar datos (subir Excel)</button>
       <button id="restoreBtn" class="upload-btn" style="display:none;border-color:var(--mist);color:var(--mist);margin-left:6px;">Restablecer datos iniciales</button>
+      <button id="logoutBtn" class="upload-btn" style="border-color:var(--mist);color:var(--mist);margin-left:6px;">Cerrar sesión</button>
       <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none;">
       <div id="uploadStatus" class="upload-status"></div>
     </div>
@@ -525,7 +527,9 @@ let ACTIVE_TEAMTOTALS = EMBEDDED_TEAMTOTALS;
 const STORAGE_KEY = 'saqer-gps-dashboard-data-v1';
 const SUPABASE_URL = 'https://sbrngckhkdurndrewvdo.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_sV0k2jMH1RN7nY1nE_4d5g_gyLqG0Rw';
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false }
+});
 const CURRENT_CLUB = 'Al Saqer FC';
 let authMode = 'login';
 let myProfile = null;
@@ -1554,6 +1558,18 @@ async function init(){
   document.getElementById('authForm').addEventListener('submit', handleAuthSubmit);
   document.getElementById('authSwitch').addEventListener('click', ()=>{ authMode=authMode==='login'?'signup':'login'; updateAuthForm(); });
   document.getElementById('nameForm').addEventListener('submit', handleNameSubmit);
+  document.getElementById('logoutBtn').addEventListener('click', async ()=>{
+    await supabaseClient.auth.signOut();
+    window.location.reload();
+  });
+  document.getElementById('forgotPassword').addEventListener('click', async ()=>{
+    const email=document.getElementById('authEmail').value.trim();
+    if(!email){ authMessage('Escribe tu email arriba primero, luego haz click en este enlace.','error'); return; }
+    authMessage('Enviando enlace de recuperación…');
+    const {error}=await supabaseClient.auth.resetPasswordForEmail(email, {redirectTo:window.location.origin});
+    if(error){ authMessage(error.message,'error'); return; }
+    authMessage('Listo, revisa tu correo (' + email + ') para restablecer tu contraseña.','ok');
+  });
   const fileInput = document.getElementById('fileInput');
   const uploadBtn = document.getElementById('uploadBtn');
   const restoreBtn = document.getElementById('restoreBtn');
