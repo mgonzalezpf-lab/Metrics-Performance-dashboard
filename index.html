@@ -922,7 +922,11 @@ function buildTimeline(player, metric, resetToLatest){
     if(box) box.innerHTML = '<div style="color:var(--mist);font-family:\'IBM Plex Mono\';font-size:12px;padding:20px;text-align:center;">No se pudo cargar Chart.js (sin conexión). El resto del dashboard funciona con normalidad.</div>';
     return;
   }
-  const labels = evs.map(e=>e.fecha.slice(5).split('-').reverse().join('/'));
+  const labels = evs.map(e=>{
+    const dateStr = e.fecha.slice(5).split('-').reverse().join('/');
+    const sub = e.detalle ? (e.tipo==='Partido' ? ('vs '+e.detalle) : e.detalle) : '';
+    return sub ? [dateStr, sub.length>16 ? sub.slice(0,15)+'…' : sub] : dateStr;
+  });
   const data = evs.map(e=>e[metric]);
   const pointColors = evs.map(e=> e.tipo==='Partido' ? '#7C5CFC' : '#22D3EE');
   const pointStyles = evs.map(e=> e.tipo==='Partido' ? 'rectRot' : 'circle');
