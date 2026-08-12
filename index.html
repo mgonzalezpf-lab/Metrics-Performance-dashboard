@@ -382,6 +382,10 @@
       </span>
       <button id="uploadBtn" class="upload-btn" style="display:none;" data-i18n="actualizarDatos">⟳ Actualizar datos (subir Excel)</button>
       <button id="restoreBtn" class="upload-btn" style="display:none;border-color:var(--mist);color:var(--mist);margin-left:6px;" data-i18n="restablecerDatos">Restablecer datos iniciales</button>
+      <span id="notifBellWrap" style="position:relative;display:none;margin-left:6px;">
+        <button id="notifBell" class="upload-btn" style="padding:7px 10px;position:relative;">🔔<span id="notifBadge" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--bad);color:#fff;font-size:10px;font-weight:700;border-radius:10px;min-width:16px;height:16px;line-height:16px;text-align:center;padding:0 3px;">0</span></button>
+        <div id="notifDropdown" style="display:none;position:absolute;top:42px;right:0;background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:10px;min-width:260px;max-height:320px;overflow-y:auto;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.4);"></div>
+      </span>
       <button id="logoutBtn" class="upload-btn" style="border-color:var(--mist);color:var(--mist);margin-left:6px;" data-i18n="cerrarSesion">Cerrar sesión</button>
       <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none;">
       <div id="uploadStatus" class="upload-status"></div>
@@ -404,6 +408,15 @@
         <div class="tl-label" id="ttLabel">—</div>
       </div>
       <button class="tl-btn" id="ttNext" data-i18n-title="sesionesSiguientes" title="Sesiones siguientes">▶</button>
+    </div>
+  </div>
+
+  <div class="panel" id="previewBar" style="display:none;margin-bottom:18px;">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span style="font-size:12px;color:var(--mist);">👁 Vista previa como jugador (solo lectura):</span>
+      <select id="previewPlayerSelect" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:12.5px 'IBM Plex Sans';outline:none;"></select>
+      <button id="previewStartBtn" class="upload-btn">Ver como jugador</button>
+      <button id="previewExitBtn" class="upload-btn" style="display:none;border-color:var(--bad);color:var(--bad);">✕ Volver a vista admin</button>
     </div>
   </div>
 
@@ -596,7 +609,7 @@
     </div>
   </div>
 
-  <footer data-i18n="footer">By Matías González Galindo — Head of Physical Performance · Fuente: Planilla_Rendimiento_GPS.xlsx</footer>
+  <footer data-i18n="footer">Por Matías González Galindo — Head of Physical Performance</footer>
 </div>
 
 <script>
@@ -672,6 +685,88 @@ function applyPlayerModeUI(){
   const mainGrid=document.getElementById('mainGrid');
   if(mainGrid) mainGrid.style.gridTemplateColumns='1fr';
   document.querySelector('.top .brand-sub').textContent = 'Tus métricas individuales — ' + CURRENT_CLUB;
+}
+
+// ---------- Campana de notificaciones: nuevos jugadores registrados ----------
+const SEEN_SIGNUPS_KEY = 'seen_player_signups';
+function getSeenSignups(){
+  try{ return JSON.parse(localStorage.getItem(SEEN_SIGNUPS_KEY) || '[]'); }catch{ return []; }
+}
+function markAllSignupsSeen(ids){
+  localStorage.setItem(SEEN_SIGNUPS_KEY, JSON.stringify(ids));
+}
+async function checkNewPlayerSignups(){
+  if(!(myProfile && myProfile.role==='admin')) return;
+  const {data,error} = await supabaseClient.from('player_profiles')
+    .select('user_id,player_name,created_at')
+    .eq('club',CURRENT_CLUB).eq('role','player').not('player_name','is',null)
+    .order('created_at',{ascending:false});
+  if(error){ console.warn(error); return; }
+  const wrap = document.getElementById('notifBellWrap');
+  wrap.style.display = 'inline-block';
+  const seen = getSeenSignups();
+  const unseen = (data||[]).filter(r=> !seen.includes(r.user_id));
+  const badge = document.getElementById('notifBadge');
+  badge.style.display = unseen.length ? 'block' : 'none';
+  badge.textContent = unseen.length;
+  const dropdown = document.getElementById('notifDropdown');
+  dropdown.innerHTML = (data && data.length)
+    ? data.map(r=>{
+        const isNew = !seen.includes(r.user_id);
+        const fecha = new Date(r.created_at).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+        return `<div style="padding:10px 14px;border-bottom:1px solid var(--line);font-size:12.5px;${isNew?'background:rgba(34,211,238,.06);':''}">
+          <div style="color:var(--bone);font-weight:600;">${isNew?'🆕 ':''}${r.player_name}</div>
+          <div style="color:var(--mist);font-size:11px;margin-top:2px;">Cuenta creada · ${fecha}</div>
+        </div>`;
+      }).join('')
+    : `<div style="padding:14px;color:var(--mist);font-size:12px;">Todavía no se registró ningún jugador.</div>`;
+  document.getElementById('notifBell').onclick = ()=>{
+    dropdown.style.display = dropdown.style.display==='block' ? 'none' : 'block';
+    if(dropdown.style.display==='block'){
+      markAllSignupsSeen((data||[]).map(r=>r.user_id));
+      badge.style.display='none';
+    }
+  };
+  document.addEventListener('click', (e)=>{
+    if(!wrap.contains(e.target)) dropdown.style.display='none';
+  });
+}
+
+
+let previewingAsPlayer = null;
+let ORIGINAL_BRAND_SUB = null;
+function setupPreviewBar(){
+  if(!(myProfile && myProfile.role==='admin')) return;
+  const bar = document.getElementById('previewBar');
+  bar.style.display = 'block';
+  const select = document.getElementById('previewPlayerSelect');
+  select.innerHTML = players.map(p=>`<option value="${p}">${p}</option>`).join('');
+  document.getElementById('previewStartBtn').onclick = ()=> startPlayerPreview(select.value);
+  document.getElementById('previewExitBtn').onclick = exitPlayerPreview;
+}
+function startPlayerPreview(playerName){
+  previewingAsPlayer = playerName;
+  if(ORIGINAL_BRAND_SUB===null){
+    const sub = document.querySelector('.top .brand-sub');
+    ORIGINAL_BRAND_SUB = sub ? sub.textContent : '';
+  }
+  selectPlayer(playerName);
+  applyPlayerModeUI();
+  document.querySelector('.top .brand-sub').textContent = `Vista previa: ${playerName} — solo lectura`;
+  document.getElementById('previewPlayerSelect').style.display='none';
+  document.getElementById('previewStartBtn').style.display='none';
+  document.getElementById('previewExitBtn').style.display='inline-block';
+}
+function exitPlayerPreview(){
+  previewingAsPlayer = null;
+  document.querySelectorAll('.team-only').forEach(el=>el.style.display='');
+  const mainGrid=document.getElementById('mainGrid');
+  if(mainGrid) mainGrid.style.gridTemplateColumns='';
+  if(ORIGINAL_BRAND_SUB!==null) document.querySelector('.top .brand-sub').textContent = ORIGINAL_BRAND_SUB;
+  document.getElementById('previewPlayerSelect').style.display='inline-block';
+  document.getElementById('previewStartBtn').style.display='inline-block';
+  document.getElementById('previewExitBtn').style.display='none';
+  renderAll();
 }
 async function handleAuthSubmit(event){
   event.preventDefault(); const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value;
@@ -919,6 +1014,8 @@ async function startDashboard(){
   }
   deriveAll(ACTIVE_EVENTS);
   renderAll(myProfile && myProfile.role==='player' ? myProfile.player_name : undefined);
+  setupPreviewBar();
+  checkNewPlayerSignups();
 }
 
 function hasSavedData(){
@@ -967,7 +1064,7 @@ const I18N = {
     authDescLogin:'Inicia sesión para consultar y actualizar los datos del equipo.',
     authDescSignup:'Registra tu email y contraseña. Te llegará un correo para confirmar el acceso.',
     email:'Email', password:'Contraseña', ingresar:'Ingresar', crearAcceso:'Crear mi acceso', crearCuenta:'Crear cuenta', yaTengoAcceso:'Ya tengo acceso',
-    olvidasteContrasena:'¿Olvidaste tu contraseña?', credit:'Matías González Galindo — Head of Physical Performance',
+    olvidasteContrasena:'¿Olvidaste tu contraseña?', credit:'Por Matías González Galindo — Head of Physical Performance',
     nuevaContrasena:'Nueva contraseña', nuevaContrasenaDesc:'Escribe tu nueva contraseña para terminar de recuperar tu acceso.',
     guardarContrasena:'Guardar nueva contraseña', quienEres:'¿Quién eres?',
     quienEresDesc:'Selecciona tu nombre en la lista del plantel. Una vez elegido, tu cuenta queda vinculada a ese jugador y solo verás tus propios datos.',
@@ -991,7 +1088,7 @@ const I18N = {
     rpeTitulo:'¿Cómo sentiste el entrenamiento de hoy?', rpeSubtitulo:'RPE de sesión · 0 (reposo) a 10 (esfuerzo máximo)',
     enviarRpe:'Enviar RPE', rpeMinutosLabel:'¿Cuántos minutos entrenaste hoy?',
     cargaInterna:'Carga interna (RPE)', cargaInternaTag:'carga aguda : crónica basada en RPE × minutos', fecha2:'Fecha',
-    footer:'SAQER FC · Matías González Galindo — Head of Physical Performance · Fuente: Planilla_Rendimiento_GPS.xlsx',
+    footer:'Por Matías González Galindo — Head of Physical Performance',
   },
   en: {
     metrics:{dist:'Total Distance',hsr:'HSR',vel:'Max Speed',acc:'Acc',desa:'Dec',pl:'Player Load'},
@@ -999,7 +1096,7 @@ const I18N = {
     authDescLogin:'Log in to view and update the team data.',
     authDescSignup:'Register your email and password. You will receive a confirmation email.',
     email:'Email', password:'Password', ingresar:'Log in', crearAcceso:'Create my account', crearCuenta:'Create account', yaTengoAcceso:'I already have an account',
-    olvidasteContrasena:'Forgot your password?', credit:'Matías González Galindo — Head of Physical Performance',
+    olvidasteContrasena:'Forgot your password?', credit:'By Matías González Galindo — Head of Physical Performance',
     nuevaContrasena:'New password', nuevaContrasenaDesc:'Enter your new password to finish recovering your access.',
     guardarContrasena:'Save new password', quienEres:'Who are you?',
     quienEresDesc:'Select your name from the squad list. Once chosen, your account is linked to that player and you will only see your own data.',
@@ -1023,7 +1120,7 @@ const I18N = {
     rpeTitulo:'How did today\'s training feel?', rpeSubtitulo:'Session RPE · 0 (rest) to 10 (maximum effort)',
     enviarRpe:'Submit RPE', rpeMinutosLabel:'How many minutes did you train today?',
     cargaInterna:'Internal load (RPE)', cargaInternaTag:'acute : chronic load based on RPE × minutes', fecha2:'Date',
-    footer:'SAQER FC · Matías González Galindo — Head of Physical Performance · Source: Planilla_Rendimiento_GPS.xlsx',
+    footer:'By Matías González Galindo — Head of Physical Performance',
   },
   ar: {
     metrics:{dist:'المسافة الإجمالية',hsr:'الجري عالي السرعة',vel:'السرعة القصوى',acc:'تسارع',desa:'تباطؤ',pl:'حمل اللاعب'},
@@ -1031,7 +1128,7 @@ const I18N = {
     authDescLogin:'سجّل الدخول للاطلاع على بيانات الفريق وتحديثها.',
     authDescSignup:'سجّل بريدك الإلكتروني وكلمة المرور. سيصلك بريد لتأكيد الدخول.',
     email:'البريد الإلكتروني', password:'كلمة المرور', ingresar:'دخول', crearAcceso:'إنشاء حسابي', crearCuenta:'إنشاء الحساب', yaTengoAcceso:'لدي حساب بالفعل',
-    olvidasteContrasena:'هل نسيت كلمة المرور؟', credit:'ماتياس غونزاليس غاليندو — مسؤول الأداء البدني',
+    olvidasteContrasena:'هل نسيت كلمة المرور؟', credit:'بواسطة ماتياس غونزاليس غاليندو — مسؤول الأداء البدني',
     nuevaContrasena:'كلمة مرور جديدة', nuevaContrasenaDesc:'اكتب كلمة المرور الجديدة لإتمام استعادة حسابك.',
     guardarContrasena:'حفظ كلمة المرور الجديدة', quienEres:'من أنت؟',
     quienEresDesc:'اختر اسمك من قائمة الفريق. بمجرد الاختيار، سيُربط حسابك بذلك اللاعب وستشاهد بياناتك فقط.',
@@ -1055,7 +1152,7 @@ const I18N = {
     rpeTitulo:'كيف شعرت بتمرين اليوم؟', rpeSubtitulo:'مؤشر الجهد المُدرَك للحصة · 0 (راحة) إلى 10 (أقصى جهد)',
     enviarRpe:'إرسال مؤشر الجهد', rpeMinutosLabel:'كم دقيقة تدربت اليوم؟',
     cargaInterna:'الحمل الداخلي (RPE)', cargaInternaTag:'الحمل الحاد : المزمن استنادًا إلى RPE × الدقائق', fecha2:'التاريخ',
-    footer:'نادي الصقر · ماتياس غونزاليس غاليندو — مسؤول الأداء البدني · المصدر: Planilla_Rendimiento_GPS.xlsx',
+    footer:'بواسطة ماتياس غونزاليس غاليندو — مسؤول الأداء البدني',
   }
 };
 let currentLang = localStorage.getItem('dashboard_lang') || 'es';
