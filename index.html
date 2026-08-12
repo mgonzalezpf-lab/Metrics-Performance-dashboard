@@ -838,23 +838,38 @@ function buildRpeWidget(existing){
   if(!panel) return;
   panel.style.display='block';
   const scale = document.getElementById('rpeScale');
-  let selected = existing ? existing.rpe : null;
+  const submitBtn = document.getElementById('rpeSubmit');
+  const status = document.getElementById('rpeStatus');
   const rtl = currentLang==='ar';
   scale.style.flexDirection = 'column';
+
+  // Ya envió su RPE hoy: se bloquea, no puede reenviar ni cambiar.
+  if(existing){
+    const row = RPE_SCALE.find(r=>r.n===existing.rpe) || RPE_SCALE[0];
+    const label = row[currentLang] || row.es;
+    scale.innerHTML = `<div style="display:flex;align-items:center;gap:12px;width:100%;padding:8px 12px;border-radius:8px;border:2px solid var(--gold);background:rgba(255,255,255,.03);opacity:.85;flex-direction:${rtl?'row-reverse':'row'};">
+      <span style="min-width:34px;height:34px;border-radius:6px;background:${row.color};color:#14143A;font-weight:800;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono';flex-shrink:0;">${row.n}</span>
+      <span style="flex:1;color:var(--bone);font-size:13px;" dir="${rtl?'rtl':'ltr'}">${label}</span>
+      <span style="font-size:20px;flex-shrink:0;">${row.emoji}</span>
+    </div>`;
+    submitBtn.style.display = 'none';
+    status.textContent = `✅ Ya enviaste tu RPE de hoy (${existing.rpe}/10). Podrás reportar de nuevo mañana.`;
+    return;
+  }
+
+  submitBtn.style.display = 'inline-block';
+  let selected = null;
   scale.innerHTML = RPE_SCALE.map(row=>{
     const label = row[currentLang] || row.es;
-    const isActive = row.n===selected;
-    return `<button type="button" class="rpe-btn ${isActive?'active':''}" data-n="${row.n}"
-      style="display:flex;align-items:center;gap:12px;width:100%;padding:8px 12px;border-radius:8px;border:2px solid ${isActive?'var(--gold)':'transparent'};background:rgba(255,255,255,.03);cursor:pointer;text-align:${rtl?'right':'left'};flex-direction:${rtl?'row-reverse':'row'};">
+    return `<button type="button" class="rpe-btn" data-n="${row.n}"
+      style="display:flex;align-items:center;gap:12px;width:100%;padding:8px 12px;border-radius:8px;border:2px solid transparent;background:rgba(255,255,255,.03);cursor:pointer;text-align:${rtl?'right':'left'};flex-direction:${rtl?'row-reverse':'row'};">
       <span style="min-width:34px;height:34px;border-radius:6px;background:${row.color};color:#14143A;font-weight:800;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono';flex-shrink:0;">${row.n}</span>
       <span style="flex:1;color:var(--bone);font-size:13px;" dir="${rtl?'rtl':'ltr'}">${label}</span>
       <span style="font-size:20px;flex-shrink:0;">${row.emoji}</span>
     </button>`;
   }).join('');
-  const submitBtn = document.getElementById('rpeSubmit');
-  const status = document.getElementById('rpeStatus');
-  submitBtn.disabled = selected===null;
-  status.textContent = existing ? `Ya reportaste ${existing.rpe}/10 hoy. Puedes cambiarlo si querés.` : '';
+  submitBtn.disabled = true;
+  status.textContent = '';
   scale.querySelectorAll('.rpe-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       selected = Number(btn.dataset.n);
@@ -869,13 +884,15 @@ function buildRpeWidget(existing){
   submitBtn.onclick = async ()=>{
     if(selected===null) return;
     submitBtn.disabled = true; status.textContent = 'Guardando…';
+    scale.querySelectorAll('.rpe-btn').forEach(b=> b.disabled = true);
     try{
       await submitRpe(selected);
-      status.textContent = `¡Listo! Guardamos tu RPE de hoy: ${selected}/10.`;
+      buildRpeWidget({rpe:selected});
     }catch(error){
       status.textContent = 'No se pudo guardar: ' + error.message;
+      scale.querySelectorAll('.rpe-btn').forEach(b=> b.disabled = false);
+      submitBtn.disabled = false;
     }
-    submitBtn.disabled = false;
   };
 }
 function rpeAcwrStatus(ratio){
@@ -953,8 +970,11 @@ function buildRpeLoadTable(dateStr){
       else if(r.ratio<1.5){ ratioColor='var(--warn)'; ratioLabel='Precaución'; }
       else { ratioColor='var(--bad)'; ratioLabel='Riesgo alto'; }
     }
+    const isAdmin = myProfile && myProfile.role==='admin';
     const minCell = r.todayReport
-      ? `<input type="number" min="0" max="240" class="rpe-min-input" data-player="${r.p}" data-fecha="${dateStr}" value="${r.minVal!==null?r.minVal:''}" placeholder="—" style="width:56px;padding:5px 6px;border-radius:6px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:12px 'IBM Plex Mono';outline:none;">`
+      ? (isAdmin
+          ? `<input type="number" min="0" max="240" class="rpe-min-input" data-player="${r.p}" data-fecha="${dateStr}" value="${r.minVal!==null?r.minVal:''}" placeholder="—" style="width:56px;padding:5px 6px;border-radius:6px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:12px 'IBM Plex Mono';outline:none;">`
+          : `<span style="color:var(--bone);">${r.minVal!==null? r.minVal : '—'}</span>`)
       : `<span style="color:var(--mist);">—</span>`;
     return `<tr>
       <td class="metric-name">${r.p}</td>
@@ -985,7 +1005,7 @@ function buildRpeLoadTable(dateStr){
     <td>${ratioAvg!==null? ratioAvg.toFixed(2) : '—'}</td>
   </tr>`;
   table.innerHTML = `<thead><tr>
-    <th>Jugador</th><th>Hora</th><th>RPE</th><th>Min ✏️</th><th>C. Diaria</th><th>C. Aguda</th><th>C. Crónica</th><th>Ratio A:C</th>
+    <th>Jugador</th><th>Hora</th><th>RPE</th><th>Min ${(myProfile && myProfile.role==='admin')?'✏️':''}</th><th>C. Diaria</th><th>C. Aguda</th><th>C. Crónica</th><th>Ratio A:C</th>
   </tr></thead><tbody>${rowsHtml}${footerHtml}</tbody>`;
   table.querySelectorAll('.rpe-min-input').forEach(input=>{
     const save = async ()=>{
