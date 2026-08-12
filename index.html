@@ -413,9 +413,6 @@
       <span class="tag" data-i18n="rpeSubtitulo">RPE de sesión · 1 (muy suave) a 10 (máximo esfuerzo)</span>
     </div>
     <div id="rpeScale" style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;"></div>
-    <label for="rpeMinutos" data-i18n="rpeMinutosLabel" style="display:block;font-size:11px;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">¿Cuántos minutos entrenaste hoy?</label>
-    <input id="rpeMinutos" type="number" min="1" max="240" placeholder="90" style="width:120px;padding:9px 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:14px 'IBM Plex Mono';outline:none;margin-bottom:10px;">
-    <br>
     <button id="rpeSubmit" class="upload-btn" style="margin-top:4px;" disabled data-i18n="enviarRpe">Enviar RPE</button>
     <div id="rpeStatus" class="upload-status" style="margin-top:8px;"></div>
   </div>
@@ -721,10 +718,10 @@ async function getMyTodayRpe(){
   if(error){ console.warn(error); return null; }
   return data || null;
 }
-async function submitRpe(value, minutos){
+async function submitRpe(value){
   const {data:{user}}=await supabaseClient.auth.getUser();
   const {error}=await supabaseClient.from('rpe_reports').upsert({
-    user_id:user.id, club:CURRENT_CLUB, player_name:myProfile.player_name, fecha:todayISO(), rpe:value, minutos:minutos, updated_at:new Date().toISOString()
+    user_id:user.id, club:CURRENT_CLUB, player_name:myProfile.player_name, fecha:todayISO(), rpe:value, updated_at:new Date().toISOString()
   }, {onConflict:'user_id,fecha'});
   if(error) throw error;
 }
@@ -746,9 +743,7 @@ function buildRpeWidget(existing){
   if(!panel) return;
   panel.style.display='block';
   const scale = document.getElementById('rpeScale');
-  const minutosInput = document.getElementById('rpeMinutos');
   let selected = existing ? existing.rpe : null;
-  if(existing && existing.minutos) minutosInput.value = existing.minutos;
   const rtl = currentLang==='ar';
   scale.style.flexDirection = 'column';
   scale.innerHTML = RPE_SCALE.map(row=>{
@@ -763,14 +758,8 @@ function buildRpeWidget(existing){
   }).join('');
   const submitBtn = document.getElementById('rpeSubmit');
   const status = document.getElementById('rpeStatus');
-  const canSubmit = ()=> selected!==null && (selected===0 || Number(minutosInput.value)>0);
-  const updateMinutosVisibility = ()=>{
-    minutosInput.style.display = selected===0 ? 'none' : 'inline-block';
-    minutosInput.previousElementSibling.style.display = selected===0 ? 'none' : 'block';
-  };
-  if(selected!==null) updateMinutosVisibility();
-  submitBtn.disabled = !canSubmit();
-  status.textContent = existing ? `Ya reportaste ${existing.rpe}/10 · ${existing.minutos||0} min hoy. Puedes cambiarlo si querés.` : '';
+  submitBtn.disabled = selected===null;
+  status.textContent = existing ? `Ya reportaste ${existing.rpe}/10 hoy. Puedes cambiarlo si querés.` : '';
   scale.querySelectorAll('.rpe-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       selected = Number(btn.dataset.n);
@@ -779,18 +768,15 @@ function buildRpeWidget(existing){
         b.classList.toggle('active', active);
         b.style.borderColor = active ? 'var(--gold)' : 'transparent';
       });
-      updateMinutosVisibility();
-      submitBtn.disabled = !canSubmit();
+      submitBtn.disabled = false;
     });
   });
-  minutosInput.oninput = ()=>{ submitBtn.disabled = !canSubmit(); };
   submitBtn.onclick = async ()=>{
-    if(!canSubmit()) return;
+    if(selected===null) return;
     submitBtn.disabled = true; status.textContent = 'Guardando…';
     try{
-      const minutos = selected===0 ? 0 : Number(minutosInput.value);
-      await submitRpe(selected, minutos);
-      status.textContent = `¡Listo! Guardamos tu RPE de hoy: ${selected}/10 · ${minutos} min.`;
+      await submitRpe(selected);
+      status.textContent = `¡Listo! Guardamos tu RPE de hoy: ${selected}/10.`;
     }catch(error){
       status.textContent = 'No se pudo guardar: ' + error.message;
     }
@@ -866,11 +852,14 @@ function buildRpeLoadTable(dateStr){
       else if(ratio<1.5){ ratioColor='var(--warn)'; ratioLabel='Precaución'; }
       else { ratioColor='var(--bad)'; ratioLabel='Riesgo alto'; }
     }
+    const minCell = todayReport
+      ? `<input type="number" min="0" max="240" class="rpe-min-input" data-player="${p}" data-fecha="${dateStr}" value="${minVal!==null?minVal:''}" placeholder="—" style="width:56px;padding:5px 6px;border-radius:6px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:12px 'IBM Plex Mono';outline:none;">`
+      : `<span style="color:var(--mist);">—</span>`;
     return `<tr>
       <td class="metric-name">${p}</td>
       <td>${hora}</td>
       <td>${rpeVal!==null? rpeVal+'/10' : '—'}</td>
-      <td>${minVal!==null? minVal : '—'}</td>
+      <td>${minCell}</td>
       <td>${cDiaria!==null? cDiaria : '—'}</td>
       <td>${acute!==null? acute.toFixed(1) : '—'}</td>
       <td>${chronic!==null? chronic.toFixed(1) : '—'}</td>
@@ -878,8 +867,21 @@ function buildRpeLoadTable(dateStr){
     </tr>`;
   }).join('');
   table.innerHTML = `<thead><tr>
-    <th>Jugador</th><th>Hora</th><th>RPE</th><th>Min</th><th>C. Diaria</th><th>C. Aguda</th><th>C. Crónica</th><th>Ratio A:C</th>
+    <th>Jugador</th><th>Hora</th><th>RPE</th><th>Min ✏️</th><th>C. Diaria</th><th>C. Aguda</th><th>C. Crónica</th><th>Ratio A:C</th>
   </tr></thead><tbody>${rowsHtml}</tbody>`;
+  table.querySelectorAll('.rpe-min-input').forEach(input=>{
+    const save = async ()=>{
+      const val = input.value===''? null : Number(input.value);
+      input.disabled = true;
+      const {error} = await supabaseClient.from('rpe_reports').update({minutos:val, updated_at:new Date().toISOString()})
+        .eq('club',CURRENT_CLUB).eq('player_name',input.dataset.player).eq('fecha',input.dataset.fecha);
+      input.disabled = false;
+      if(error){ console.warn(error); return; }
+      await buildRpeTeamList();
+    };
+    input.addEventListener('blur', save);
+    input.addEventListener('keydown', e=>{ if(e.key==='Enter'){ input.blur(); } });
+  });
 }
 
 async function startDashboard(){
