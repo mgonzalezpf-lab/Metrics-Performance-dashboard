@@ -266,6 +266,9 @@
   .acwr-marker{position:absolute;top:-3px;width:3px;height:20px;background:var(--bone);border-radius:2px;box-shadow:0 0 0 2px rgba(10,26,19,.6);transform:translateX(-50%);}
   .acwr-ratio{font-family:'IBM Plex Mono';font-size:12.5px;color:var(--bone);text-align:right;}
   .acwr-badge{font-size:10.5px;padding:3px 8px;border-radius:20px;font-family:'IBM Plex Mono';text-align:center;white-space:nowrap;}
+  .lang-btn{opacity:.55;}
+  .lang-btn.active{opacity:1;background:var(--gold);color:var(--pitch-950);}
+  .rpe-btn.active{background:var(--gold);color:var(--pitch-950);}
 
   /* compare panel */
   .compare-controls{display:flex;gap:12px;padding:14px 18px 4px;flex-wrap:wrap;align-items:center;}
@@ -322,35 +325,40 @@
 <body>
 <div id="authScreen" class="auth-screen">
   <form id="authForm" class="auth-card">
-    <h2 id="authTitle">Acceso al dashboard</h2>
-    <p id="authDescription">Inicia sesión para consultar y actualizar los datos del equipo.</p>
-    <label for="authEmail">Email</label><input id="authEmail" type="email" autocomplete="email" required>
-    <label for="authPassword">Contraseña</label><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required>
-    <button id="authSubmit" class="auth-submit" type="submit">Ingresar</button>
-    <button id="authSwitch" class="auth-switch" type="button">Crear mi acceso</button>
-    <button id="forgotPassword" class="auth-switch" type="button" style="padding-top:6px;">¿Olvidaste tu contraseña?</button>
-    <p style="text-align:center;margin-top:16px;font-size:10.5px;color:var(--mist);letter-spacing:.02em;opacity:.75;">By Matías González Galindo — Head of Physical Performance</p>
+    <div style="display:flex;justify-content:center;gap:4px;margin-bottom:14px;">
+      <button type="button" class="lang-btn upload-btn" data-lang="es" style="padding:6px 12px;font-size:11px;">ES</button>
+      <button type="button" class="lang-btn upload-btn" data-lang="en" style="padding:6px 12px;font-size:11px;">EN</button>
+      <button type="button" class="lang-btn upload-btn" data-lang="ar" style="padding:6px 12px;font-size:11px;">AR</button>
+    </div>
+    <h2 id="authTitle" data-i18n="authTitleLogin" class="i18n-text">Acceso al dashboard</h2>
+    <p id="authDescription" data-i18n="authDescLogin" class="i18n-text">Inicia sesión para consultar y actualizar los datos del equipo.</p>
+    <label for="authEmail" data-i18n="email" class="i18n-text">Email</label><input id="authEmail" type="email" autocomplete="email" required>
+    <label for="authPassword" data-i18n="password" class="i18n-text">Contraseña</label><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required>
+    <button id="authSubmit" class="auth-submit" type="submit" data-i18n="ingresar">Ingresar</button>
+    <button id="authSwitch" class="auth-switch" type="button" data-i18n="crearAcceso">Crear mi acceso</button>
+    <button id="forgotPassword" class="auth-switch" type="button" style="padding-top:6px;" data-i18n="olvidasteContrasena">¿Olvidaste tu contraseña?</button>
+    <p style="text-align:center;margin-top:16px;font-size:10.5px;color:var(--mist);letter-spacing:.02em;opacity:.75;" data-i18n="credit">By Matías González Galindo — Head of Physical Performance</p>
     <div id="authMessage" class="auth-message" aria-live="polite"></div>
   </form>
 </div>
 
 <div id="recoveryScreen" class="auth-screen" style="display:none;">
   <form id="recoveryForm" class="auth-card">
-    <h2>Nueva contraseña</h2>
-    <p>Escribe tu nueva contraseña para terminar de recuperar tu acceso.</p>
-    <label for="recoveryPassword">Nueva contraseña</label><input id="recoveryPassword" type="password" autocomplete="new-password" minlength="6" required>
-    <button class="auth-submit" type="submit">Guardar nueva contraseña</button>
+    <h2 data-i18n="nuevaContrasena" class="i18n-text">Nueva contraseña</h2>
+    <p data-i18n="nuevaContrasenaDesc" class="i18n-text">Escribe tu nueva contraseña para terminar de recuperar tu acceso.</p>
+    <label for="recoveryPassword" data-i18n="nuevaContrasena" class="i18n-text">Nueva contraseña</label><input id="recoveryPassword" type="password" autocomplete="new-password" minlength="6" required>
+    <button class="auth-submit" type="submit" data-i18n="guardarContrasena">Guardar nueva contraseña</button>
     <div id="recoveryMessage" class="auth-message" aria-live="polite"></div>
   </form>
 </div>
 
 <div id="nameScreen" class="auth-screen" style="display:none;">
   <form id="nameForm" class="auth-card">
-    <h2>¿Quién eres?</h2>
-    <p>Selecciona tu nombre en la lista del plantel. Una vez elegido, tu cuenta queda vinculada a ese jugador y solo verás tus propios datos.</p>
-    <label for="nameSelect">Jugador</label>
+    <h2 data-i18n="quienEres" class="i18n-text">¿Quién eres?</h2>
+    <p data-i18n="quienEresDesc" class="i18n-text">Selecciona tu nombre en la lista del plantel. Una vez elegido, tu cuenta queda vinculada a ese jugador y solo verás tus propios datos.</p>
+    <label for="nameSelect" data-i18n="jugador" class="i18n-text">Jugador</label>
     <select id="nameSelect"></select>
-    <button class="auth-submit" type="submit">Confirmar</button>
+    <button class="auth-submit" type="submit" data-i18n="confirmar">Confirmar</button>
     <div id="nameMessage" class="auth-message" aria-live="polite"></div>
   </form>
 </div>
@@ -365,11 +373,16 @@
       </div>
     </div>
     <div class="meta-right">
-      <div><span class="live-dot"></span>DATOS ACTUALIZADOS AL <b id="lastDate">--</b></div>
-      <div id="rangeMeta">23 jugadores activos</div>
-      <button id="uploadBtn" class="upload-btn" style="display:none;">⟳ Actualizar datos (subir Excel)</button>
-      <button id="restoreBtn" class="upload-btn" style="display:none;border-color:var(--mist);color:var(--mist);margin-left:6px;">Restablecer datos iniciales</button>
-      <button id="logoutBtn" class="upload-btn" style="border-color:var(--mist);color:var(--mist);margin-left:6px;">Cerrar sesión</button>
+      <div><span class="live-dot"></span><span data-i18n="datosActualizados">DATOS ACTUALIZADOS AL</span> <b id="lastDate">--</b></div>
+      <div id="rangeMeta"><span id="rangeMetaCount">23</span> <span data-i18n="jugadoresActivos">jugadores activos</span></div>
+      <span style="display:inline-flex;gap:2px;margin-left:6px;">
+        <button class="lang-btn upload-btn" data-lang="es" style="padding:6px 9px;font-size:11px;">ES</button>
+        <button class="lang-btn upload-btn" data-lang="en" style="padding:6px 9px;font-size:11px;">EN</button>
+        <button class="lang-btn upload-btn" data-lang="ar" style="padding:6px 9px;font-size:11px;">AR</button>
+      </span>
+      <button id="uploadBtn" class="upload-btn" style="display:none;" data-i18n="actualizarDatos">⟳ Actualizar datos (subir Excel)</button>
+      <button id="restoreBtn" class="upload-btn" style="display:none;border-color:var(--mist);color:var(--mist);margin-left:6px;" data-i18n="restablecerDatos">Restablecer datos iniciales</button>
+      <button id="logoutBtn" class="upload-btn" style="border-color:var(--mist);color:var(--mist);margin-left:6px;" data-i18n="cerrarSesion">Cerrar sesión</button>
       <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none;">
       <div id="uploadStatus" class="upload-status"></div>
     </div>
@@ -379,26 +392,36 @@
 
   <div class="panel team-only" style="margin-bottom:18px;">
     <div class="panel-head">
-      <h3>Evolución del plantel</h3>
+      <h3 data-i18n="evolucionPlantel">Evolución del plantel</h3>
       <span class="tag" id="teamTimelineTag">—</span>
     </div>
     <div class="metric-tabs" id="teamMetricTabs"></div>
     <div class="chart-box"><canvas id="teamTimelineChart"></canvas></div>
     <div class="timeline-nav">
-      <button class="tl-btn" id="ttPrev" title="Sesiones anteriores">◀</button>
+      <button class="tl-btn" id="ttPrev" data-i18n-title="sesionesAnteriores" title="Sesiones anteriores">◀</button>
       <div class="tl-range">
         <input type="range" id="ttSlider" min="0" max="0" value="0" step="1">
         <div class="tl-label" id="ttLabel">—</div>
       </div>
-      <button class="tl-btn" id="ttNext" title="Sesiones siguientes">▶</button>
+      <button class="tl-btn" id="ttNext" data-i18n-title="sesionesSiguientes" title="Sesiones siguientes">▶</button>
     </div>
+  </div>
+
+  <div class="panel" id="rpePanel" style="display:none;margin-bottom:18px;">
+    <div class="panel-head">
+      <h3 data-i18n="rpeTitulo">¿Cómo sentiste el entrenamiento de hoy?</h3>
+      <span class="tag" data-i18n="rpeSubtitulo">RPE de sesión · 1 (muy suave) a 10 (máximo esfuerzo)</span>
+    </div>
+    <div id="rpeScale" style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;"></div>
+    <button id="rpeSubmit" class="upload-btn" style="margin-top:4px;" disabled data-i18n="enviarRpe">Enviar RPE</button>
+    <div id="rpeStatus" class="upload-status" style="margin-top:8px;"></div>
   </div>
 
   <div class="main-grid" id="mainGrid">
     <!-- LEFT RAIL -->
     <div class="panel team-only">
-      <div class="panel-head"><h3>Plantel</h3><span class="tag" id="railCount">23</span></div>
-      <div class="rail-search"><input id="searchInput" placeholder="Buscar jugador…" /></div>
+      <div class="panel-head"><h3 data-i18n="plantel">Plantel</h3><span class="tag" id="railCount">23</span></div>
+      <div class="rail-search"><input id="searchInput" data-i18n-placeholder="buscarJugador" placeholder="Buscar jugador…" /></div>
       <div class="player-list" id="playerList"></div>
     </div>
 
@@ -407,8 +430,8 @@
 
       <div class="panel">
         <div class="panel-head">
-          <h3 id="radarTitle">Radar de Vuelo</h3>
-          <span class="tag">perfil normalizado vs. plantel</span>
+          <h3 id="radarTitle" data-i18n="radarVuelo">Radar de Vuelo</h3>
+          <span class="tag" data-i18n="perfilNormalizado">perfil normalizado vs. plantel</span>
         </div>
         <div class="radar-body">
           <div class="radar-svg-wrap">
@@ -426,18 +449,18 @@
 
       <div class="panel">
         <div class="panel-head">
-          <h3>Evolución por sesión</h3>
+          <h3 data-i18n="evolucionSesion">Evolución por sesión</h3>
           <span class="tag" id="timelinePlayerTag">—</span>
         </div>
         <div class="metric-tabs" id="metricTabs"></div>
         <div class="chart-box"><canvas id="timelineChart"></canvas></div>
         <div class="timeline-nav">
-          <button class="tl-btn" id="tlPrev" title="Sesiones anteriores">◀</button>
+          <button class="tl-btn" id="tlPrev" data-i18n-title="sesionesAnteriores" title="Sesiones anteriores">◀</button>
           <div class="tl-range">
             <input type="range" id="tlSlider" min="0" max="0" value="0" step="1">
             <div class="tl-label" id="tlLabel">—</div>
           </div>
-          <button class="tl-btn" id="tlNext" title="Sesiones siguientes">▶</button>
+          <button class="tl-btn" id="tlNext" data-i18n-title="sesionesSiguientes" title="Sesiones siguientes">▶</button>
         </div>
       </div>
 
@@ -446,8 +469,8 @@
 
   <div class="panel team-only" style="margin-bottom:18px;">
     <div class="panel-head">
-      <h3>Alertas de carga · ACWR</h3>
-      <span class="tag">agudo (7 días) : crónico (28 días) · sobre Player Load</span>
+      <h3 data-i18n="alertasCarga">Alertas de carga · ACWR</h3>
+      <span class="tag" data-i18n="acwrTag">agudo (7 días) : crónico (28 días) · sobre Player Load</span>
     </div>
     <div class="acwr-note">Ratio entre la carga de los últimos <b>7 días</b> y el promedio semanal de los últimos <b>28 días</b>. Con poco historial cargado el número es orientativo — se vuelve más confiable a medida que sumás sesiones. No reemplaza el criterio del cuerpo técnico ni médico.</div>
     <div class="acwr-legend">
@@ -460,7 +483,7 @@
     <div class="weekly-load-box">
       <div class="weekly-load-head">
         <h4>ACWR diario del equipo</h4>
-        <span class="tag" id="weeklyLoadTag">Promedio del plantel · un dato por día</span>
+        <span class="tag" id="weeklyLoadTag" data-i18n="promedioPlantel">Promedio del plantel · un dato por día</span>
       </div>
       <div class="acwr-legend" style="padding:0 0 6px;">
         <span><span class="dot" style="background:var(--good);"></span>0.80–1.30 zona óptima</span>
@@ -468,20 +491,20 @@
       </div>
       <div class="weekly-chart-box"><canvas id="weeklyLoadChart"></canvas></div>
       <div class="timeline-nav">
-        <button class="tl-btn" id="wlPrev" title="Días anteriores">◀</button>
+        <button class="tl-btn" id="wlPrev" data-i18n-title="diasAnteriores" title="Días anteriores">◀</button>
         <div class="tl-range">
           <input type="range" id="wlSlider" min="0" max="0" value="0" step="1">
           <div class="tl-label" id="wlLabel">—</div>
         </div>
-        <button class="tl-btn" id="wlNext" title="Días siguientes">▶</button>
+        <button class="tl-btn" id="wlNext" data-i18n-title="diasSiguientes" title="Días siguientes">▶</button>
       </div>
     </div>
   </div>
 
   <div class="panel team-only" style="margin-bottom:18px;">
     <div class="panel-head">
-      <h3>Comparar jugadores</h3>
-      <span class="tag">cabeza a cabeza</span>
+      <h3 data-i18n="compararJugadores">Comparar jugadores</h3>
+      <span class="tag" data-i18n="cabezaCabeza">cabeza a cabeza</span>
     </div>
     <div class="compare-controls">
       <select id="compareA"></select>
@@ -501,8 +524,8 @@
 
   <div class="panel team-only" style="margin-bottom:18px;">
     <div class="panel-head">
-      <h3>Ranking del plantel</h3>
-      <span class="tag" id="lbMetricTag">promedio últimas sesiones</span>
+      <h3 data-i18n="rankingPlantel">Ranking del plantel</h3>
+      <span class="tag" id="lbMetricTag" data-i18n="promedioUltimas">promedio últimas sesiones</span>
     </div>
     <div class="metric-tabs" id="lbMetricTabs"></div>
     <div class="lb-alert-banner" id="lbAlertBanner" style="display:none;"></div>
@@ -511,8 +534,8 @@
 
   <div class="panel team-only" style="margin-bottom:18px;">
     <div class="panel-head">
-      <h3>Récords personales</h3>
-      <span class="tag">actualizado desde Base de Datos y Partidos</span>
+      <h3 data-i18n="recordsPersonales">Récords personales</h3>
+      <span class="tag" data-i18n="actualizadoDesde">actualizado desde Base de Datos y Partidos</span>
     </div>
     <div class="rec-scroll">
       <table class="rec-table" id="recTable"></table>
@@ -521,37 +544,45 @@
 
   <div class="panel team-only">
     <div class="panel-head">
-      <h3>Comparativo de partidos</h3>
-      <span class="tag">totales de equipo</span>
+      <h3 data-i18n="comparativoPartidos">Comparativo de partidos</h3>
+      <span class="tag" data-i18n="totalesEquipo">totales de equipo</span>
     </div>
     <div class="match-grid" id="matchGrid"></div>
   </div>
 
   <div class="panel team-only" style="margin-top:18px;">
     <div class="panel-head">
-      <h3>Monotonía y Strain · método Foster</h3>
-      <span class="tag">última semana con datos · sobre Player Load</span>
+      <h3 data-i18n="monotoniaStrain">Monotonía y Strain · método Foster</h3>
+      <span class="tag" data-i18n="monotoniaTag">última semana con datos · sobre Player Load</span>
     </div>
     <div class="acwr-body" id="monotonyList"></div>
   </div>
 
   <div class="panel team-only" style="margin-top:18px;">
     <div class="panel-head">
-      <h3>Carga semanal del plantel</h3>
-      <span class="tag" id="weeklyTag">Player Load total por semana</span>
+      <h3 data-i18n="cargaSemanal">Carga semanal del plantel</h3>
+      <span class="tag" id="weeklyTag" data-i18n="cargaSemanalTag">Player Load total por semana</span>
     </div>
     <div class="chart-box" style="height:260px;"><canvas id="weeklyMicroChart"></canvas></div>
   </div>
 
   <div class="panel team-only" style="margin-top:18px;">
     <div class="panel-head">
-      <h3>Calidad de datos</h3>
-      <span class="tag">valores atípicos a revisar</span>
+      <h3 data-i18n="calidadDatos">Calidad de datos</h3>
+      <span class="tag" data-i18n="valoresAtipicos">valores atípicos a revisar</span>
     </div>
     <div class="acwr-body" id="dataQualityList"></div>
   </div>
 
-  <footer>SAQER FC · Matías González Galindo — Head of Physical Performance · Fuente: Planilla_Rendimiento_GPS.xlsx</footer>
+  <div class="panel team-only" style="margin-top:18px;">
+    <div class="panel-head">
+      <h3 data-i18n="rpePlantel">RPE del plantel</h3>
+      <span class="tag" data-i18n="rpePlantelTag">percepción de esfuerzo reportada por cada jugador</span>
+    </div>
+    <div class="acwr-body" id="rpeTeamList"></div>
+  </div>
+
+  <footer data-i18n="footer">SAQER FC · Matías González Galindo — Head of Physical Performance · Fuente: Planilla_Rendimiento_GPS.xlsx</footer>
 </div>
 
 <script>
@@ -574,10 +605,10 @@ function authMessage(message, kind=''){
 }
 function updateAuthForm(){
   const creating=authMode==='signup';
-  document.getElementById('authTitle').textContent=creating?'Crear acceso':'Acceso al dashboard';
-  document.getElementById('authDescription').textContent=creating?'Registra tu email y contraseña. Te llegará un correo para confirmar el acceso.':'Inicia sesión para consultar y actualizar los datos del equipo.';
-  document.getElementById('authSubmit').textContent=creating?'Crear cuenta':'Ingresar';
-  document.getElementById('authSwitch').textContent=creating?'Ya tengo acceso':'Crear mi acceso';
+  document.getElementById('authTitle').textContent=creating?t('authTitleSignup'):t('authTitleLogin');
+  document.getElementById('authDescription').textContent=creating?t('authDescSignup'):t('authDescLogin');
+  document.getElementById('authSubmit').textContent=creating?t('crearCuenta'):t('ingresar');
+  document.getElementById('authSwitch').textContent=creating?t('yaTengoAcceso'):t('crearAcceso');
   document.getElementById('authPassword').autocomplete=creating?'new-password':'current-password'; authMessage('');
 }
 async function loadRemoteData(){
@@ -664,6 +695,86 @@ async function handleNameSubmit(event){
     showNamePicker(allNames.filter(n=>!taken.includes(n)));
   }
 }
+// ---------- RPE de sesión ----------
+function todayISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+async function getMyTodayRpe(){
+  const {data:{user}}=await supabaseClient.auth.getUser();
+  if(!user) return null;
+  const {data,error}=await supabaseClient.from('rpe_reports').select('rpe').eq('user_id',user.id).eq('fecha',todayISO()).maybeSingle();
+  if(error){ console.warn(error); return null; }
+  return data ? data.rpe : null;
+}
+async function submitRpe(value){
+  const {data:{user}}=await supabaseClient.auth.getUser();
+  const {error}=await supabaseClient.from('rpe_reports').upsert({
+    user_id:user.id, club:CURRENT_CLUB, player_name:myProfile.player_name, fecha:todayISO(), rpe:value, updated_at:new Date().toISOString()
+  }, {onConflict:'user_id,fecha'});
+  if(error) throw error;
+}
+function buildRpeWidget(existingValue){
+  const panel = document.getElementById('rpePanel');
+  if(!panel) return;
+  panel.style.display='block';
+  const scale = document.getElementById('rpeScale');
+  let selected = existingValue || null;
+  scale.innerHTML = Array.from({length:10},(_,i)=>i+1).map(n=>
+    `<button type="button" class="upload-btn rpe-btn ${n===selected?'active':''}" data-n="${n}" style="min-width:36px;padding:8px 0;">${n}</button>`
+  ).join('');
+  const submitBtn = document.getElementById('rpeSubmit');
+  const status = document.getElementById('rpeStatus');
+  submitBtn.disabled = !selected;
+  status.textContent = existingValue ? `Ya reportaste ${existingValue}/10 hoy. Puedes cambiarlo si querés.` : '';
+  scale.querySelectorAll('.rpe-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      selected = Number(btn.dataset.n);
+      scale.querySelectorAll('.rpe-btn').forEach(b=> b.classList.toggle('active', Number(b.dataset.n)===selected));
+      submitBtn.disabled = false;
+    });
+  });
+  submitBtn.onclick = async ()=>{
+    if(!selected) return;
+    submitBtn.disabled = true; status.textContent = 'Guardando…';
+    try{
+      await submitRpe(selected);
+      status.textContent = `¡Listo! Guardamos tu RPE de hoy: ${selected}/10.`;
+    }catch(error){
+      status.textContent = 'No se pudo guardar: ' + error.message;
+    }
+    submitBtn.disabled = false;
+  };
+}
+async function buildRpeTeamList(){
+  const box = document.getElementById('rpeTeamList');
+  if(!box) return;
+  const {data,error} = await supabaseClient.from('rpe_reports').select('player_name,fecha,rpe').eq('club',CURRENT_CLUB).order('fecha',{ascending:false});
+  if(error){ box.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">No se pudo cargar el RPE del plantel.</div>`; return; }
+  const latestByPlayer = {};
+  (data||[]).forEach(r=>{ if(!latestByPlayer[r.player_name]) latestByPlayer[r.player_name]=r; });
+  const today = todayISO();
+  const rows = players.map(p=>{
+    const rep = latestByPlayer[p];
+    const daysSince = rep ? Math.round((new Date(today)-new Date(rep.fecha))/86400000) : null;
+    return {p, rpe: rep?rep.rpe:null, fecha: rep?rep.fecha:null, daysSince};
+  }).sort((a,b)=>{
+    if(a.daysSince===null && b.daysSince===null) return 0;
+    if(a.daysSince===null) return -1;
+    if(b.daysSince===null) return 1;
+    return b.daysSince - a.daysSince;
+  });
+  box.innerHTML = rows.map((r,i)=>{
+    const statusColor = r.rpe===null ? 'var(--mist)' : r.daysSince>1 ? 'var(--warn)' : 'var(--good)';
+    const statusLabel = r.rpe===null ? 'Nunca reportó' : r.daysSince===0 ? 'Hoy' : r.daysSince===1 ? 'Ayer' : `Hace ${r.daysSince} días`;
+    return `<div class="acwr-row" data-p="${r.p}">
+      <div class="rk">${i+1<10?'0':''}${i+1}</div>
+      <div class="nm">${r.p}</div>
+      <div class="acwr-track" style="display:flex;align-items:center;color:var(--mist);font-size:11px;">${statusLabel}</div>
+      <div class="acwr-ratio">${r.rpe!==null? r.rpe+'/10' : '—'}</div>
+      <div><span class="acwr-badge" style="background:${statusColor};color:#14143A;">${r.rpe===null?'Sin datos':statusLabel}</span></div>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('.acwr-row').forEach(el=> el.addEventListener('click',()=>selectPlayer(el.dataset.p)));
+}
+
 async function startDashboard(){
   try{ await loadRemoteData(); }catch(error){ console.warn(error); }
   document.getElementById('authScreen').style.display='none';
@@ -671,6 +782,8 @@ async function startDashboard(){
   if(myProfile && myProfile.role==='player'){
     ACTIVE_EVENTS = ACTIVE_EVENTS.filter(e=>e.jugador===myProfile.player_name);
     applyPlayerModeUI();
+    const existingRpe = await getMyTodayRpe();
+    buildRpeWidget(existingRpe);
   }
   deriveAll(ACTIVE_EVENTS);
   renderAll(myProfile && myProfile.role==='player' ? myProfile.player_name : undefined);
@@ -713,6 +826,124 @@ const METRICS = {
   pl:   {label:'Player Load', unit:'', dec:0, key:'pl'},
 };
 const METRIC_ORDER = ['dist','hsr','vel','acc','desa','pl'];
+
+// ---------- i18n ----------
+const I18N = {
+  es: {
+    metrics:{dist:'Distancia Total',hsr:'HSR',vel:'Vel. Máxima',acc:'Acc',desa:'Desa',pl:'Player Load'},
+    authTitleLogin:'Acceso al dashboard', authTitleSignup:'Crear acceso',
+    authDescLogin:'Inicia sesión para consultar y actualizar los datos del equipo.',
+    authDescSignup:'Registra tu email y contraseña. Te llegará un correo para confirmar el acceso.',
+    email:'Email', password:'Contraseña', ingresar:'Ingresar', crearAcceso:'Crear mi acceso', crearCuenta:'Crear cuenta', yaTengoAcceso:'Ya tengo acceso',
+    olvidasteContrasena:'¿Olvidaste tu contraseña?', credit:'Matías González Galindo — Head of Physical Performance',
+    nuevaContrasena:'Nueva contraseña', nuevaContrasenaDesc:'Escribe tu nueva contraseña para terminar de recuperar tu acceso.',
+    guardarContrasena:'Guardar nueva contraseña', quienEres:'¿Quién eres?',
+    quienEresDesc:'Selecciona tu nombre en la lista del plantel. Una vez elegido, tu cuenta queda vinculada a ese jugador y solo verás tus propios datos.',
+    jugador:'Jugador', confirmar:'Confirmar',
+    actualizarDatos:'⟳ Actualizar datos (subir Excel)', restablecerDatos:'Restablecer datos iniciales', cerrarSesion:'Cerrar sesión',
+    datosActualizados:'DATOS ACTUALIZADOS AL', jugadoresActivos:'jugadores activos',
+    evolucionPlantel:'Evolución del plantel', sesionesAnteriores:'Sesiones anteriores', sesionesSiguientes:'Sesiones siguientes',
+    plantel:'Plantel', buscarJugador:'Buscar jugador…', radarVuelo:'Radar de Vuelo', perfilNormalizado:'perfil normalizado vs. plantel',
+    evolucionSesion:'Evolución por sesión', alertasCarga:'Alertas de carga · ACWR', acwrTag:'agudo (7 días) : crónico (28 días) · sobre Player Load',
+    promedioPlantel:'Promedio del plantel · un dato por día', diasAnteriores:'Días anteriores', diasSiguientes:'Días siguientes',
+    compararJugadores:'Comparar jugadores', cabezaCabeza:'cabeza a cabeza', rankingPlantel:'Ranking del plantel',
+    promedioUltimas:'promedio últimas sesiones', recordsPersonales:'Récords personales', actualizadoDesde:'actualizado desde Base de Datos y Partidos',
+    comparativoPartidos:'Comparativo de partidos', totalesEquipo:'totales de equipo',
+    kpiSesiones:'Sesiones cargadas', kpiDistancia:'Distancia total plantel', kpiPlayerLoad:'Player Load promedio',
+    kpiRecords:'Récords logrados hoy', sinNuevos:'sin nuevos récords', jugadores:'jugadores', fechas:'fechas',
+    acumulados:'m acumulados', porSesion:'por sesión / jugador',
+    monotoniaStrain:'Monotonía y Strain · método Foster', monotoniaTag:'última semana con datos · sobre Player Load',
+    cargaSemanal:'Carga semanal del plantel', cargaSemanalTag:'Player Load total por semana',
+    calidadDatos:'Calidad de datos', valoresAtipicos:'valores atípicos a revisar',
+    rpePlantel:'RPE del plantel', rpePlantelTag:'percepción de esfuerzo reportada por cada jugador',
+    rpeTitulo:'¿Cómo sentiste el entrenamiento de hoy?', rpeSubtitulo:'RPE de sesión · 1 (muy suave) a 10 (máximo esfuerzo)',
+    enviarRpe:'Enviar RPE',
+    footer:'SAQER FC · Matías González Galindo — Head of Physical Performance · Fuente: Planilla_Rendimiento_GPS.xlsx',
+  },
+  en: {
+    metrics:{dist:'Total Distance',hsr:'HSR',vel:'Max Speed',acc:'Acc',desa:'Dec',pl:'Player Load'},
+    authTitleLogin:'Dashboard access', authTitleSignup:'Create access',
+    authDescLogin:'Log in to view and update the team data.',
+    authDescSignup:'Register your email and password. You will receive a confirmation email.',
+    email:'Email', password:'Password', ingresar:'Log in', crearAcceso:'Create my account', crearCuenta:'Create account', yaTengoAcceso:'I already have an account',
+    olvidasteContrasena:'Forgot your password?', credit:'Matías González Galindo — Head of Physical Performance',
+    nuevaContrasena:'New password', nuevaContrasenaDesc:'Enter your new password to finish recovering your access.',
+    guardarContrasena:'Save new password', quienEres:'Who are you?',
+    quienEresDesc:'Select your name from the squad list. Once chosen, your account is linked to that player and you will only see your own data.',
+    jugador:'Player', confirmar:'Confirm',
+    actualizarDatos:'⟳ Update data (upload Excel)', restablecerDatos:'Reset initial data', cerrarSesion:'Log out',
+    datosActualizados:'DATA UPDATED ON', jugadoresActivos:'active players',
+    evolucionPlantel:'Squad evolution', sesionesAnteriores:'Previous sessions', sesionesSiguientes:'Next sessions',
+    plantel:'Squad', buscarJugador:'Search player…', radarVuelo:'Flight Radar', perfilNormalizado:'normalized profile vs. squad',
+    evolucionSesion:'Session evolution', alertasCarga:'Load alerts · ACWR', acwrTag:'acute (7 days) : chronic (28 days) · over Player Load',
+    promedioPlantel:'Squad average · one data point per day', diasAnteriores:'Previous days', diasSiguientes:'Next days',
+    compararJugadores:'Compare players', cabezaCabeza:'head to head', rankingPlantel:'Squad ranking',
+    promedioUltimas:'average of last sessions', recordsPersonales:'Personal records', actualizadoDesde:'updated from Database and Matches',
+    comparativoPartidos:'Match comparison', totalesEquipo:'team totals',
+    kpiSesiones:'Sessions loaded', kpiDistancia:'Squad total distance', kpiPlayerLoad:'Average Player Load',
+    kpiRecords:'Records set today', sinNuevos:'no new records', jugadores:'players', fechas:'dates',
+    acumulados:'m accumulated', porSesion:'per session / player',
+    monotoniaStrain:'Monotony and Strain · Foster method', monotoniaTag:'last week with data · over Player Load',
+    cargaSemanal:'Squad weekly load', cargaSemanalTag:'Total Player Load per week',
+    calidadDatos:'Data quality', valoresAtipicos:'outlier values to review',
+    rpePlantel:'Squad RPE', rpePlantelTag:'perceived exertion reported by each player',
+    rpeTitulo:'How did today\'s training feel?', rpeSubtitulo:'Session RPE · 1 (very easy) to 10 (maximum effort)',
+    enviarRpe:'Submit RPE',
+    footer:'SAQER FC · Matías González Galindo — Head of Physical Performance · Source: Planilla_Rendimiento_GPS.xlsx',
+  },
+  ar: {
+    metrics:{dist:'المسافة الإجمالية',hsr:'الجري عالي السرعة',vel:'السرعة القصوى',acc:'تسارع',desa:'تباطؤ',pl:'حمل اللاعب'},
+    authTitleLogin:'الدخول إلى لوحة التحكم', authTitleSignup:'إنشاء حساب',
+    authDescLogin:'سجّل الدخول للاطلاع على بيانات الفريق وتحديثها.',
+    authDescSignup:'سجّل بريدك الإلكتروني وكلمة المرور. سيصلك بريد لتأكيد الدخول.',
+    email:'البريد الإلكتروني', password:'كلمة المرور', ingresar:'دخول', crearAcceso:'إنشاء حسابي', crearCuenta:'إنشاء الحساب', yaTengoAcceso:'لدي حساب بالفعل',
+    olvidasteContrasena:'هل نسيت كلمة المرور؟', credit:'ماتياس غونزاليس غاليندو — مسؤول الأداء البدني',
+    nuevaContrasena:'كلمة مرور جديدة', nuevaContrasenaDesc:'اكتب كلمة المرور الجديدة لإتمام استعادة حسابك.',
+    guardarContrasena:'حفظ كلمة المرور الجديدة', quienEres:'من أنت؟',
+    quienEresDesc:'اختر اسمك من قائمة الفريق. بمجرد الاختيار، سيُربط حسابك بذلك اللاعب وستشاهد بياناتك فقط.',
+    jugador:'اللاعب', confirmar:'تأكيد',
+    actualizarDatos:'⟳ تحديث البيانات (رفع ملف إكسل)', restablecerDatos:'استعادة البيانات الأولية', cerrarSesion:'تسجيل الخروج',
+    datosActualizados:'البيانات محدّثة حتى', jugadoresActivos:'لاعبًا نشطًا',
+    evolucionPlantel:'تطور الفريق', sesionesAnteriores:'الحصص السابقة', sesionesSiguientes:'الحصص التالية',
+    plantel:'قائمة الفريق', buscarJugador:'ابحث عن لاعب…', radarVuelo:'رادار الأداء', perfilNormalizado:'ملف معياري مقابل الفريق',
+    evolucionSesion:'التطور خلال الحصة', alertasCarga:'تنبيهات الحمل · ACWR', acwrTag:'حاد (7 أيام) : مزمن (28 يومًا) · حسب حمل اللاعب',
+    promedioPlantel:'متوسط الفريق · قيمة واحدة لكل يوم', diasAnteriores:'الأيام السابقة', diasSiguientes:'الأيام التالية',
+    compararJugadores:'مقارنة اللاعبين', cabezaCabeza:'وجهًا لوجه', rankingPlantel:'تصنيف الفريق',
+    promedioUltimas:'متوسط آخر الحصص', recordsPersonales:'الأرقام القياسية الشخصية', actualizadoDesde:'محدّث من قاعدة البيانات والمباريات',
+    comparativoPartidos:'مقارنة المباريات', totalesEquipo:'إجماليات الفريق',
+    kpiSesiones:'الحصص المسجلة', kpiDistancia:'إجمالي مسافة الفريق', kpiPlayerLoad:'متوسط حمل اللاعب',
+    kpiRecords:'أرقام قياسية اليوم', sinNuevos:'لا توجد أرقام قياسية جديدة', jugadores:'لاعبين', fechas:'تواريخ',
+    acumulados:'م متراكمة', porSesion:'لكل حصة / لاعب',
+    monotoniaStrain:'الرتابة والإجهاد · طريقة فوستر', monotoniaTag:'آخر أسبوع بيانات · حسب حمل اللاعب',
+    cargaSemanal:'الحمل الأسبوعي للفريق', cargaSemanalTag:'إجمالي حمل اللاعب لكل أسبوع',
+    calidadDatos:'جودة البيانات', valoresAtipicos:'قيم شاذة تستحق المراجعة',
+    rpePlantel:'مؤشر الجهد المُدرَك للفريق', rpePlantelTag:'الجهد المُدرَك الذي يبلغ عنه كل لاعب',
+    rpeTitulo:'كيف شعرت بتمرين اليوم؟', rpeSubtitulo:'مؤشر الجهد المُدرَك للحصة · 1 (خفيف جدًا) إلى 10 (أقصى جهد)',
+    enviarRpe:'إرسال مؤشر الجهد',
+    footer:'نادي الصقر · ماتياس غونزاليس غاليندو — مسؤول الأداء البدني · المصدر: Planilla_Rendimiento_GPS.xlsx',
+  }
+};
+let currentLang = localStorage.getItem('dashboard_lang') || 'es';
+function t(key){ return (I18N[currentLang]&&I18N[currentLang][key]) || I18N.es[key] || key; }
+function applyI18nStatic(){
+  METRIC_ORDER.forEach(k=> METRICS[k].label = I18N[currentLang].metrics[k]);
+  document.querySelectorAll('[data-i18n]').forEach(el=>{ el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{ el.placeholder = t(el.dataset.i18nPlaceholder); });
+  document.querySelectorAll('[data-i18n-title]').forEach(el=>{ el.title = t(el.dataset.i18nTitle); });
+  const authTitle = document.getElementById('authTitle');
+  if(authTitle) authTitle.textContent = authMode==='signup' ? t('authTitleSignup') : t('authTitleLogin');
+  const authDesc = document.getElementById('authDescription');
+  if(authDesc) authDesc.textContent = authMode==='signup' ? t('authDescSignup') : t('authDescLogin');
+  document.querySelectorAll('.lang-btn').forEach(b=> b.classList.toggle('active', b.dataset.lang===currentLang));
+  document.querySelectorAll('.i18n-text').forEach(el=>{ el.style.textAlign = currentLang==='ar' ? 'right' : ''; el.dir = currentLang==='ar' ? 'rtl' : 'ltr'; });
+}
+function setLang(lang){
+  currentLang = lang;
+  localStorage.setItem('dashboard_lang', lang);
+  applyI18nStatic();
+  buildMetricTabs(); buildTeamMetricTabs(); buildLbMetricTabs();
+  if(ACTIVE_EVENTS && ACTIVE_EVENTS.length){ renderAll(state.player); }
+}
 
 let state = { player:null, metric:'dist', tlOffset:0, wlOffset:0, ttMetric:'dist', ttOffset:0, lbMetric:'dist' };
 const TIMELINE_WINDOW = 20;
@@ -949,10 +1180,10 @@ function buildKPIs(){
   document.getElementById('lastDate').textContent = lastDate.split('-').reverse().join('/');
   const todays = RECORDS.filter(r=>['dist','hsr','vel','acc','desa','pl'].some(m=>r[m].fecha===lastDate));
   const kpis = [
-    {lbl:'Sesiones cargadas', val:ACTIVE_EVENTS.length, sub:`${byPlayer[players[0]]?players.length:0} jugadores · ${dates.length} fechas`},
-    {lbl:'Distancia total plantel', val:fmt(Math.round(totalDist/1000)), unit:'km', sub:`${fmt(Math.round(totalDist))} m acumulados`},
-    {lbl:'Player Load promedio', val:fmt(Math.round(avgPL)), unit:'', sub:`por sesión / jugador`},
-    {lbl:'Récords logrados hoy', val:todays.length, unit:'', sub: todays.length? `<b>${todays.map(t=>t.jugador.split(' ')[0]).slice(0,3).join(', ')}${todays.length>3?'…':''}</b>` : 'sin nuevos récords'},
+    {lbl:t('kpiSesiones'), val:ACTIVE_EVENTS.length, sub:`${byPlayer[players[0]]?players.length:0} ${t('jugadores')} · ${dates.length} ${t('fechas')}`},
+    {lbl:t('kpiDistancia'), val:fmt(Math.round(totalDist/1000)), unit:'km', sub:`${fmt(Math.round(totalDist))} ${t('acumulados')}`},
+    {lbl:t('kpiPlayerLoad'), val:fmt(Math.round(avgPL)), unit:'', sub:t('porSesion')},
+    {lbl:t('kpiRecords'), val:todays.length, unit:'', sub: todays.length? `<b>${todays.map(x=>x.jugador.split(' ')[0]).slice(0,3).join(', ')}${todays.length>3?'…':''}</b>` : t('sinNuevos')},
   ];
   document.getElementById('kpiStrip').innerHTML = kpis.map(k=>`
     <div class="kpi">
@@ -1653,6 +1884,7 @@ function renderAll(keepPlayer){
   buildMonotonyStrain();
   buildWeeklyMicrocycle();
   buildDataQuality();
+  if(!(myProfile && myProfile.role==='player')) buildRpeTeamList();
   populateCompareSelects();
   buildCompare();
   const defaultPlayer = (keepPlayer && players.includes(keepPlayer)) ? keepPlayer
@@ -1790,6 +2022,10 @@ async function init(){
     }, 1800);
   });
   document.getElementById('nameForm').addEventListener('submit', handleNameSubmit);
+  document.querySelectorAll('.lang-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=> setLang(btn.dataset.lang));
+  });
+  applyI18nStatic();
   document.getElementById('logoutBtn').addEventListener('click', async ()=>{
     await supabaseClient.auth.signOut();
     window.location.reload();
