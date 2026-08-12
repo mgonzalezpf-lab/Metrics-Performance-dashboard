@@ -1243,6 +1243,12 @@ function buildRecordsTable(){
 }
 
 // ---------- match comparison ----------
+function fatigaLabel(v){
+  if(v<=-8) return 'Caída marcada — riesgo alto';
+  if(v<=-4) return 'Caída moderada — atención';
+  if(v<0) return 'Caída leve — normal';
+  return 'Sin caída — rendimiento sostenido';
+}
 function buildMatchGrid(){
   const box = document.getElementById('matchGrid');
   const entries = Object.entries(ACTIVE_TEAMTOTALS)
@@ -1259,7 +1265,7 @@ function buildMatchGrid(){
       <div class="mm-row"><span class="k">Desa B2-3</span><span class="v">${t.desa}</span></div>
       <div class="mm-row"><span class="k">RHIE bouts</span><span class="v">${t.rhie}</span></div>
       <div class="mm-row"><span class="k">Player Load</span><span class="v">${fmt(t.pl)}</span></div>
-      ${t.fatiga!==undefined && t.fatiga!==null ? `<div class="mm-row"><span class="k">Índice de fatiga (2T vs 1T)</span><span class="v" style="color:${t.fatiga<=-8?'var(--bad)':t.fatiga<=-4?'var(--warn)':'var(--good)'};">${t.fatiga>0?'+':''}${fmt(t.fatiga,1)}%</span></div>` : ''}
+      ${t.fatiga!==undefined && t.fatiga!==null ? `<div class="mm-row"><span class="k">Índice de fatiga (2T vs 1T)</span><span class="v" style="color:${t.fatiga<=-8?'var(--bad)':t.fatiga<=-4?'var(--warn)':'var(--good)'};">${t.fatiga>0?'+':''}${fmt(t.fatiga,1)}% <span style="font-size:10.5px;font-weight:400;opacity:.85;">(${fatigaLabel(t.fatiga)})</span></span></div>` : ''}
     </div>`).join('');
 }
 
