@@ -1076,7 +1076,8 @@ function buildRecordsTable(){
 // ---------- match comparison ----------
 function buildMatchGrid(){
   const box = document.getElementById('matchGrid');
-  const entries = Object.entries(ACTIVE_TEAMTOTALS);
+  const entries = Object.entries(ACTIVE_TEAMTOTALS)
+    .sort((a,b)=> (b[1].fecha||'').localeCompare(a[1].fecha||''));
   box.innerHTML = entries.map(([name,t])=>`
     <div class="match-card">
       <h4>${name}</h4>
