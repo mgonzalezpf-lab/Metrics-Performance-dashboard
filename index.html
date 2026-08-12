@@ -1900,19 +1900,19 @@ function buildMatchGrid(){
   const box = document.getElementById('matchGrid');
   const entries = Object.entries(ACTIVE_TEAMTOTALS)
     .sort((a,b)=> (b[1].fecha||'').localeCompare(a[1].fecha||''));
-  box.innerHTML = entries.map(([name,t])=>`
+  box.innerHTML = entries.map(([name,mt])=>`
     <div class="match-card">
       <h4>${name}</h4>
-      <div class="dt">${t.fecha.split('-').reverse().join('/')}</div>
-      <div class="mm-row"><span class="k">${t('distanciaTotal')}</span><span class="v">${fmt(t.dist)} m</span></div>
-      <div class="mm-row"><span class="k">HSR</span><span class="v">${fmt(t.hsr)} m</span></div>
-      <div class="mm-row"><span class="k">${t('sprintDistancia')}</span><span class="v">${fmt(t.sprint_dist)} m</span></div>
-      <div class="mm-row"><span class="k">${t('sprintConteo')}</span><span class="v">${t.sprint_count}</span></div>
-      <div class="mm-row"><span class="k">Acc B2-3</span><span class="v">${t.acc}</span></div>
-      <div class="mm-row"><span class="k">Desa B2-3</span><span class="v">${t.desa}</span></div>
-      <div class="mm-row"><span class="k">RHIE bouts</span><span class="v">${t.rhie}</span></div>
-      <div class="mm-row"><span class="k">Player Load</span><span class="v">${fmt(t.pl)}</span></div>
-      ${t.fatiga!==undefined && t.fatiga!==null ? `<div class="mm-row"><span class="k">${t('indiceFatiga')}</span><span class="v" style="color:${t.fatiga<=-8?'var(--bad)':t.fatiga<=-4?'var(--warn)':'var(--good)'};">${t.fatiga>0?'+':''}${fmt(t.fatiga,1)}% <span style="font-size:10.5px;font-weight:400;opacity:.85;">(${fatigaLabel(t.fatiga)})</span></span></div>` : ''}
+      <div class="dt">${mt.fecha.split('-').reverse().join('/')}</div>
+      <div class="mm-row"><span class="k">${t('distanciaTotal')}</span><span class="v">${fmt(mt.dist)} m</span></div>
+      <div class="mm-row"><span class="k">HSR</span><span class="v">${fmt(mt.hsr)} m</span></div>
+      <div class="mm-row"><span class="k">${t('sprintDistancia')}</span><span class="v">${fmt(mt.sprint_dist)} m</span></div>
+      <div class="mm-row"><span class="k">${t('sprintConteo')}</span><span class="v">${mt.sprint_count}</span></div>
+      <div class="mm-row"><span class="k">Acc B2-3</span><span class="v">${mt.acc}</span></div>
+      <div class="mm-row"><span class="k">Desa B2-3</span><span class="v">${mt.desa}</span></div>
+      <div class="mm-row"><span class="k">RHIE bouts</span><span class="v">${mt.rhie}</span></div>
+      <div class="mm-row"><span class="k">Player Load</span><span class="v">${fmt(mt.pl)}</span></div>
+      ${mt.fatiga!==undefined && mt.fatiga!==null ? `<div class="mm-row"><span class="k">${t('indiceFatiga')}</span><span class="v" style="color:${mt.fatiga<=-8?'var(--bad)':mt.fatiga<=-4?'var(--warn)':'var(--good)'};">${mt.fatiga>0?'+':''}${fmt(mt.fatiga,1)}% <span style="font-size:10.5px;font-weight:400;opacity:.85;">(${fatigaLabel(mt.fatiga)})</span></span></div>` : ''}
     </div>`).join('');
 }
 
