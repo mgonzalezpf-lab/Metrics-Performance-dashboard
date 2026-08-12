@@ -413,10 +413,10 @@
 
   <div class="panel" id="previewBar" style="display:none;margin-bottom:18px;">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <span style="font-size:12px;color:var(--mist);">👁 Vista previa como jugador (solo lectura):</span>
+      <span style="font-size:12px;color:var(--mist);" data-i18n="vistaPreviaJugador">👁 Vista previa como jugador (solo lectura):</span>
       <select id="previewPlayerSelect" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:12.5px 'IBM Plex Sans';outline:none;"></select>
-      <button id="previewStartBtn" class="upload-btn">Ver como jugador</button>
-      <button id="previewExitBtn" class="upload-btn" style="display:none;border-color:var(--bad);color:var(--bad);">✕ Volver a vista admin</button>
+      <button id="previewStartBtn" class="upload-btn" data-i18n="verComoJugador">Ver como jugador</button>
+      <button id="previewExitBtn" class="upload-btn" style="display:none;border-color:var(--bad);color:var(--bad);" data-i18n="volverVistaAdmin">✕ Volver a vista admin</button>
     </div>
   </div>
 
@@ -454,9 +454,9 @@
           <div class="radar-side" id="radarSide"></div>
         </div>
         <div class="legend-row">
-          <span><span class="dot" style="background:var(--gold);"></span>Promedio del jugador</span>
-          <span><span class="dot" style="background:var(--mist);opacity:.6;"></span>Promedio del plantel</span>
-          <span><span class="dot" style="background:var(--maroon);"></span>Récord personal</span>
+          <span><span class="dot" style="background:var(--gold);"></span><span data-i18n="promedioJugador">Promedio del jugador</span></span>
+          <span><span class="dot" style="background:var(--mist);opacity:.6;"></span><span data-i18n="promedioPlantelLegend">Promedio del plantel</span></span>
+          <span><span class="dot" style="background:var(--maroon);"></span><span data-i18n="recordPersonal">Récord personal</span></span>
         </div>
       </div>
 
@@ -485,22 +485,22 @@
       <h3 data-i18n="alertasCarga">Alertas de carga · ACWR</h3>
       <span class="tag" data-i18n="acwrTag">agudo (7 días) : crónico (28 días) · sobre Player Load</span>
     </div>
-    <div class="acwr-note">Ratio entre la carga de los últimos <b>7 días</b> y el promedio semanal de los últimos <b>28 días</b>. Con poco historial cargado el número es orientativo — se vuelve más confiable a medida que sumás sesiones. No reemplaza el criterio del cuerpo técnico ni médico.</div>
+    <div class="acwr-note" data-i18n-html="acwrNota">Ratio entre la carga de los últimos <b>7 días</b> y el promedio semanal de los últimos <b>28 días</b>. Con poco historial cargado el número es orientativo — se vuelve más confiable a medida que sumás sesiones. No reemplaza el criterio del cuerpo técnico ni médico.</div>
     <div class="acwr-legend">
-      <span><span class="dot" style="background:var(--low);"></span>&lt;0.8 carga baja</span>
-      <span><span class="dot" style="background:var(--good);"></span>0.8–1.3 zona óptima</span>
-      <span><span class="dot" style="background:var(--warn);"></span>1.3–1.5 precaución</span>
-      <span><span class="dot" style="background:var(--bad);"></span>&gt;1.5 riesgo alto</span>
+      <span><span class="dot" style="background:var(--low);"></span><span data-i18n="acwrLeyendaBaja">&lt;0.8 carga baja</span></span>
+      <span><span class="dot" style="background:var(--good);"></span><span data-i18n="acwrLeyendaOptima">0.8–1.3 zona óptima</span></span>
+      <span><span class="dot" style="background:var(--warn);"></span><span data-i18n="acwrLeyendaPrecaucion">1.3–1.5 precaución</span></span>
+      <span><span class="dot" style="background:var(--bad);"></span><span data-i18n="acwrLeyendaAlto">&gt;1.5 riesgo alto</span></span>
     </div>
     <div class="acwr-body" id="acwrList"></div>
     <div class="weekly-load-box">
       <div class="weekly-load-head">
-        <h4>ACWR diario del equipo</h4>
+        <h4 data-i18n="acwrDiarioEquipo">ACWR diario del equipo</h4>
         <span class="tag" id="weeklyLoadTag" data-i18n="promedioPlantel">Promedio del plantel · un dato por día</span>
       </div>
       <div class="acwr-legend" style="padding:0 0 6px;">
-        <span><span class="dot" style="background:var(--good);"></span>0.80–1.30 zona óptima</span>
-        <span><span class="dot" style="background:var(--bad);"></span>1.50 riesgo alto</span>
+        <span><span class="dot" style="background:var(--good);"></span><span data-i18n="acwrLeyendaOptima2">0.80–1.30 zona óptima</span></span>
+        <span><span class="dot" style="background:var(--bad);"></span><span data-i18n="acwrLeyendaAlto2">1.50 riesgo alto</span></span>
       </div>
       <div class="weekly-chart-box"><canvas id="weeklyLoadChart"></canvas></div>
       <div class="timeline-nav">
@@ -776,10 +776,10 @@ function exitPlayerPreview(){
 }
 async function handleAuthSubmit(event){
   event.preventDefault(); const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value;
-  authMessage('Comprobando acceso…');
+  authMessage(t('authComprobandoAcceso'));
   const result=authMode==='login'?await supabaseClient.auth.signInWithPassword({email,password}):await supabaseClient.auth.signUp({email,password});
   if(result.error){ authMessage(result.error.message,'error'); return; }
-  if(authMode==='signup'&&!result.data.session){ authMessage('Revisa tu correo y confirma el acceso antes de iniciar sesión.','ok'); return; }
+  if(authMode==='signup'&&!result.data.session){ authMessage(t('authRevisaCorreo'),'ok'); return; }
   await routeAfterLogin();
 }
 async function routeAfterLogin(){
@@ -1181,6 +1181,20 @@ const I18N = {
     rpeVentanaCerrada:'La carga de RPE está disponible de 18:00 a 00:00. Vuelve más tarde.',
     rpeYaEnviado:'✅ Ya enviaste tu RPE de hoy ({n}/10). Podrás reportar de nuevo mañana.',
     guardando:'Guardando…', errorGuardarRpe:'No se pudo guardar: {msg}',
+    caidaMarcada:'Caída marcada — riesgo alto', caidaModerada:'Caída moderada — atención',
+    caidaLeve:'Caída leve — normal', sinCaida:'Sin caída — rendimiento sostenido',
+    distanciaTotal:'Distancia total', sprintDistancia:'Sprint distancia', sprintConteo:'Sprint conteo',
+    indiceFatiga:'Índice de fatiga (2T vs 1T)',
+    acwrNota:'Ratio entre la carga de los últimos <b>7 días</b> y el promedio semanal de los últimos <b>28 días</b>. Con poco historial cargado el número es orientativo — se vuelve más confiable a medida que sumás sesiones. No reemplaza el criterio del cuerpo técnico ni médico.',
+    acwrLeyendaBaja:'<0.8 carga baja', acwrLeyendaOptima:'0.8–1.3 zona óptima', acwrLeyendaPrecaucion:'1.3–1.5 precaución', acwrLeyendaAlto:'>1.5 riesgo alto',
+    acwrLeyendaOptima2:'0.80–1.30 zona óptima', acwrLeyendaAlto2:'1.50 riesgo alto',
+    acwrDiarioEquipo:'ACWR diario del equipo',
+    vistaPreviaJugador:'👁 Vista previa como jugador (solo lectura):', verComoJugador:'Ver como jugador', volverVistaAdmin:'✕ Volver a vista admin',
+    promedioJugador:'Promedio del jugador', promedioPlantelLegend:'Promedio del plantel', recordPersonal:'Récord personal',
+    authComprobandoAcceso:'Comprobando acceso…', authRevisaCorreo:'Revisa tu correo y confirma el acceso antes de iniciar sesión.',
+    authEscribeEmailPrimero:'Escribe tu email arriba primero, luego haz click en este enlace.',
+    authEnviandoEnlace:'Enviando enlace de recuperación…', authListoRevisaCorreo:'Listo, revisa tu correo ({email}) para restablecer tu contraseña.',
+    errorFilaEncabezado:'No se encontró la fila de encabezado en "Comparativo GPS".',
     datosActualizadosOk:'Datos actualizados ✓ {n} registros · {p} jugadores · última fecha {date}',
   },
   en: {
@@ -1235,6 +1249,20 @@ const I18N = {
     rpeVentanaCerrada:'RPE logging is available from 18:00 to 00:00. Check back later.',
     rpeYaEnviado:'✅ You already submitted today\'s RPE ({n}/10). You can report again tomorrow.',
     guardando:'Saving…', errorGuardarRpe:'Could not save: {msg}',
+    caidaMarcada:'Marked drop — high risk', caidaModerada:'Moderate drop — attention',
+    caidaLeve:'Slight drop — normal', sinCaida:'No drop — sustained performance',
+    distanciaTotal:'Total distance', sprintDistancia:'Sprint distance', sprintConteo:'Sprint count',
+    indiceFatiga:'Fatigue index (2H vs 1H)',
+    acwrNota:'Ratio between the load of the last <b>7 days</b> and the weekly average of the last <b>28 days</b>. With little history loaded the number is indicative — it becomes more reliable as sessions accumulate. It does not replace the judgment of the coaching or medical staff.',
+    acwrLeyendaBaja:'<0.8 low load', acwrLeyendaOptima:'0.8–1.3 optimal zone', acwrLeyendaPrecaucion:'1.3–1.5 caution', acwrLeyendaAlto:'>1.5 high risk',
+    acwrLeyendaOptima2:'0.80–1.30 optimal zone', acwrLeyendaAlto2:'1.50 high risk',
+    acwrDiarioEquipo:'Team daily ACWR',
+    vistaPreviaJugador:'👁 Player preview (read-only):', verComoJugador:'View as player', volverVistaAdmin:'✕ Back to admin view',
+    promedioJugador:'Player average', promedioPlantelLegend:'Squad average', recordPersonal:'Personal record',
+    authComprobandoAcceso:'Checking access…', authRevisaCorreo:'Check your email and confirm access before signing in.',
+    authEscribeEmailPrimero:'Enter your email above first, then click this link.',
+    authEnviandoEnlace:'Sending recovery link…', authListoRevisaCorreo:'Done, check your email ({email}) to reset your password.',
+    errorFilaEncabezado:'Header row not found in "Comparativo GPS".',
     datosActualizadosOk:'Data updated ✓ {n} records · {p} players · last date {date}',
   },
   ar: {
@@ -1289,6 +1317,20 @@ const I18N = {
     rpeVentanaCerrada:'تسجيل مؤشر الجهد متاح من 18:00 حتى 00:00. عد لاحقًا.',
     rpeYaEnviado:'✅ لقد أرسلت مؤشر الجهد لهذا اليوم بالفعل ({n}/10). يمكنك الإرسال مرة أخرى غدًا.',
     guardando:'جارٍ الحفظ…', errorGuardarRpe:'تعذّر الحفظ: {msg}',
+    caidaMarcada:'انخفاض ملحوظ — خطر مرتفع', caidaModerada:'انخفاض متوسط — تنبيه',
+    caidaLeve:'انخفاض طفيف — طبيعي', sinCaida:'لا يوجد انخفاض — أداء ثابت',
+    distanciaTotal:'المسافة الإجمالية', sprintDistancia:'مسافة السرعة القصوى', sprintConteo:'عدد الاندفاعات',
+    indiceFatiga:'مؤشر التعب (الشوط 2 مقابل 1)',
+    acwrNota:'النسبة بين حمل آخر <b>7 أيام</b> والمتوسط الأسبوعي لآخر <b>28 يومًا</b>. مع قلة السجل المحمّل يكون الرقم إرشاديًا — ويصبح أكثر موثوقية كلما زادت الحصص المسجّلة. لا يحل محل تقدير الجهاز الفني أو الطبي.',
+    acwrLeyendaBaja:'<0.8 حمل منخفض', acwrLeyendaOptima:'0.8–1.3 منطقة مثالية', acwrLeyendaPrecaucion:'1.3–1.5 تحذير', acwrLeyendaAlto:'>1.5 خطر مرتفع',
+    acwrLeyendaOptima2:'0.80–1.30 منطقة مثالية', acwrLeyendaAlto2:'1.50 خطر مرتفع',
+    acwrDiarioEquipo:'ACWR اليومي للفريق',
+    vistaPreviaJugador:'👁 معاينة كلاعب (للقراءة فقط):', verComoJugador:'عرض كلاعب', volverVistaAdmin:'✕ العودة إلى عرض المسؤول',
+    promedioJugador:'متوسط اللاعب', promedioPlantelLegend:'متوسط الفريق', recordPersonal:'الرقم القياسي الشخصي',
+    authComprobandoAcceso:'جارٍ التحقق من الوصول…', authRevisaCorreo:'تحقق من بريدك الإلكتروني وأكّد الوصول قبل تسجيل الدخول.',
+    authEscribeEmailPrimero:'اكتب بريدك الإلكتروني أعلاه أولاً، ثم اضغط على هذا الرابط.',
+    authEnviandoEnlace:'جارٍ إرسال رابط الاسترداد…', authListoRevisaCorreo:'تم، تحقق من بريدك الإلكتروني ({email}) لإعادة تعيين كلمة المرور.',
+    errorFilaEncabezado:'لم يتم العثور على صف العناوين في "Comparativo GPS".',
     datosActualizadosOk:'تم تحديث البيانات ✓ {n} سجل · {p} لاعب · آخر تاريخ {date}',
   }
 };
@@ -1298,6 +1340,7 @@ function tf(key, params){ let s = t(key); Object.keys(params||{}).forEach(k=>{ s
 function applyI18nStatic(){
   METRIC_ORDER.forEach(k=> METRICS[k].label = I18N[currentLang].metrics[k]);
   document.querySelectorAll('[data-i18n]').forEach(el=>{ el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-html]').forEach(el=>{ el.innerHTML = t(el.dataset.i18nHtml); });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{ el.placeholder = t(el.dataset.i18nPlaceholder); });
   document.querySelectorAll('[data-i18n-title]').forEach(el=>{ el.title = t(el.dataset.i18nTitle); });
   const authTitle = document.getElementById('authTitle');
@@ -1848,10 +1891,10 @@ function buildRecordsTable(){
 
 // ---------- match comparison ----------
 function fatigaLabel(v){
-  if(v<=-8) return 'Caída marcada — riesgo alto';
-  if(v<=-4) return 'Caída moderada — atención';
-  if(v<0) return 'Caída leve — normal';
-  return 'Sin caída — rendimiento sostenido';
+  if(v<=-8) return t('caidaMarcada');
+  if(v<=-4) return t('caidaModerada');
+  if(v<0) return t('caidaLeve');
+  return t('sinCaida');
 }
 function buildMatchGrid(){
   const box = document.getElementById('matchGrid');
@@ -1861,20 +1904,22 @@ function buildMatchGrid(){
     <div class="match-card">
       <h4>${name}</h4>
       <div class="dt">${t.fecha.split('-').reverse().join('/')}</div>
-      <div class="mm-row"><span class="k">Distancia total</span><span class="v">${fmt(t.dist)} m</span></div>
+      <div class="mm-row"><span class="k">${t('distanciaTotal')}</span><span class="v">${fmt(t.dist)} m</span></div>
       <div class="mm-row"><span class="k">HSR</span><span class="v">${fmt(t.hsr)} m</span></div>
-      <div class="mm-row"><span class="k">Sprint distancia</span><span class="v">${fmt(t.sprint_dist)} m</span></div>
-      <div class="mm-row"><span class="k">Sprint conteo</span><span class="v">${t.sprint_count}</span></div>
+      <div class="mm-row"><span class="k">${t('sprintDistancia')}</span><span class="v">${fmt(t.sprint_dist)} m</span></div>
+      <div class="mm-row"><span class="k">${t('sprintConteo')}</span><span class="v">${t.sprint_count}</span></div>
       <div class="mm-row"><span class="k">Acc B2-3</span><span class="v">${t.acc}</span></div>
       <div class="mm-row"><span class="k">Desa B2-3</span><span class="v">${t.desa}</span></div>
       <div class="mm-row"><span class="k">RHIE bouts</span><span class="v">${t.rhie}</span></div>
       <div class="mm-row"><span class="k">Player Load</span><span class="v">${fmt(t.pl)}</span></div>
-      ${t.fatiga!==undefined && t.fatiga!==null ? `<div class="mm-row"><span class="k">Índice de fatiga (2T vs 1T)</span><span class="v" style="color:${t.fatiga<=-8?'var(--bad)':t.fatiga<=-4?'var(--warn)':'var(--good)'};">${t.fatiga>0?'+':''}${fmt(t.fatiga,1)}% <span style="font-size:10.5px;font-weight:400;opacity:.85;">(${fatigaLabel(t.fatiga)})</span></span></div>` : ''}
+      ${t.fatiga!==undefined && t.fatiga!==null ? `<div class="mm-row"><span class="k">${t('indiceFatiga')}</span><span class="v" style="color:${t.fatiga<=-8?'var(--bad)':t.fatiga<=-4?'var(--warn)':'var(--good)'};">${t.fatiga>0?'+':''}${fmt(t.fatiga,1)}% <span style="font-size:10.5px;font-weight:400;opacity:.85;">(${fatigaLabel(t.fatiga)})</span></span></div>` : ''}
     </div>`).join('');
 }
 
 // ---------- ACWR panel ----------
-const ACWR_LABEL = {low:'Carga baja', optimal:'Óptima', caution:'Precaución', high:'Riesgo alto', insuf:'Datos insuf.'};
+function acwrLabelFor(status){
+  return {low:t('cargaBaja'), optimal:t('optima'), caution:t('precaucion'), high:t('riesgoAlto'), insuf:t('datosInsuf')}[status];
+}
 const ACWR_VAR = {low:'--low', optimal:'--good', caution:'--warn', high:'--bad', insuf:'--mist'};
 function buildACWR(){
   const dates = [...new Set(ACTIVE_EVENTS.map(e=>e.fecha))].sort();
@@ -1891,7 +1936,7 @@ function buildACWR(){
       <div class="nm">${r.p}</div>
       <div class="acwr-track">${pct!==null?`<div class="acwr-marker" style="left:${pct}%"></div>`:''}</div>
       <div class="acwr-ratio">${r.ratio!==null? r.ratio.toFixed(2) : '—'}</div>
-      <div><span class="acwr-badge" style="background:var(${ACWR_VAR[r.status]});color:#14143A;">${ACWR_LABEL[r.status]}</span></div>
+      <div><span class="acwr-badge" style="background:var(${ACWR_VAR[r.status]});color:#14143A;">${acwrLabelFor(r.status)}</span></div>
     </div>`;
   }).join('');
   box.querySelectorAll('.acwr-row').forEach(el=> el.addEventListener('click',()=>selectPlayer(el.dataset.p)));
@@ -2279,7 +2324,7 @@ function parseComparativoSheet(ws){
   const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null});
   let headerRow = -1;
   for(let i=0;i<rows.length;i++){ if(rows[i] && String(rows[i][0]||'').startsWith('Variable')){ headerRow=i; break; } }
-  if(headerRow<0) throw new Error('No se encontró la fila de encabezado en "Comparativo GPS".');
+  if(headerRow<0) throw new Error(t('errorFilaEncabezado'));
   const cols = [];
   for(let c=1;c<rows[headerRow].length;c++){ if(rows[headerRow][c]) cols.push({idx:c, name:rows[headerRow][c]}); }
   const dateFor = {};
@@ -2415,11 +2460,11 @@ async function init(){
   });
   document.getElementById('forgotPassword').addEventListener('click', async ()=>{
     const email=document.getElementById('authEmail').value.trim();
-    if(!email){ authMessage('Escribe tu email arriba primero, luego haz click en este enlace.','error'); return; }
-    authMessage('Enviando enlace de recuperación…');
+    if(!email){ authMessage(t('authEscribeEmailPrimero'),'error'); return; }
+    authMessage(t('authEnviandoEnlace'));
     const {error}=await supabaseClient.auth.resetPasswordForEmail(email, {redirectTo:window.location.origin});
     if(error){ authMessage(error.message,'error'); return; }
-    authMessage('Listo, revisa tu correo (' + email + ') para restablecer tu contraseña.','ok');
+    authMessage(tf('authListoRevisaCorreo',{email}),'ok');
   });
   const fileInput = document.getElementById('fileInput');
   const uploadBtn = document.getElementById('uploadBtn');
