@@ -600,9 +600,15 @@
       <h3 data-i18n="cargaInterna">Carga interna (RPE)</h3>
       <span class="tag" data-i18n="cargaInternaTag">carga aguda : crónica basada en RPE × minutos</span>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;margin:8px 0 14px;">
+    <div style="display:flex;align-items:center;gap:10px;margin:8px 0 14px;flex-wrap:wrap;">
       <label for="rpeDatePicker" data-i18n="fecha2" style="font-size:11px;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;">Fecha</label>
       <input id="rpeDatePicker" type="date" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;">
+      <div id="rpeBulkMinWrap" style="display:none;align-items:center;gap:8px;margin-left:auto;">
+        <label for="rpeBulkMin" data-i18n="minutosParaTodos" style="font-size:11px;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;">Minutos para todos</label>
+        <input id="rpeBulkMin" type="number" min="0" max="240" placeholder="—" style="width:64px;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;">
+        <button id="rpeBulkMinApply" class="upload-btn" type="button" data-i18n="aplicarATodos" style="padding:8px 14px;font-size:11.5px;">Aplicar a todos</button>
+        <span id="rpeBulkMinStatus" style="font-size:11px;color:var(--mist);"></span>
+      </div>
     </div>
     <div style="overflow-x:auto;">
       <table class="cmp-table" id="rpeLoadTable"></table>
@@ -1022,6 +1028,28 @@ function buildRpeLoadTable(dateStr){
   });
 }
 
+async function applyBulkMinutes(){
+  const input = document.getElementById('rpeBulkMin');
+  const statusEl = document.getElementById('rpeBulkMinStatus');
+  const btn = document.getElementById('rpeBulkMinApply');
+  const dateStr = document.getElementById('rpeDatePicker').value || todayISO();
+  const val = input.value;
+  if(val===''){ statusEl.textContent = t('ingresaMinutos'); return; }
+  const playersWithReport = RPE_REPORTS_CACHE.filter(r=>r.fecha===dateStr).map(r=>r.player_name);
+  if(!playersWithReport.length){ statusEl.textContent = t('sinReportesFecha'); return; }
+  btn.disabled = true; input.disabled = true; statusEl.textContent = t('aplicando');
+  const {error} = await supabaseClient.from('rpe_reports')
+    .update({minutos:Number(val), updated_at:new Date().toISOString()})
+    .eq('club',CURRENT_CLUB).eq('fecha',dateStr).in('player_name', playersWithReport);
+  btn.disabled = false; input.disabled = false;
+  if(error){ console.warn(error); statusEl.textContent = t('errorAplicarMinutos'); return; }
+  statusEl.textContent = tf('minutosAplicadosOk', {n:playersWithReport.length});
+  input.value = '';
+  await buildRpeLoadTable(dateStr);
+  setTimeout(()=>{ if(statusEl) statusEl.textContent=''; }, 4000);
+}
+
+
 async function startDashboard(){
   try{ await loadRemoteData(); }catch(error){ console.warn(error); }
   document.getElementById('authScreen').style.display='none';
@@ -1036,6 +1064,8 @@ async function startDashboard(){
   renderAll(myProfile && myProfile.role==='player' ? myProfile.player_name : undefined);
   setupPreviewBar();
   checkNewPlayerSignups();
+  const bulkMinWrap = document.getElementById('rpeBulkMinWrap');
+  if(bulkMinWrap) bulkMinWrap.style.display = (myProfile && myProfile.role==='admin') ? 'flex' : 'none';
 }
 
 function hasSavedData(){
@@ -1123,6 +1153,10 @@ const I18N = {
     leyendoArchivo:'Leyendo {file}…', errorLeerArchivo:'No se pudo leer el archivo: {msg}',
     errorLibreriaExcel:'No se pudo cargar la librería de lectura de Excel (sin conexión).',
     errorSinFilas:'No se encontraron filas en las hojas "Session" ni "Partidos".',
+    minutosParaTodos:'Minutos para todos', aplicarATodos:'Aplicar a todos',
+    ingresaMinutos:'Escribe un valor de minutos primero.', sinReportesFecha:'Nadie registró RPE en esta fecha.',
+    aplicando:'Aplicando…', errorAplicarMinutos:'No se pudo aplicar. Intenta de nuevo.',
+    minutosAplicadosOk:'Aplicado a {n} jugador(es) ✓',
     datosActualizadosOk:'Datos actualizados ✓ {n} registros · {p} jugadores · última fecha {date}',
   },
   en: {
@@ -1170,6 +1204,10 @@ const I18N = {
     leyendoArchivo:'Reading {file}…', errorLeerArchivo:'Could not read the file: {msg}',
     errorLibreriaExcel:'Could not load the Excel reading library (offline).',
     errorSinFilas:'No rows found in the "Session" or "Partidos" sheets.',
+    minutosParaTodos:'Minutes for everyone', aplicarATodos:'Apply to all',
+    ingresaMinutos:'Enter a minutes value first.', sinReportesFecha:'No one logged RPE on this date.',
+    aplicando:'Applying…', errorAplicarMinutos:'Could not apply. Try again.',
+    minutosAplicadosOk:'Applied to {n} player(s) ✓',
     datosActualizadosOk:'Data updated ✓ {n} records · {p} players · last date {date}',
   },
   ar: {
@@ -1217,6 +1255,10 @@ const I18N = {
     leyendoArchivo:'جارٍ قراءة {file}…', errorLeerArchivo:'تعذّرت قراءة الملف: {msg}',
     errorLibreriaExcel:'تعذّر تحميل مكتبة قراءة الإكسل (غير متصل).',
     errorSinFilas:'لم يتم العثور على صفوف في أوراق "Session" أو "Partidos".',
+    minutosParaTodos:'الدقائق للجميع', aplicarATodos:'تطبيق على الجميع',
+    ingresaMinutos:'أدخل قيمة الدقائق أولاً.', sinReportesFecha:'لم يسجّل أحد مؤشر الجهد في هذا التاريخ.',
+    aplicando:'جارٍ التطبيق…', errorAplicarMinutos:'تعذّر التطبيق. حاول مرة أخرى.',
+    minutosAplicadosOk:'تم التطبيق على {n} لاعب(ين) ✓',
     datosActualizadosOk:'تم تحديث البيانات ✓ {n} سجل · {p} لاعب · آخر تاريخ {date}',
   }
 };
@@ -2331,6 +2373,11 @@ async function init(){
   if(rpeDatePicker){
     rpeDatePicker.value = todayISO();
     rpeDatePicker.addEventListener('change', ()=> buildRpeLoadTable(rpeDatePicker.value));
+  }
+  const rpeBulkMinApply = document.getElementById('rpeBulkMinApply');
+  if(rpeBulkMinApply){
+    rpeBulkMinApply.addEventListener('click', applyBulkMinutes);
+    document.getElementById('rpeBulkMin').addEventListener('keydown', e=>{ if(e.key==='Enter') applyBulkMinutes(); });
   }
   document.getElementById('logoutBtn').addEventListener('click', async ()=>{
     await supabaseClient.auth.signOut();
