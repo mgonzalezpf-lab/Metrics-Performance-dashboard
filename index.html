@@ -812,6 +812,12 @@ async function handleNameSubmit(event){
 }
 // ---------- RPE de sesión ----------
 function todayISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+const RPE_WINDOW_OPEN_HOUR = 18; // se habilita a las 18:00
+const RPE_WINDOW_CLOSE_HOUR = 24; // se bloquea a las 00:00 (medianoche)
+function isRpeWindowOpen(){
+  const h = new Date().getHours();
+  return h >= RPE_WINDOW_OPEN_HOUR && h < RPE_WINDOW_CLOSE_HOUR;
+}
 async function getMyTodayRpe(){
   const {data:{user}}=await supabaseClient.auth.getUser();
   if(!user) return null;
@@ -859,7 +865,17 @@ function buildRpeWidget(existing){
       <span style="font-size:20px;flex-shrink:0;">${row.emoji}</span>
     </div>`;
     submitBtn.style.display = 'none';
-    status.textContent = `✅ Ya enviaste tu RPE de hoy (${existing.rpe}/10). Podrás reportar de nuevo mañana.`;
+    status.textContent = tf('rpeYaEnviado', {n:existing.rpe});
+    return;
+  }
+
+  // Fuera de la ventana horaria habilitada: mostrar aviso, sin escala ni botón.
+  if(!isRpeWindowOpen()){
+    scale.innerHTML = `<div style="padding:14px 12px;border-radius:8px;border:1px solid var(--line-strong);background:rgba(255,255,255,.03);color:var(--mist);font-size:13px;text-align:center;">
+      🔒 ${t('rpeVentanaCerrada')}
+    </div>`;
+    submitBtn.style.display = 'none';
+    status.textContent = '';
     return;
   }
 
@@ -889,13 +905,14 @@ function buildRpeWidget(existing){
   });
   submitBtn.onclick = async ()=>{
     if(selected===null) return;
-    submitBtn.disabled = true; status.textContent = 'Guardando…';
+    if(!isRpeWindowOpen()){ status.textContent = t('rpeVentanaCerrada'); buildRpeWidget(null); return; }
+    submitBtn.disabled = true; status.textContent = t('guardando');
     scale.querySelectorAll('.rpe-btn').forEach(b=> b.disabled = true);
     try{
       await submitRpe(selected);
       buildRpeWidget({rpe:selected});
     }catch(error){
-      status.textContent = 'No se pudo guardar: ' + error.message;
+      status.textContent = tf('errorGuardarRpe', {msg:error.message});
       scale.querySelectorAll('.rpe-btn').forEach(b=> b.disabled = false);
       submitBtn.disabled = false;
     }
@@ -1059,6 +1076,10 @@ async function startDashboard(){
     applyPlayerModeUI();
     const existingRpe = await getMyTodayRpe();
     buildRpeWidget(existingRpe);
+    setInterval(async ()=>{
+      const stillExisting = await getMyTodayRpe();
+      buildRpeWidget(stillExisting);
+    }, 60000);
   }
   deriveAll(ACTIVE_EVENTS);
   renderAll(myProfile && myProfile.role==='player' ? myProfile.player_name : undefined);
@@ -1157,6 +1178,9 @@ const I18N = {
     ingresaMinutos:'Escribe un valor de minutos primero.', sinReportesFecha:'Nadie registró RPE en esta fecha.',
     aplicando:'Aplicando…', errorAplicarMinutos:'No se pudo aplicar. Intenta de nuevo.',
     minutosAplicadosOk:'Aplicado a {n} jugador(es) ✓',
+    rpeVentanaCerrada:'La carga de RPE está disponible de 18:00 a 00:00. Vuelve más tarde.',
+    rpeYaEnviado:'✅ Ya enviaste tu RPE de hoy ({n}/10). Podrás reportar de nuevo mañana.',
+    guardando:'Guardando…', errorGuardarRpe:'No se pudo guardar: {msg}',
     datosActualizadosOk:'Datos actualizados ✓ {n} registros · {p} jugadores · última fecha {date}',
   },
   en: {
@@ -1208,6 +1232,9 @@ const I18N = {
     ingresaMinutos:'Enter a minutes value first.', sinReportesFecha:'No one logged RPE on this date.',
     aplicando:'Applying…', errorAplicarMinutos:'Could not apply. Try again.',
     minutosAplicadosOk:'Applied to {n} player(s) ✓',
+    rpeVentanaCerrada:'RPE logging is available from 18:00 to 00:00. Check back later.',
+    rpeYaEnviado:'✅ You already submitted today\'s RPE ({n}/10). You can report again tomorrow.',
+    guardando:'Saving…', errorGuardarRpe:'Could not save: {msg}',
     datosActualizadosOk:'Data updated ✓ {n} records · {p} players · last date {date}',
   },
   ar: {
@@ -1259,6 +1286,9 @@ const I18N = {
     ingresaMinutos:'أدخل قيمة الدقائق أولاً.', sinReportesFecha:'لم يسجّل أحد مؤشر الجهد في هذا التاريخ.',
     aplicando:'جارٍ التطبيق…', errorAplicarMinutos:'تعذّر التطبيق. حاول مرة أخرى.',
     minutosAplicadosOk:'تم التطبيق على {n} لاعب(ين) ✓',
+    rpeVentanaCerrada:'تسجيل مؤشر الجهد متاح من 18:00 حتى 00:00. عد لاحقًا.',
+    rpeYaEnviado:'✅ لقد أرسلت مؤشر الجهد لهذا اليوم بالفعل ({n}/10). يمكنك الإرسال مرة أخرى غدًا.',
+    guardando:'جارٍ الحفظ…', errorGuardarRpe:'تعذّر الحفظ: {msg}',
     datosActualizadosOk:'تم تحديث البيانات ✓ {n} سجل · {p} لاعب · آخر تاريخ {date}',
   }
 };
