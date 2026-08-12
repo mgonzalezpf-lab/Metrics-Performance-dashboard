@@ -527,6 +527,30 @@
     <div class="match-grid" id="matchGrid"></div>
   </div>
 
+  <div class="panel team-only" style="margin-top:18px;">
+    <div class="panel-head">
+      <h3>Monotonía y Strain · método Foster</h3>
+      <span class="tag">última semana con datos · sobre Player Load</span>
+    </div>
+    <div class="acwr-body" id="monotonyList"></div>
+  </div>
+
+  <div class="panel team-only" style="margin-top:18px;">
+    <div class="panel-head">
+      <h3>Carga semanal del plantel</h3>
+      <span class="tag" id="weeklyTag">Player Load total por semana</span>
+    </div>
+    <div class="chart-box" style="height:260px;"><canvas id="weeklyMicroChart"></canvas></div>
+  </div>
+
+  <div class="panel team-only" style="margin-top:18px;">
+    <div class="panel-head">
+      <h3>Calidad de datos</h3>
+      <span class="tag">valores atípicos a revisar</span>
+    </div>
+    <div class="acwr-body" id="dataQualityList"></div>
+  </div>
+
   <footer>SAQER FC · Matías González Galindo — Head of Physical Performance · Fuente: Planilla_Rendimiento_GPS.xlsx</footer>
 </div>
 
@@ -773,6 +797,147 @@ function computeACWR(evs, refDateStr){
   else if(ratio<1.5) status='caution';
   else status='high';
   return {status, ratio, acute, chronic};
+}
+
+// ---------- Monotonía y Strain (método Foster) ----------
+// Semana = lunes a domingo. Días sin sesión cuentan como carga 0 (estándar del método).
+function getMonday(dateStr){
+  const d = new Date(dateStr+'T00:00:00');
+  const day = d.getDay(); // 0=domingo
+  const diff = (day===0? -6 : 1) - day;
+  d.setDate(d.getDate()+diff);
+  return d;
+}
+function isoDate(d){ return d.toISOString().slice(0,10); }
+function computeMonotonyStrain(evs){
+  if(!evs || !evs.length) return {monotony:null, strain:null, weeklyLoad:null, weekStart:null};
+  const dates = evs.map(e=>e.fecha).sort();
+  const lastDate = dates[dates.length-1];
+  const monday = getMonday(lastDate);
+  const dailyLoad = {};
+  for(let i=0;i<7;i++){
+    const d = new Date(monday); d.setDate(d.getDate()+i);
+    dailyLoad[isoDate(d)] = 0;
+  }
+  evs.forEach(e=>{
+    if(e.fecha in dailyLoad && e.pl!==null && e.pl!==undefined && !isNaN(e.pl)) dailyLoad[e.fecha] += e.pl;
+  });
+  const loads = Object.values(dailyLoad);
+  const mean = loads.reduce((a,b)=>a+b,0)/loads.length;
+  const variance = loads.reduce((a,b)=>a+Math.pow(b-mean,2),0)/loads.length;
+  const sd = Math.sqrt(variance);
+  const monotony = sd>0 ? mean/sd : null;
+  const weeklyLoad = loads.reduce((a,b)=>a+b,0);
+  const strain = monotony!==null ? weeklyLoad*monotony : null;
+  return {monotony, strain, weeklyLoad, weekStart:isoDate(monday)};
+}
+function monotonyStatus(monotony){
+  if(monotony===null) return {label:'Datos insuf.', varName:'--mist'};
+  if(monotony<1.5) return {label:'Saludable', varName:'--good'};
+  if(monotony<2.0) return {label:'Atención', varName:'--warn'};
+  return {label:'Riesgo alto', varName:'--bad'};
+}
+function buildMonotonyStrain(){
+  const box = document.getElementById('monotonyList');
+  if(!box) return;
+  const rows = players.map(p=>({p, ...computeMonotonyStrain(byPlayer[p])}))
+    .sort((a,b)=> (b.strain||0)-(a.strain||0));
+  box.innerHTML = rows.map((r,i)=>{
+    const st = monotonyStatus(r.monotony);
+    const pct = r.monotony!==null ? Math.min(100, r.monotony/3*100) : null;
+    return `<div class="acwr-row ${r.p===state.player?'active':''}" data-p="${r.p}">
+      <div class="rk">${i+1<10?'0':''}${i+1}</div>
+      <div class="nm">${r.p}</div>
+      <div class="acwr-track">${pct!==null?`<div class="acwr-marker" style="left:${pct}%"></div>`:''}</div>
+      <div class="acwr-ratio">${r.monotony!==null? r.monotony.toFixed(2) : '—'}</div>
+      <div><span class="acwr-badge" style="background:var(${st.varName});color:#14143A;">${st.label}</span></div>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('.acwr-row').forEach(el=> el.addEventListener('click',()=>selectPlayer(el.dataset.p)));
+}
+
+// ---------- Carga semanal del plantel (microciclo) ----------
+let weeklyMicroChart;
+function buildWeeklyMicrocycle(){
+  const canvas = document.getElementById('weeklyMicroChart');
+  if(!canvas || typeof Chart==='undefined') return;
+  const weekMap = {};
+  ACTIVE_EVENTS.forEach(e=>{
+    const monday = isoDate(getMonday(e.fecha));
+    if(!weekMap[monday]) weekMap[monday] = {pl:0, dist:0};
+    if(e.pl!==null && !isNaN(e.pl)) weekMap[monday].pl += e.pl;
+    if(e.dist!==null && !isNaN(e.dist)) weekMap[monday].dist += e.dist;
+  });
+  const weeks = Object.keys(weekMap).sort().slice(-8); // últimas 8 semanas
+  const labels = weeks.map(w=>{
+    const d = new Date(w+'T00:00:00');
+    return 'sem. ' + String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0');
+  });
+  const plData = weeks.map(w=> Math.round(weekMap[w].pl));
+  const tag = document.getElementById('weeklyTag');
+  if(tag && weeks.length>=2){
+    const last = weekMap[weeks[weeks.length-1]].pl, prev = weekMap[weeks[weeks.length-2]].pl;
+    const pctChange = prev>0 ? Math.round(((last-prev)/prev)*100) : null;
+    if(pctChange!==null) tag.textContent = `Player Load total por semana · ${pctChange>=0?'+':''}${pctChange}% vs semana anterior`;
+  }
+  const ctx = canvas.getContext('2d');
+  const cfg = {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'Player Load semanal', data:plData, backgroundColor:'rgba(34,211,238,.55)', borderColor:'#22D3EE', borderWidth:1, borderRadius:4 }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1E1E58', borderColor:'#22D3EE', borderWidth:1, titleColor:'#67E8F9', bodyColor:'#E7E7FB' } },
+      scales:{
+        x:{ grid:{display:false}, ticks:{color:'#9797C9', font:{family:'IBM Plex Mono', size:9.5}} },
+        y:{ grid:{color:'rgba(231,231,251,.06)'}, ticks:{color:'#9797C9', font:{family:'IBM Plex Mono', size:10}} }
+      }
+    }
+  };
+  if(weeklyMicroChart){ weeklyMicroChart.data = cfg.data; weeklyMicroChart.options = cfg.options; weeklyMicroChart.update(); }
+  else{ weeklyMicroChart = new Chart(ctx, cfg); requestAnimationFrame(()=>{ if(weeklyMicroChart) weeklyMicroChart.resize(); }); }
+}
+
+// ---------- Calidad de datos (outliers) ----------
+// Marca valores que se alejan más de 3 desviaciones estándar del propio histórico del jugador.
+function buildDataQuality(){
+  const box = document.getElementById('dataQualityList');
+  if(!box) return;
+  const flagged = [];
+  const metricsToCheck = ['dist','hsr','vel','pl'];
+  players.forEach(p=>{
+    const evs = byPlayer[p]||[];
+    metricsToCheck.forEach(m=>{
+      const vals = evs.map(e=>e[m]).filter(v=>v!==null && v!==undefined && !isNaN(v));
+      if(vals.length<5) return;
+      const mean = vals.reduce((a,b)=>a+b,0)/vals.length;
+      const sd = Math.sqrt(vals.reduce((a,b)=>a+Math.pow(b-mean,2),0)/vals.length);
+      if(sd<=0) return;
+      evs.forEach(e=>{
+        const v = e[m];
+        if(v===null || v===undefined || isNaN(v)) return;
+        const z = Math.abs(v-mean)/sd;
+        if(z>3){
+          flagged.push({p, fecha:e.fecha, metric:m, value:v, z, detalle:e.detalle||e.tipo});
+        }
+      });
+    });
+  });
+  flagged.sort((a,b)=> b.z-a.z);
+  if(!flagged.length){
+    box.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">Sin valores atípicos detectados — todos los datos están dentro de rangos esperados.</div>`;
+    return;
+  }
+  box.innerHTML = flagged.slice(0,15).map((r,i)=>{
+    const dateStr = r.fecha.split('-').reverse().join('/');
+    return `<div class="acwr-row" data-p="${r.p}">
+      <div class="rk">${i+1<10?'0':''}${i+1}</div>
+      <div class="nm">${r.p}</div>
+      <div class="acwr-track" style="display:flex;align-items:center;color:var(--mist);font-size:11px;">${METRICS[r.metric].label} · ${dateStr} · ${r.detalle}</div>
+      <div class="acwr-ratio">${fmt(r.value, METRICS[r.metric].dec)}</div>
+      <div><span class="acwr-badge" style="background:var(--bad);color:#14143A;">z=${r.z.toFixed(1)}</span></div>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('.acwr-row').forEach(el=> el.addEventListener('click',()=>selectPlayer(el.dataset.p)));
 }
 
 // ---------- KPI strip ----------
@@ -1094,6 +1259,7 @@ function buildMatchGrid(){
       <div class="mm-row"><span class="k">Desa B2-3</span><span class="v">${t.desa}</span></div>
       <div class="mm-row"><span class="k">RHIE bouts</span><span class="v">${t.rhie}</span></div>
       <div class="mm-row"><span class="k">Player Load</span><span class="v">${fmt(t.pl)}</span></div>
+      ${t.fatiga!==undefined && t.fatiga!==null ? `<div class="mm-row"><span class="k">Índice de fatiga (2T vs 1T)</span><span class="v" style="color:${t.fatiga<=-8?'var(--bad)':t.fatiga<=-4?'var(--warn)':'var(--good)'};">${t.fatiga>0?'+':''}${fmt(t.fatiga,1)}%</span></div>` : ''}
     </div>`).join('');
 }
 
@@ -1478,6 +1644,9 @@ function renderAll(keepPlayer){
   buildACWR();
   buildWeeklyLoadChart(true);
   buildTeamTimeline(true);
+  buildMonotonyStrain();
+  buildWeeklyMicrocycle();
+  buildDataQuality();
   populateCompareSelects();
   buildCompare();
   const defaultPlayer = (keepPlayer && players.includes(keepPlayer)) ? keepPlayer
@@ -1511,7 +1680,7 @@ function parseComparativoSheet(ws){
   const keyMap = {
     'Distancia total (m)':'dist', 'Sprint distancia (m)':'sprint_dist', 'HSR':'hsr',
     'Sprint conteo':'sprint_count', 'Acc B2-3':'acc', 'Desa B2-3':'desa',
-    'RHIE bouts':'rhie', 'Player Load':'pl'
+    'RHIE bouts':'rhie', 'Player Load':'pl', 'Índice de fatiga (%)':'fatiga'
   };
   const totals = {};
   cols.forEach(c=> totals[c.name] = {fecha: dateFor[c.name] || null});
