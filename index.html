@@ -783,34 +783,37 @@ function buildRpeWidget(existing){
     submitBtn.disabled = false;
   };
 }
+function rpeAcwrStatus(ratio){
+  if(ratio===null) return {status:'insuf', label:'Datos insuf.', varName:'--mist'};
+  if(ratio<0.8) return {status:'low', label:'Carga baja', varName:'--low'};
+  if(ratio<1.3) return {status:'optimal', label:'Óptima', varName:'--good'};
+  if(ratio<1.5) return {status:'caution', label:'Precaución', varName:'--warn'};
+  return {status:'high', label:'Riesgo alto', varName:'--bad'};
+}
 async function buildRpeTeamList(){
   const box = document.getElementById('rpeTeamList');
   if(!box) return;
   const {data,error} = await supabaseClient.from('rpe_reports').select('player_name,fecha,rpe,minutos,updated_at').eq('club',CURRENT_CLUB).order('fecha',{ascending:false});
   if(error){ box.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">No se pudo cargar el RPE del plantel.</div>`; return; }
   RPE_REPORTS_CACHE = data || [];
-  const latestByPlayer = {};
-  RPE_REPORTS_CACHE.forEach(r=>{ if(!latestByPlayer[r.player_name]) latestByPlayer[r.player_name]=r; });
+  const byPlayerRpe = {};
+  RPE_REPORTS_CACHE.forEach(r=>{ (byPlayerRpe[r.player_name] = byPlayerRpe[r.player_name]||[]).push(r); });
   const today = todayISO();
+  const order = {high:0, caution:1, optimal:2, low:3, insuf:4};
   const rows = players.map(p=>{
-    const rep = latestByPlayer[p];
-    const daysSince = rep ? Math.round((new Date(today)-new Date(rep.fecha))/86400000) : null;
-    return {p, rpe: rep?rep.rpe:null, fecha: rep?rep.fecha:null, daysSince};
-  }).sort((a,b)=>{
-    if(a.daysSince===null && b.daysSince===null) return 0;
-    if(a.daysSince===null) return -1;
-    if(b.daysSince===null) return 1;
-    return b.daysSince - a.daysSince;
-  });
+    const reportsForPlayer = byPlayerRpe[p] || [];
+    const {ratio} = computeRpeACWR(reportsForPlayer, today);
+    const st = rpeAcwrStatus(ratio);
+    return {p, ratio, ...st};
+  }).sort((a,b)=> (order[a.status]-order[b.status]) || ((b.ratio||0)-(a.ratio||0)));
   box.innerHTML = rows.map((r,i)=>{
-    const statusColor = r.rpe===null ? 'var(--mist)' : r.daysSince>1 ? 'var(--warn)' : 'var(--good)';
-    const statusLabel = r.rpe===null ? 'Nunca reportó' : r.daysSince===0 ? 'Hoy' : r.daysSince===1 ? 'Ayer' : `Hace ${r.daysSince} días`;
-    return `<div class="acwr-row" data-p="${r.p}">
+    const pct = r.ratio!==null ? Math.min(100, r.ratio/2*100) : null;
+    return `<div class="acwr-row ${r.p===state.player?'active':''}" data-p="${r.p}">
       <div class="rk">${i+1<10?'0':''}${i+1}</div>
       <div class="nm">${r.p}</div>
-      <div class="acwr-track" style="display:flex;align-items:center;color:var(--mist);font-size:11px;">${statusLabel}</div>
-      <div class="acwr-ratio">${r.rpe!==null? r.rpe+'/10' : '—'}</div>
-      <div><span class="acwr-badge" style="background:${statusColor};color:#14143A;">${r.rpe===null?'Sin datos':statusLabel}</span></div>
+      <div class="acwr-track">${pct!==null?`<div class="acwr-marker" style="left:${pct}%"></div>`:''}</div>
+      <div class="acwr-ratio">${r.ratio!==null? r.ratio.toFixed(2) : '—'}</div>
+      <div><span class="acwr-badge" style="background:var(${r.varName});color:#14143A;">${r.label}</span></div>
     </div>`;
   }).join('');
   box.querySelectorAll('.acwr-row').forEach(el=> el.addEventListener('click',()=>selectPlayer(el.dataset.p)));
@@ -837,7 +840,7 @@ function buildRpeLoadTable(dateStr){
   if(!table) return;
   const byPlayerRpe = {};
   RPE_REPORTS_CACHE.forEach(r=>{ (byPlayerRpe[r.player_name] = byPlayerRpe[r.player_name]||[]).push(r); });
-  const rowsHtml = players.map(p=>{
+  const rowsData = players.map(p=>{
     const reportsForPlayer = byPlayerRpe[p] || [];
     const todayReport = reportsForPlayer.find(r=>r.fecha===dateStr);
     const {ratio, acute, chronic} = computeRpeACWR(reportsForPlayer, dateStr);
@@ -845,30 +848,50 @@ function buildRpeLoadTable(dateStr){
     const rpeVal = todayReport ? todayReport.rpe : null;
     const minVal = todayReport ? todayReport.minutos : null;
     const cDiaria = (rpeVal!==null && minVal!==null) ? rpeVal*minVal : null;
+    return {p, hora, rpeVal, minVal, cDiaria, acute, chronic, ratio, todayReport};
+  });
+  const rowsHtml = rowsData.map(r=>{
     let ratioColor = 'var(--mist)', ratioLabel = '—';
-    if(ratio!==null){
-      if(ratio<0.8){ ratioColor='var(--low)'; ratioLabel='Baja'; }
-      else if(ratio<1.3){ ratioColor='var(--good)'; ratioLabel='Óptima'; }
-      else if(ratio<1.5){ ratioColor='var(--warn)'; ratioLabel='Precaución'; }
+    if(r.ratio!==null){
+      if(r.ratio<0.8){ ratioColor='var(--low)'; ratioLabel='Baja'; }
+      else if(r.ratio<1.3){ ratioColor='var(--good)'; ratioLabel='Óptima'; }
+      else if(r.ratio<1.5){ ratioColor='var(--warn)'; ratioLabel='Precaución'; }
       else { ratioColor='var(--bad)'; ratioLabel='Riesgo alto'; }
     }
-    const minCell = todayReport
-      ? `<input type="number" min="0" max="240" class="rpe-min-input" data-player="${p}" data-fecha="${dateStr}" value="${minVal!==null?minVal:''}" placeholder="—" style="width:56px;padding:5px 6px;border-radius:6px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:12px 'IBM Plex Mono';outline:none;">`
+    const minCell = r.todayReport
+      ? `<input type="number" min="0" max="240" class="rpe-min-input" data-player="${r.p}" data-fecha="${dateStr}" value="${r.minVal!==null?r.minVal:''}" placeholder="—" style="width:56px;padding:5px 6px;border-radius:6px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:12px 'IBM Plex Mono';outline:none;">`
       : `<span style="color:var(--mist);">—</span>`;
     return `<tr>
-      <td class="metric-name">${p}</td>
-      <td>${hora}</td>
-      <td>${rpeVal!==null? rpeVal+'/10' : '—'}</td>
+      <td class="metric-name">${r.p}</td>
+      <td>${r.hora}</td>
+      <td>${r.rpeVal!==null? r.rpeVal+'/10' : '—'}</td>
       <td>${minCell}</td>
-      <td>${cDiaria!==null? cDiaria : '—'}</td>
-      <td>${acute!==null? acute.toFixed(1) : '—'}</td>
-      <td>${chronic!==null? chronic.toFixed(1) : '—'}</td>
-      <td><span class="acwr-badge" style="background:${ratioColor};color:#14143A;">${ratio!==null? ratio.toFixed(2)+' · '+ratioLabel : '—'}</span></td>
+      <td>${r.cDiaria!==null? r.cDiaria : '—'}</td>
+      <td>${r.acute!==null? r.acute.toFixed(1) : '—'}</td>
+      <td>${r.chronic!==null? r.chronic.toFixed(1) : '—'}</td>
+      <td><span class="acwr-badge" style="background:${ratioColor};color:#14143A;">${r.ratio!==null? r.ratio.toFixed(2)+' · '+ratioLabel : '—'}</span></td>
     </tr>`;
   }).join('');
+  const avg = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
+  const rpeAvg = avg(rowsData.map(r=>r.rpeVal).filter(v=>v!==null));
+  const minAvg = avg(rowsData.map(r=>r.minVal).filter(v=>v!==null));
+  const cDiariaAvg = avg(rowsData.map(r=>r.cDiaria).filter(v=>v!==null));
+  const acuteAvg = avg(rowsData.map(r=>r.acute).filter(v=>v!==null));
+  const chronicAvg = avg(rowsData.map(r=>r.chronic).filter(v=>v!==null));
+  const ratioAvg = avg(rowsData.map(r=>r.ratio).filter(v=>v!==null));
+  const footerHtml = `<tr style="border-top:2px solid var(--line-strong);font-weight:700;">
+    <td class="metric-name" style="color:var(--gold-bright);">Promedio del plantel</td>
+    <td>—</td>
+    <td>${rpeAvg!==null? rpeAvg.toFixed(1)+'/10' : '—'}</td>
+    <td>${minAvg!==null? minAvg.toFixed(0) : '—'}</td>
+    <td>${cDiariaAvg!==null? cDiariaAvg.toFixed(0) : '—'}</td>
+    <td>${acuteAvg!==null? acuteAvg.toFixed(1) : '—'}</td>
+    <td>${chronicAvg!==null? chronicAvg.toFixed(1) : '—'}</td>
+    <td>${ratioAvg!==null? ratioAvg.toFixed(2) : '—'}</td>
+  </tr>`;
   table.innerHTML = `<thead><tr>
     <th>Jugador</th><th>Hora</th><th>RPE</th><th>Min ✏️</th><th>C. Diaria</th><th>C. Aguda</th><th>C. Crónica</th><th>Ratio A:C</th>
-  </tr></thead><tbody>${rowsHtml}</tbody>`;
+  </tr></thead><tbody>${rowsHtml}${footerHtml}</tbody>`;
   table.querySelectorAll('.rpe-min-input').forEach(input=>{
     const save = async ()=>{
       const val = input.value===''? null : Number(input.value);
