@@ -1109,6 +1109,21 @@ const I18N = {
     enviarRpe:'Enviar RPE', rpeMinutosLabel:'¿Cuántos minutos entrenaste hoy?',
     cargaInterna:'Carga interna (RPE)', cargaInternaTag:'carga aguda : crónica basada en RPE × minutos', fecha2:'Fecha',
     footer:'Por Matías González Galindo — Head of Physical Performance',
+    sinSesionesCargadas:'Sin sesiones cargadas', sesiones:'Sesiones', dias:'Días', de:'de',
+    ordenMayorMenor:'orden de mayor a menor · récord personal como tope',
+    recordBannerOne:'🔥 ¡Récord superado en {metric}! {names} alcanzó un nuevo máximo personal en la última sesión.',
+    recordBannerMany:'🔥 ¡Récord superado en {metric}! {names} alcanzaron un nuevo máximo personal en la última sesión.',
+    sinRecordReferencia:'sin récord de referencia', delRecordTope:'del récord · tope', datosInsuficientes:'Datos insuficientes',
+    acwrPromedioTooltip:'ACWR promedio', acwrPromedioEquipo:'ACWR promedio del equipo',
+    promedioDelPlantel:'Promedio del plantel', diaConteoSingular:'día cargado', diaConteoPlural:'días cargados',
+    promedioDiarioPlantel:'promedio diario del plantel', sinDatos:'Sin datos',
+    metricaProm5:'Métrica (prom. últ. 5)', mixto:'Mixto', vsSemanaAnterior:'vs semana anterior',
+    cargaBaja:'Carga baja', optima:'Óptima', precaucion:'Precaución', riesgoAlto:'Riesgo alto', datosInsuf:'Datos insuf.',
+    saludable:'Saludable', atencion:'Atención',
+    leyendoArchivo:'Leyendo {file}…', errorLeerArchivo:'No se pudo leer el archivo: {msg}',
+    errorLibreriaExcel:'No se pudo cargar la librería de lectura de Excel (sin conexión).',
+    errorSinFilas:'No se encontraron filas en las hojas "Session" ni "Partidos".',
+    datosActualizadosOk:'Datos actualizados ✓ {n} registros · {p} jugadores · última fecha {date}',
   },
   en: {
     metrics:{dist:'Total Distance',hsr:'HSR',vel:'Max Speed',acc:'Acc',desa:'Dec',pl:'Player Load'},
@@ -1141,6 +1156,21 @@ const I18N = {
     enviarRpe:'Submit RPE', rpeMinutosLabel:'How many minutes did you train today?',
     cargaInterna:'Internal load (RPE)', cargaInternaTag:'acute : chronic load based on RPE × minutes', fecha2:'Date',
     footer:'By Matías González Galindo — Head of Physical Performance',
+    sinSesionesCargadas:'No sessions loaded', sesiones:'Sessions', dias:'Days', de:'of',
+    ordenMayorMenor:'sorted high to low · capped at personal record',
+    recordBannerOne:'🔥 New record in {metric}! {names} set a new personal best in the last session.',
+    recordBannerMany:'🔥 New records in {metric}! {names} set new personal bests in the last session.',
+    sinRecordReferencia:'no reference record', delRecordTope:'of the record · cap', datosInsuficientes:'Insufficient data',
+    acwrPromedioTooltip:'Average ACWR', acwrPromedioEquipo:'Team average ACWR',
+    promedioDelPlantel:'Squad average', diaConteoSingular:'day loaded', diaConteoPlural:'days loaded',
+    promedioDiarioPlantel:'squad daily average', sinDatos:'No data',
+    metricaProm5:'Metric (avg last 5)', mixto:'Mixed', vsSemanaAnterior:'vs previous week',
+    cargaBaja:'Low load', optima:'Optimal', precaucion:'Caution', riesgoAlto:'High risk', datosInsuf:'Insufficient data',
+    saludable:'Healthy', atencion:'Attention',
+    leyendoArchivo:'Reading {file}…', errorLeerArchivo:'Could not read the file: {msg}',
+    errorLibreriaExcel:'Could not load the Excel reading library (offline).',
+    errorSinFilas:'No rows found in the "Session" or "Partidos" sheets.',
+    datosActualizadosOk:'Data updated ✓ {n} records · {p} players · last date {date}',
   },
   ar: {
     metrics:{dist:'المسافة الإجمالية',hsr:'الجري عالي السرعة',vel:'السرعة القصوى',acc:'تسارع',desa:'تباطؤ',pl:'حمل اللاعب'},
@@ -1173,10 +1203,26 @@ const I18N = {
     enviarRpe:'إرسال مؤشر الجهد', rpeMinutosLabel:'كم دقيقة تدربت اليوم؟',
     cargaInterna:'الحمل الداخلي (RPE)', cargaInternaTag:'الحمل الحاد : المزمن استنادًا إلى RPE × الدقائق', fecha2:'التاريخ',
     footer:'بواسطة ماتياس غونزاليس غاليندو — مسؤول الأداء البدني',
+    sinSesionesCargadas:'لا توجد حصص محمّلة', sesiones:'الحصص', dias:'الأيام', de:'من',
+    ordenMayorMenor:'ترتيب تنازلي · بحد أقصى الرقم القياسي الشخصي',
+    recordBannerOne:'🔥 رقم قياسي جديد في {metric}! حقق {names} أفضل رقم شخصي في الحصة الأخيرة.',
+    recordBannerMany:'🔥 أرقام قياسية جديدة في {metric}! حقق {names} أفضل أرقام شخصية في الحصة الأخيرة.',
+    sinRecordReferencia:'لا يوجد رقم قياسي مرجعي', delRecordTope:'من الرقم القياسي · الحد الأقصى', datosInsuficientes:'بيانات غير كافية',
+    acwrPromedioTooltip:'متوسط ACWR', acwrPromedioEquipo:'متوسط ACWR للفريق',
+    promedioDelPlantel:'متوسط الفريق', diaConteoSingular:'يوم محمّل', diaConteoPlural:'أيام محمّلة',
+    promedioDiarioPlantel:'المتوسط اليومي للفريق', sinDatos:'لا توجد بيانات',
+    metricaProm5:'المؤشر (متوسط آخر 5)', mixto:'مختلط', vsSemanaAnterior:'مقارنة بالأسبوع السابق',
+    cargaBaja:'حمل منخفض', optima:'مثالي', precaucion:'تحذير', riesgoAlto:'خطر مرتفع', datosInsuf:'بيانات غير كافية',
+    saludable:'صحي', atencion:'تنبيه',
+    leyendoArchivo:'جارٍ قراءة {file}…', errorLeerArchivo:'تعذّرت قراءة الملف: {msg}',
+    errorLibreriaExcel:'تعذّر تحميل مكتبة قراءة الإكسل (غير متصل).',
+    errorSinFilas:'لم يتم العثور على صفوف في أوراق "Session" أو "Partidos".',
+    datosActualizadosOk:'تم تحديث البيانات ✓ {n} سجل · {p} لاعب · آخر تاريخ {date}',
   }
 };
 let currentLang = localStorage.getItem('dashboard_lang') || 'es';
 function t(key){ return (I18N[currentLang]&&I18N[currentLang][key]) || I18N.es[key] || key; }
+function tf(key, params){ let s = t(key); Object.keys(params||{}).forEach(k=>{ s = s.split('{'+k+'}').join(params[k]); }); return s; }
 function applyI18nStatic(){
   METRIC_ORDER.forEach(k=> METRICS[k].label = I18N[currentLang].metrics[k]);
   document.querySelectorAll('[data-i18n]').forEach(el=>{ el.textContent = t(el.dataset.i18n); });
@@ -1318,10 +1364,10 @@ function computeMonotonyStrain(evs){
   return {monotony, strain, weeklyLoad, weekStart:isoDate(monday)};
 }
 function monotonyStatus(monotony){
-  if(monotony===null) return {label:'Datos insuf.', varName:'--mist'};
-  if(monotony<1.5) return {label:'Saludable', varName:'--good'};
-  if(monotony<2.0) return {label:'Atención', varName:'--warn'};
-  return {label:'Riesgo alto', varName:'--bad'};
+  if(monotony===null) return {label:t('datosInsuf'), varName:'--mist'};
+  if(monotony<1.5) return {label:t('saludable'), varName:'--good'};
+  if(monotony<2.0) return {label:t('atencion'), varName:'--warn'};
+  return {label:t('riesgoAlto'), varName:'--bad'};
 }
 function buildMonotonyStrain(){
   const box = document.getElementById('monotonyList');
@@ -1364,7 +1410,7 @@ function buildWeeklyMicrocycle(){
   if(tag && weeks.length>=2){
     const last = weekMap[weeks[weeks.length-1]].pl, prev = weekMap[weeks[weeks.length-2]].pl;
     const pctChange = prev>0 ? Math.round(((last-prev)/prev)*100) : null;
-    if(pctChange!==null) tag.textContent = `Player Load total por semana · ${pctChange>=0?'+':''}${pctChange}% vs semana anterior`;
+    if(pctChange!==null) tag.textContent = `${t('cargaSemanalTag')} · ${pctChange>=0?'+':''}${pctChange}% ${t('vsSemanaAnterior')}`;
   }
   const ctx = canvas.getContext('2d');
   const cfg = {
@@ -1560,10 +1606,10 @@ function buildTimeline(player, metric, resetToLatest){
   const evs = allEvs.slice(state.tlOffset, state.tlOffset + TIMELINE_WINDOW);
   const tlLabelEl = document.getElementById('tlLabel');
   if(tlLabelEl){
-    if(!allEvs.length){ tlLabelEl.innerHTML = 'Sin sesiones cargadas'; }
+    if(!allEvs.length){ tlLabelEl.innerHTML = t('sinSesionesCargadas'); }
     else{
       const from = state.tlOffset+1, to = Math.min(allEvs.length, state.tlOffset+TIMELINE_WINDOW);
-      tlLabelEl.innerHTML = `Sesiones <b>${from}–${to}</b> de <b>${allEvs.length}</b>`;
+      tlLabelEl.innerHTML = `${t('sesiones')} <b>${from}–${to}</b> ${t('de')} <b>${allEvs.length}</b>`;
     }
   }
 
@@ -1652,7 +1698,7 @@ const LB_THRESHOLDS = { dist:10000, vel:30, hsr:900 };
 
 function buildLeaderboard(){
   const m = state.lbMetric;
-  document.getElementById('lbMetricTag').textContent = `${METRICS[m].label} · orden de mayor a menor · récord personal como tope`;
+  document.getElementById('lbMetricTag').textContent = `${METRICS[m].label} · ${t('ordenMayorMenor')}`;
   const rows = players.map(p=>{
     const evs = byPlayer[p]||[];
     const last = evs[evs.length-1] || null;
@@ -1676,7 +1722,7 @@ function buildLeaderboard(){
     if(breakers.length){
       const names = breakers.map(r=>r.p.split(' ')[0]).join(', ');
       banner.style.display = 'block';
-      banner.innerHTML = `🔥 ¡Récord superado en ${METRICS[m].label}! ${names} alcanzó${breakers.length>1?'ron':''} un nuevo máximo personal en la última sesión.`;
+      banner.innerHTML = tf(breakers.length>1?'recordBannerMany':'recordBannerOne', {metric:METRICS[m].label, names});
     } else {
       banner.style.display = 'none';
     }
@@ -1687,7 +1733,7 @@ function buildLeaderboard(){
   box.innerHTML = rows.map((r,i)=>{
     const barPct = r.pct===null ? 0 : Math.max(3, Math.min(100, r.pct));
     const overTh = threshold!==undefined && r.lastVal!==null && r.lastVal!==undefined && r.lastVal>threshold;
-    const pctLabel = r.pct===null ? 'sin récord de referencia' : `${fmt(r.pct,0)}% del récord · tope ${fmt(r.recVal,METRICS[m].dec)}`;
+    const pctLabel = r.pct===null ? t('sinRecordReferencia') : `${fmt(r.pct,0)}% ${t('delRecordTope')} ${fmt(r.recVal,METRICS[m].dec)}`;
     return `
     <div class="lb-row ${r.p===state.player?'active':''}" data-p="${r.p}">
       <div class="rk">${i+1<10?'0':''}${i+1}</div>
@@ -1705,7 +1751,7 @@ function buildLeaderboard(){
 function buildRecordsTable(){
   const lastDate = [...new Set(ACTIVE_EVENTS.map(e=>e.fecha))].sort().pop();
   const rows = RECORDS.slice().sort((a,b)=> a.jugador.localeCompare(b.jugador));
-  const head = `<tr><th>Jugador</th>${METRIC_ORDER.map(m=>`<th>${METRICS[m].label}</th>`).join('')}</tr>`;
+  const head = `<tr><th>${t('jugador')}</th>${METRIC_ORDER.map(m=>`<th>${METRICS[m].label}</th>`).join('')}</tr>`;
   const body = rows.map(r=>{
     return `<tr data-p="${r.jugador}" style="cursor:pointer;">
       <td><b>${r.jugador}</b></td>
@@ -1828,7 +1874,7 @@ function buildWeeklyLoadChart(resetToLatest){
   const wlLabelEl = document.getElementById('wlLabel');
   if(wlLabelEl){
     const from = state.wlOffset+1, to = Math.min(allRatios.length, state.wlOffset+ACWR_WINDOW);
-    wlLabelEl.innerHTML = `Días <b>${from}–${to}</b> de <b>${allRatios.length}</b>`;
+    wlLabelEl.innerHTML = `${t('dias')} <b>${from}–${to}</b> ${t('de')} <b>${allRatios.length}</b>`;
   }
 
   if(typeof Chart === 'undefined'){
@@ -1870,7 +1916,7 @@ function buildWeeklyLoadChart(resetToLatest){
   const cfg = {
     type:'line',
     data:{ labels, datasets:[{
-      label:'ACWR promedio del equipo',
+      label:t('acwrPromedioEquipo'),
       data,
       spanGaps:true,
       borderColor:'#22D3EE',
@@ -1890,7 +1936,7 @@ function buildWeeklyLoadChart(resetToLatest){
         legend:{display:false},
         tooltip:{
           backgroundColor:'#1E1E58', borderColor:'#22D3EE', borderWidth:1, titleColor:'#67E8F9', bodyColor:'#E7E7FB',
-          callbacks:{ label:(ctx)=> ctx.raw===null?'Datos insuficientes':`ACWR promedio: ${ctx.raw.toFixed(2)}` }
+          callbacks:{ label:(ctx)=> ctx.raw===null?t('datosInsuficientes'):`${t('acwrPromedioTooltip')}: ${ctx.raw.toFixed(2)}` }
         }
       },
       scales:{
@@ -1904,7 +1950,7 @@ function buildWeeklyLoadChart(resetToLatest){
   weeklyLoadChart = new Chart(ctx, cfg);
   requestAnimationFrame(()=>{ if(weeklyLoadChart) weeklyLoadChart.resize(); });
   const tag = document.getElementById('weeklyLoadTag');
-  if(tag) tag.textContent = `Promedio del plantel · ${allRatios.length} día${allRatios.length===1?'':'s'} cargado${allRatios.length===1?'':'s'}`;
+  if(tag) tag.textContent = `${t('promedioDelPlantel')} · ${allRatios.length} ${allRatios.length===1?t('diaConteoSingular'):t('diaConteoPlural')}`;
 }
 
 // ---------- team-wide daily evolution (dist / hsr / pl) ----------
@@ -1979,14 +2025,14 @@ function buildTeamTimeline(resetToLatest){
   const evs = allEvs.slice(state.ttOffset, state.ttOffset + TIMELINE_WINDOW);
   const label = document.getElementById('ttLabel');
   if(label){
-    if(!allEvs.length) label.innerHTML = 'Sin sesiones cargadas';
+    if(!allEvs.length) label.innerHTML = t('sinSesionesCargadas');
     else{
       const from = state.ttOffset+1, to = Math.min(allEvs.length, state.ttOffset+TIMELINE_WINDOW);
-      label.innerHTML = `Sesiones <b>${from}–${to}</b> de <b>${allEvs.length}</b>`;
+      label.innerHTML = `${t('sesiones')} <b>${from}–${to}</b> ${t('de')} <b>${allEvs.length}</b>`;
     }
   }
   const tag = document.getElementById('teamTimelineTag');
-  if(tag) tag.textContent = `${METRICS[state.ttMetric].label} · promedio diario del plantel`;
+  if(tag) tag.textContent = `${METRICS[state.ttMetric].label} · ${t('promedioDiarioPlantel')}`;
 
   const canvas = document.getElementById('teamTimelineChart');
   if(!canvas) return;
@@ -2034,7 +2080,7 @@ function buildTeamTimeline(resetToLatest){
               const sub = e.detalle ? (e.tipo==='Partido' ? ('vs '+e.detalle) : e.detalle) : '';
               return sub ? `${dateStr} · ${sub}` : dateStr;
             },
-            label:(ctx)=> ctx.raw===null||ctx.raw===undefined ? 'Sin datos' : `${METRICS[m].label}: ${fmt(ctx.raw, METRICS[m].dec)}${METRICS[m].unit?(' '+METRICS[m].unit):''}`
+            label:(ctx)=> ctx.raw===null||ctx.raw===undefined ? t('sinDatos') : `${METRICS[m].label}: ${fmt(ctx.raw, METRICS[m].dec)}${METRICS[m].unit?(' '+METRICS[m].unit):''}`
           }
         }
       },
@@ -2099,7 +2145,7 @@ function buildCompare(){
       <td class="${vB>vA?'leadB':''}">${fmt(vB,METRICS[m].dec)}</td>
     </tr>`;
   }).join('');
-  table.innerHTML = `<thead><tr><th>Métrica (prom. últ. 5)</th><th>${pA}</th><th>${pB}</th></tr></thead><tbody>${rows}</tbody>`;
+  table.innerHTML = `<thead><tr><th>${t('metricaProm5')}</th><th>${pA}</th><th>${pB}</th></tr></thead><tbody>${rows}</tbody>`;
 }
 function populateCompareSelects(){
   const a = document.getElementById('compareA');
@@ -2121,7 +2167,7 @@ function selectPlayer(p){
   document.querySelectorAll('.p-item').forEach(el=>el.classList.toggle('active', el.dataset.p===p));
   document.querySelectorAll('.lb-row').forEach(el=>el.classList.toggle('active', el.dataset.p===p));
   document.querySelectorAll('.acwr-row').forEach(el=>el.classList.toggle('active', el.dataset.p===p));
-  document.getElementById('radarTitle').textContent = `Radar de Vuelo · ${p}`;
+  document.getElementById('radarTitle').textContent = `${t('radarVuelo')} · ${p}`;
   drawRadar(p);
   buildTimeline(p, state.metric, true);
 }
@@ -2196,9 +2242,9 @@ function showStatus(msg, kind){
 }
 async function handleFile(file){
   if(!file) return;
-  showStatus('Leyendo '+file.name+'…','');
+  showStatus(tf('leyendoArchivo',{file:file.name}),'');
   try{
-    if(typeof XLSX === 'undefined') throw new Error('No se pudo cargar la librería de lectura de Excel (sin conexión).');
+    if(typeof XLSX === 'undefined') throw new Error(t('errorLibreriaExcel'));
     const buf = await file.arrayBuffer();
     const wb = XLSX.read(buf, {type:'array', cellDates:true});
     const events = [];
@@ -2220,7 +2266,7 @@ async function handleFile(file){
           alta_int:num(r[17]), sprint:num(r[18]), min:num(r[3]) });
       }
     }
-    if(!events.length) throw new Error('No se encontraron filas en las hojas "Session" ni "Partidos".');
+    if(!events.length) throw new Error(t('errorSinFilas'));
 
     let teamTotals = ACTIVE_TEAMTOTALS;
     try{
@@ -2235,10 +2281,10 @@ async function handleFile(file){
     deriveAll(ACTIVE_EVENTS);
     renderAll(prevPlayer);
     const lastDate = [...new Set(events.map(e=>e.fecha))].sort().pop();
-    showStatus(`Datos actualizados ✓ ${events.length} registros · ${players.length} jugadores · última fecha ${lastDate.split('-').reverse().join('/')}`, 'ok');
+    showStatus(tf('datosActualizadosOk',{n:events.length, p:players.length, date:lastDate.split('-').reverse().join('/')}), 'ok');
   }catch(err){
     console.error(err);
-    showStatus('No se pudo leer el archivo: '+err.message, 'error');
+    showStatus(tf('errorLeerArchivo',{msg:err.message}), 'error');
   }
 }
 
