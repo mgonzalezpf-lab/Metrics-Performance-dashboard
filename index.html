@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Metrics Performance Centro de Rendimiento Físico</title>
+<title>SAQER GPS · Centro de Rendimiento Físico</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
@@ -329,7 +329,18 @@
     <button id="authSubmit" class="auth-submit" type="submit">Ingresar</button>
     <button id="authSwitch" class="auth-switch" type="button">Crear mi acceso</button>
     <button id="forgotPassword" class="auth-switch" type="button" style="padding-top:6px;">¿Olvidaste tu contraseña?</button>
+    <p style="text-align:center;margin-top:16px;font-size:10.5px;color:var(--mist);letter-spacing:.02em;opacity:.75;">Matías González Galindo — Head of Physical Performance</p>
     <div id="authMessage" class="auth-message" aria-live="polite"></div>
+  </form>
+</div>
+
+<div id="recoveryScreen" class="auth-screen" style="display:none;">
+  <form id="recoveryForm" class="auth-card">
+    <h2>Nueva contraseña</h2>
+    <p>Escribe tu nueva contraseña para terminar de recuperar tu acceso.</p>
+    <label for="recoveryPassword">Nueva contraseña</label><input id="recoveryPassword" type="password" autocomplete="new-password" minlength="6" required>
+    <button class="auth-submit" type="submit">Guardar nueva contraseña</button>
+    <div id="recoveryMessage" class="auth-message" aria-live="polite"></div>
   </form>
 </div>
 
@@ -1240,19 +1251,26 @@ let teamDailySeries = [];
 function computeTeamDailySeries(){
   const map = {};
   ACTIVE_EVENTS.forEach(e=>{
-    if(!map[e.fecha]) map[e.fecha] = { fecha:e.fecha, tipos:new Set(), dist:[], hsr:[], pl:[], acc:[], desa:[] };
+    if(!map[e.fecha]) map[e.fecha] = { fecha:e.fecha, tipos:new Set(), dist:[], hsr:[], pl:[], acc:[], desa:[], detalles:{} };
     const rec = map[e.fecha];
     rec.tipos.add(e.tipo);
     ['dist','hsr','pl','acc','desa'].forEach(k=>{
       if(e[k]!==null && e[k]!==undefined && !isNaN(e[k])) rec[k].push(e[k]);
     });
+    if(e.detalle){ const key=String(e.detalle).trim(); if(key) rec.detalles[key]=(rec.detalles[key]||0)+1; }
   });
   const avg = (arr)=> arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
+  const topDetalle = (detalles)=>{
+    const keys = Object.keys(detalles);
+    if(!keys.length) return '';
+    return keys.reduce((a,b)=> detalles[a]>=detalles[b] ? a : b);
+  };
   teamDailySeries = Object.keys(map).sort().map(d=>{
     const rec = map[d];
     return {
       fecha: d,
       tipo: rec.tipos.size>1 ? 'Mixto' : [...rec.tipos][0],
+      detalle: topDetalle(rec.detalles),
       dist: avg(rec.dist),
       hsr: avg(rec.hsr),
       pl: avg(rec.pl),
@@ -1314,7 +1332,11 @@ function buildTeamTimeline(resetToLatest){
     return;
   }
   const m = state.ttMetric;
-  const labels = evs.map(e=>e.fecha.slice(5).split('-').reverse().join('/'));
+  const labels = evs.map(e=>{
+    const dateStr = e.fecha.slice(5).split('-').reverse().join('/');
+    const sub = e.detalle ? (e.tipo==='Partido' ? ('vs '+e.detalle) : e.detalle) : '';
+    return sub ? [dateStr, sub.length>16 ? sub.slice(0,15)+'…' : sub] : dateStr;
+  });
   const data = evs.map(e=>e[m]);
   const pointColors = evs.map(e=> e.tipo==='Partido' ? '#7C5CFC' : e.tipo==='Mixto' ? '#9797C9' : '#22D3EE');
   const pointStyles = evs.map(e=> e.tipo==='Partido' ? 'rectRot' : 'circle');
@@ -1342,7 +1364,15 @@ function buildTeamTimeline(resetToLatest){
         legend:{display:false},
         tooltip:{
           backgroundColor:'#1E1E58', borderColor:'#22D3EE', borderWidth:1, titleColor:'#67E8F9', bodyColor:'#E7E7FB',
-          callbacks:{ label:(ctx)=> ctx.raw===null||ctx.raw===undefined ? 'Sin datos' : `${METRICS[m].label}: ${fmt(ctx.raw, METRICS[m].dec)}${METRICS[m].unit?(' '+METRICS[m].unit):''}` }
+          callbacks:{
+            title:(items)=>{
+              const i=items[0].dataIndex; const e=evs[i];
+              const dateStr = e.fecha.slice(5).split('-').reverse().join('/');
+              const sub = e.detalle ? (e.tipo==='Partido' ? ('vs '+e.detalle) : e.detalle) : '';
+              return sub ? `${dateStr} · ${sub}` : dateStr;
+            },
+            label:(ctx)=> ctx.raw===null||ctx.raw===undefined ? 'Sin datos' : `${METRICS[m].label}: ${fmt(ctx.raw, METRICS[m].dec)}${METRICS[m].unit?(' '+METRICS[m].unit):''}`
+          }
         }
       },
       scales:{
@@ -1552,11 +1582,33 @@ async function init(){
   buildMetricTabs();
   buildTeamMetricTabs();
   buildLbMetricTabs();
+  const isRecovery = window.location.hash.includes('type=recovery');
   const {data:{session}} = await supabaseClient.auth.getSession();
-  if(session) await routeAfterLogin();
+  if(isRecovery && session){
+    document.getElementById('authScreen').style.display='none';
+    document.getElementById('recoveryScreen').style.display='flex';
+  } else if(session){
+    await routeAfterLogin();
+  }
   document.getElementById('searchInput').addEventListener('input', (e)=> buildPlayerList(e.target.value));
   document.getElementById('authForm').addEventListener('submit', handleAuthSubmit);
   document.getElementById('authSwitch').addEventListener('click', ()=>{ authMode=authMode==='login'?'signup':'login'; updateAuthForm(); });
+  document.getElementById('recoveryForm').addEventListener('submit', async (event)=>{
+    event.preventDefault();
+    const recoveryMessage = document.getElementById('recoveryMessage');
+    const newPassword = document.getElementById('recoveryPassword').value;
+    recoveryMessage.textContent = 'Guardando…'; recoveryMessage.className='auth-message';
+    const {error} = await supabaseClient.auth.updateUser({password:newPassword});
+    if(error){ recoveryMessage.textContent = error.message; recoveryMessage.className='auth-message error'; return; }
+    await supabaseClient.auth.signOut();
+    history.replaceState(null,'',window.location.pathname);
+    recoveryMessage.textContent = '¡Listo! Tu contraseña se actualizó. Inicia sesión de nuevo.';
+    recoveryMessage.className='auth-message ok';
+    setTimeout(()=>{
+      document.getElementById('recoveryScreen').style.display='none';
+      document.getElementById('authScreen').style.display='flex';
+    }, 1800);
+  });
   document.getElementById('nameForm').addEventListener('submit', handleNameSubmit);
   document.getElementById('logoutBtn').addEventListener('click', async ()=>{
     await supabaseClient.auth.signOut();
