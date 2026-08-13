@@ -783,6 +783,14 @@ function setupPreviewBar(){
   document.getElementById('previewStartBtn').onclick = ()=> startPlayerPreview(select.value);
   document.getElementById('previewExitBtn').onclick = exitPlayerPreview;
 }
+function resizeAllCharts(){
+  requestAnimationFrame(()=>{
+    if(timelineChart) timelineChart.resize();
+    if(weeklyLoadChart) weeklyLoadChart.resize();
+    if(teamTimelineChart) teamTimelineChart.resize();
+    if(weeklyMicroChart) weeklyMicroChart.resize();
+  });
+}
 function startPlayerPreview(playerName){
   previewingAsPlayer = playerName;
   if(ORIGINAL_BRAND_SUB===null){
@@ -795,6 +803,7 @@ function startPlayerPreview(playerName){
   document.getElementById('previewPlayerSelect').style.display='none';
   document.getElementById('previewStartBtn').style.display='none';
   document.getElementById('previewExitBtn').style.display='inline-block';
+  resizeAllCharts();
 }
 function exitPlayerPreview(){
   previewingAsPlayer = null;
@@ -806,6 +815,7 @@ function exitPlayerPreview(){
   document.getElementById('previewStartBtn').style.display='inline-block';
   document.getElementById('previewExitBtn').style.display='none';
   renderAll();
+  resizeAllCharts();
 }
 async function handleAuthSubmit(event){
   event.preventDefault(); const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value;
@@ -1488,7 +1498,7 @@ function buildWeeklyMicrocycle(){
       plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1E1E58', borderColor:'#22D3EE', borderWidth:1, titleColor:'#67E8F9', bodyColor:'#E7E7FB' } },
       scales:{
         x:{ grid:{display:false}, ticks:{color:'#9797C9', font:{family:'IBM Plex Mono', size:9.5}} },
-        y:{ grid:{color:'rgba(231,231,251,.06)'}, ticks:{color:'#9797C9', font:{family:'IBM Plex Mono', size:10}} }
+        y:{ grace:'12%', grid:{color:'rgba(231,231,251,.06)'}, ticks:{color:'#9797C9', font:{family:'IBM Plex Mono', size:10}} }
       }
     }
   };
@@ -1724,7 +1734,7 @@ function buildTimeline(player, metric, resetToLatest){
       },
       scales:{
         x:{ grid:{color:'rgba(231,231,251,.06)'}, ticks:{color:'#9797C9', font:{family:'IBM Plex Mono', size:10}} },
-        y:{ grid:{color:'rgba(231,231,251,.06)'}, ticks:{color:'#9797C9', font:{family:'IBM Plex Mono', size:10}} }
+        y:{ grace:'12%', grid:{color:'rgba(231,231,251,.06)'}, ticks:{color:'#9797C9', font:{family:'IBM Plex Mono', size:10}} }
       }
     }
   };
@@ -2153,7 +2163,7 @@ function buildTeamTimeline(resetToLatest){
       },
       scales:{
         x:{ grid:{display:false}, ticks:{color:'#9797C9', font:{family:'IBM Plex Mono', size:9.5}} },
-        y:{ grid:{color:'rgba(231,231,251,.06)'}, ticks:{color:'#9797C9', font:{family:'IBM Plex Mono', size:10}} }
+        y:{ grace:'12%', grid:{color:'rgba(231,231,251,.06)'}, ticks:{color:'#9797C9', font:{family:'IBM Plex Mono', size:10}} }
       }
     }
   };
