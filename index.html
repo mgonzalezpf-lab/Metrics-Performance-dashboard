@@ -78,6 +78,8 @@
   }
   .upload-btn:hover{background:var(--gold);color:var(--pitch-950);}
   .upload-status{margin-top:6px;font-size:10.5px;max-width:260px;min-height:14px;transition:opacity .3s ease;opacity:0;}
+  .rpe-status-msg{margin-top:10px;font-size:13.5px;line-height:1.5;color:var(--bone);}
+  .rpe-status-msg.locked{padding:10px 14px;border-radius:8px;border:1px solid var(--bad);background:rgba(251,113,133,.1);color:var(--bad);font-weight:600;}
   .upload-status.ok{color:var(--good);}
   .upload-status.error{color:var(--bad);}
   .auth-screen{position:fixed;inset:0;z-index:100;background:rgba(20,20,58,.96);display:flex;align-items:center;justify-content:center;padding:22px;}
@@ -436,7 +438,7 @@
     </div>
     <div id="rpeScale" style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;"></div>
     <button id="rpeSubmit" class="upload-btn" style="margin-top:4px;" disabled data-i18n="enviarRpe">Enviar RPE</button>
-    <div id="rpeStatus" class="upload-status" style="margin-top:8px;"></div>
+    <div id="rpeStatus" class="rpe-status-msg" style="margin-top:8px;"></div>
   </div>
 
   <div class="main-grid" id="mainGrid">
@@ -916,11 +918,11 @@ function buildRpeWidget(existing){
   if(!existing && !isRpeSubmitUnlocked()){
     scale.innerHTML = '';
     submitBtn.style.display = 'none';
-    status.style.color = 'var(--bad)';
+    status.className = 'rpe-status-msg locked';
     status.textContent = RPE_LOCK_MSG[currentLang] || RPE_LOCK_MSG.es;
     return;
   }
-  status.style.color = '';
+  status.className = 'rpe-status-msg';
 
   // Ya envió su RPE hoy: se bloquea, no puede reenviar ni cambiar.
   if(existing){
