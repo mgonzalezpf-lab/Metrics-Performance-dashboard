@@ -609,9 +609,10 @@
       <h3 data-i18n="cargaInterna">Carga interna (RPE)</h3>
       <span class="tag" data-i18n="cargaInternaTag">carga aguda : crónica basada en RPE × minutos</span>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;margin:8px 0 14px;">
+    <div style="display:flex;align-items:center;gap:10px;margin:8px 0 14px;flex-wrap:wrap;">
       <label for="rpeDatePicker" data-i18n="fecha2" style="font-size:11px;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;">Fecha</label>
       <input id="rpeDatePicker" type="date" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;">
+      <button id="rpeSaveAllBtn" type="button" style="padding:8px 14px;border-radius:8px;border:1px solid var(--gold);background:var(--gold);color:var(--pitch-950);font:700 12px 'IBM Plex Mono';cursor:pointer;">Guardar todos</button>
     </div>
     <div style="overflow-x:auto;">
       <table class="cmp-table" id="rpeLoadTable"></table>
@@ -883,6 +884,16 @@ function buildRpeWidget(existing){
   const rtl = currentLang==='ar';
   scale.style.flexDirection = 'column';
 
+  // Bloqueo por horario: solo se puede ENVIAR (no ver lo ya enviado) entre 18:30 y 24:00.
+  if(!existing && !isRpeSubmitUnlocked()){
+    scale.innerHTML = '';
+    submitBtn.style.display = 'none';
+    status.style.color = 'var(--bad)';
+    status.textContent = RPE_LOCK_MSG[currentLang] || RPE_LOCK_MSG.es;
+    return;
+  }
+  status.style.color = '';
+
   // Ya envió su RPE hoy: se bloquea, no puede reenviar ni cambiar.
   if(existing){
     const row = RPE_SCALE.find(r=>r.n===existing.rpe) || RPE_SCALE[0];
@@ -987,9 +998,26 @@ function computeRpeACWR(playerReports, refDateStr){
   if(!chronic) return {ratio:null, acute, chronic};
   return {ratio: acute/chronic, acute, chronic};
 }
+// Ventana de envío de RPE para jugadores: bloqueado 00:00–18:29, habilitado 18:30–23:59 (hora local del navegador).
+function isRpeSubmitUnlocked(){
+  const now = new Date();
+  const h = now.getHours(), m = now.getMinutes();
+  return (h > 18) || (h === 18 && m >= 30);
+}
+const RPE_LOCK_MSG = {
+  es: '🔴 El envío de RPE está disponible de 18:30 a 24:00. Volvé a intentarlo dentro de ese horario.',
+  en: '🔴 RPE submission is available from 6:30 PM to midnight. Please try again within that window.',
+  ar: '🔴 إرسال مؤشر الجهد المدرك متاح من الساعة 18:30 حتى منتصف الليل. حاول مرة أخرى خلال هذا الوقت.'
+};
 function buildRpeLoadTable(dateStr){
   const table = document.getElementById('rpeLoadTable');
   if(!table) return;
+  const saveAllBtn = document.getElementById('rpeSaveAllBtn');
+  if(saveAllBtn){
+    saveAllBtn.disabled = !(myProfile && myProfile.role==='admin');
+    saveAllBtn.style.opacity = saveAllBtn.disabled ? '.45' : '1';
+    saveAllBtn.style.cursor = saveAllBtn.disabled ? 'default' : 'pointer';
+  }
   const byPlayerRpe = {};
   RPE_REPORTS_CACHE.forEach(r=>{ (byPlayerRpe[r.player_name] = byPlayerRpe[r.player_name]||[]).push(r); });
   const rowsData = players.map(p=>{
@@ -1060,6 +1088,28 @@ function buildRpeLoadTable(dateStr){
     input.addEventListener('blur', save);
     input.addEventListener('keydown', e=>{ if(e.key==='Enter'){ input.blur(); } });
   });
+}
+
+async function saveAllRpeMinutes(){
+  const btn = document.getElementById('rpeSaveAllBtn');
+  const inputs = document.querySelectorAll('#rpeLoadTable .rpe-min-input:not([disabled])');
+  if(!inputs.length){ return; }
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Guardando…';
+  const updates = Array.from(inputs).map(input=>{
+    const val = input.value===''? null : Number(input.value);
+    return supabaseClient.from('rpe_reports').update({minutos:val, updated_at:new Date().toISOString()})
+      .eq('club',CURRENT_CLUB).eq('player_name',input.dataset.player).eq('fecha',input.dataset.fecha);
+  });
+  const results = await Promise.all(updates);
+  const failed = results.filter(r=>r.error);
+  btn.textContent = originalLabel;
+  if(failed.length){
+    failed.forEach(f=>console.warn(f.error));
+    alert(`Se guardaron ${updates.length-failed.length} de ${updates.length} jugadores. Hubo ${failed.length} error(es), revisá la consola.`);
+  }
+  await buildRpeTeamList(); // re-renderiza la tabla (esto ya vuelve a habilitar el botón según el horario)
 }
 
 let TEAM_SQUAD_MAX = null, TEAM_SQUAD_AVG = null;
@@ -2327,6 +2377,10 @@ async function init(){
     btn.addEventListener('click', ()=> setLang(btn.dataset.lang));
   });
   applyI18nStatic();
+  const rpeSaveAllBtn = document.getElementById('rpeSaveAllBtn');
+  if(rpeSaveAllBtn){
+    rpeSaveAllBtn.addEventListener('click', saveAllRpeMinutes);
+  }
   const rpeDatePicker = document.getElementById('rpeDatePicker');
   if(rpeDatePicker){
     rpeDatePicker.value = todayISO();
