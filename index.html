@@ -386,6 +386,15 @@
         <button id="notifBell" class="upload-btn" style="padding:7px 10px;position:relative;">🔔<span id="notifBadge" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--bad);color:#fff;font-size:10px;font-weight:700;border-radius:10px;min-width:16px;height:16px;line-height:16px;text-align:center;padding:0 3px;">0</span></button>
         <div id="notifDropdown" style="display:none;position:absolute;top:42px;right:0;background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:10px;min-width:260px;max-height:320px;overflow-y:auto;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.4);"></div>
       </span>
+      <span id="addPlayerWrap" style="position:relative;display:none;margin-left:6px;">
+        <button id="addPlayerBtn" class="upload-btn" style="padding:7px 10px;">➕ Jugador</button>
+        <div id="addPlayerForm" style="display:none;position:absolute;top:42px;right:0;background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:10px;padding:12px;z-index:50;min-width:230px;box-shadow:0 8px 24px rgba(0,0,0,.4);">
+          <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:6px;">Nombre del jugador nuevo</label>
+          <input id="addPlayerInput" type="text" placeholder="Ej: Carlos Pérez" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Sans';outline:none;margin-bottom:8px;box-sizing:border-box;">
+          <button id="addPlayerSubmit" class="upload-btn" style="width:100%;">Agregar a la lista</button>
+          <div id="addPlayerStatus" style="font-size:11px;color:var(--mist);margin-top:6px;"></div>
+        </div>
+      </span>
       <button id="logoutBtn" class="upload-btn" style="border-color:var(--mist);color:var(--mist);margin-left:6px;" data-i18n="cerrarSesion">Cerrar sesión</button>
       <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none;">
       <div id="uploadStatus" class="upload-status"></div>
@@ -733,6 +742,35 @@ async function checkNewPlayerSignups(){
 }
 
 
+// ---------- Admin: agregar jugador manualmente a la lista (antes de tener datos de GPS) ----------
+async function getRosterExtraNames(){
+  const {data,error} = await supabaseClient.from('roster_players').select('player_name').eq('club',CURRENT_CLUB);
+  return error ? [] : (data||[]).map(r=>r.player_name);
+}
+function setupAddPlayerBar(){
+  if(!(myProfile && myProfile.role==='admin')) return;
+  const wrap = document.getElementById('addPlayerWrap');
+  wrap.style.display = 'inline-block';
+  const btn = document.getElementById('addPlayerBtn');
+  const form = document.getElementById('addPlayerForm');
+  const input = document.getElementById('addPlayerInput');
+  const status = document.getElementById('addPlayerStatus');
+  btn.onclick = ()=>{ form.style.display = form.style.display==='block' ? 'none' : 'block'; };
+  document.getElementById('addPlayerSubmit').onclick = async ()=>{
+    const name = input.value.trim();
+    if(!name){ status.textContent='Escribe un nombre.'; return; }
+    status.textContent = 'Agregando…';
+    const {error} = await supabaseClient.from('roster_players').insert({club:CURRENT_CLUB, player_name:name});
+    if(error){
+      status.textContent = error.code==='23505' ? 'Ese nombre ya está en la lista.' : 'No se pudo agregar: '+error.message;
+      return;
+    }
+    status.textContent = `✅ "${name}" agregado. Ya puede crear su cuenta y elegirlo.`;
+    input.value='';
+  };
+  document.addEventListener('click',(e)=>{ if(!wrap.contains(e.target)) form.style.display='none'; });
+}
+
 let previewingAsPlayer = null;
 let ORIGINAL_BRAND_SUB = null;
 function setupPreviewBar(){
@@ -781,7 +819,8 @@ async function routeAfterLogin(){
   if(!myProfile){ myProfile = await ensureProfile(); }
   if(myProfile.role==='player' && !myProfile.player_name){
     const taken = await getTakenPlayerNames();
-    const allNames = [...new Set(ACTIVE_EVENTS.map(e=>e.jugador))].sort();
+    const rosterExtra = await getRosterExtraNames();
+    const allNames = [...new Set([...ACTIVE_EVENTS.map(e=>e.jugador), ...rosterExtra])].sort();
     const available = allNames.filter(n=>!taken.includes(n));
     showNamePicker(available);
     return;
@@ -800,7 +839,8 @@ async function handleNameSubmit(event){
   }catch(error){
     document.getElementById('nameMessage').textContent = 'Ese nombre ya fue tomado por otra cuenta, elige otro.';
     const taken = await getTakenPlayerNames();
-    const allNames = [...new Set(ACTIVE_EVENTS.map(e=>e.jugador))].sort();
+    const rosterExtra = await getRosterExtraNames();
+    const allNames = [...new Set([...ACTIVE_EVENTS.map(e=>e.jugador), ...rosterExtra])].sort();
     showNamePicker(allNames.filter(n=>!taken.includes(n)));
   }
 }
@@ -1039,6 +1079,7 @@ async function startDashboard(){
   if(TEAM_SQUAD_MAX){ squadMax = TEAM_SQUAD_MAX; squadAvg = TEAM_SQUAD_AVG; } // restaura la escala real para el radar
   renderAll(myProfile && myProfile.role==='player' ? myProfile.player_name : undefined);
   setupPreviewBar();
+  setupAddPlayerBar();
   checkNewPlayerSignups();
 }
 
@@ -1077,7 +1118,7 @@ const METRICS = {
   acc:  {label:'Acc', unit:'n°', dec:0, key:'acc'},
   desa: {label:'Desa', unit:'n°', dec:0, key:'desa'},
   pl:   {label:'Player Load', unit:'', dec:0, key:'pl'},
-  sprint: {label:'Sprint', unit:'m', dec:0, key:'sprint'},
+  sprint: {label:'Sprint', unit:'', dec:0, key:'sprint'},
 };
 const METRIC_ORDER = ['dist','hsr','vel','acc','desa','pl','sprint'];
 
@@ -1148,7 +1189,7 @@ const I18N = {
     footer:'By Matías González Galindo — Head of Physical Performance',
   },
   ar: {
-    metrics:{dist:'المسافة الإجمالية',hsr:'الجري عالي السرعة',vel:'السرعة القصوى',acc:'تسارع',desa:'تباطؤ',pl:'حمل اللاعب',sprint:'سرعة قصوى'},
+    metrics:{dist:'المسافة الإجمالية',hsr:'الجري عالي السرعة',vel:'السرعة القصوى',acc:'تسارع',desa:'تباطؤ',pl:'حمل اللاعب',sprint:'عدد السرعات القصوى'},
     authTitleLogin:'الدخول إلى لوحة التحكم', authTitleSignup:'إنشاء حساب',
     authDescLogin:'سجّل الدخول للاطلاع على بيانات الفريق وتحديثها.',
     authDescSignup:'سجّل بريدك الإلكتروني وكلمة المرور. سيصلك بريد لتأكيد الدخول.',
@@ -2213,7 +2254,7 @@ async function handleFile(file){
         const r = rows[i]; if(!r || !r[1] || !r[0]) continue;
         events.push({ fecha:toISO(r[0]), jugador:String(r[1]).trim(), tipo:'Entreno', detalle:r[2]||'',
           dist:num(r[3]), hsr:num(r[4]), vel:num(r[5]), acc:num(r[6]), desa:num(r[7]), pl:num(r[8]),
-          alta_int:num(r[16]), sprint:num(r[17]), min:null });
+          alta_int:num(r[16]), sprint:num(r[17]), sprint_count:num(r[18]), min:null });
       }
     }
     if(wb.SheetNames.includes('Partidos')){
@@ -2222,7 +2263,7 @@ async function handleFile(file){
         const r = rows[i]; if(!r || !r[2] || !r[0]) continue;
         events.push({ fecha:toISO(r[0]), jugador:String(r[2]).trim(), tipo:'Partido', detalle:r[1]||'',
           dist:num(r[4]), hsr:num(r[5]), vel:num(r[6]), acc:num(r[7]), desa:num(r[8]), pl:num(r[9]),
-          alta_int:num(r[17]), sprint:num(r[18]), min:num(r[3]) });
+          alta_int:num(r[17]), sprint:num(r[18]), sprint_count:num(r[19]), min:num(r[3]) });
       }
     }
     if(!events.length) throw new Error('No se encontraron filas en las hojas "Session" ni "Partidos".');
