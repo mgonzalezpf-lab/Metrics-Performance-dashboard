@@ -1072,8 +1072,15 @@ function buildRpeLoadTable(dateStr){
     <td>${chronicAvg!==null? chronicAvg.toFixed(1) : '—'}</td>
     <td>${ratioAvg!==null? ratioAvg.toFixed(2) : '—'}</td>
   </tr>`;
+  const isAdminGlobal = myProfile && myProfile.role==='admin';
+  const minHeaderCell = isAdminGlobal
+    ? `<th>Min <span style="display:inline-flex;align-items:center;gap:4px;margin-left:4px;white-space:nowrap;">
+         <input id="rpeMinBulkFill" type="number" min="0" max="240" placeholder="min" title="Escribí un valor y aplicalo a todas las filas" style="width:46px;padding:3px 5px;border-radius:5px;border:1px solid var(--gold);background:var(--pitch-950);color:var(--gold-bright);font:11px 'IBM Plex Mono';outline:none;">
+         <button id="rpeMinBulkApplyBtn" type="button" title="Aplicar este valor a todos los jugadores" style="padding:3px 8px;border-radius:5px;border:1px solid var(--gold);background:var(--gold);color:var(--pitch-950);font:700 11px 'IBM Plex Mono';cursor:pointer;">✏️ Aplicar a todos</button>
+       </span></th>`
+    : `<th>Min</th>`;
   table.innerHTML = `<thead><tr>
-    <th>Jugador</th><th>Hora</th><th>RPE</th><th>Min ${(myProfile && myProfile.role==='admin')?'✏️':''}</th><th>C. Diaria</th><th>C. Aguda</th><th>C. Crónica</th><th>Ratio A:C</th>
+    <th>Jugador</th><th>Hora</th><th>RPE</th>${minHeaderCell}<th>C. Diaria</th><th>C. Aguda</th><th>C. Crónica</th><th>Ratio A:C</th>
   </tr></thead><tbody>${rowsHtml}${footerHtml}</tbody>`;
   table.querySelectorAll('.rpe-min-input').forEach(input=>{
     const save = async ()=>{
@@ -1088,6 +1095,16 @@ function buildRpeLoadTable(dateStr){
     input.addEventListener('blur', save);
     input.addEventListener('keydown', e=>{ if(e.key==='Enter'){ input.blur(); } });
   });
+  if(isAdminGlobal){
+    const bulkInput = document.getElementById('rpeMinBulkFill');
+    const bulkBtn = document.getElementById('rpeMinBulkApplyBtn');
+    const applyToAll = ()=>{
+      if(bulkInput.value==='') return;
+      table.querySelectorAll('.rpe-min-input').forEach(inp=>{ inp.value = bulkInput.value; });
+    };
+    if(bulkBtn) bulkBtn.addEventListener('click', applyToAll);
+    if(bulkInput) bulkInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); applyToAll(); } });
+  }
 }
 
 async function saveAllRpeMinutes(){
