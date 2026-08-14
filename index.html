@@ -19,7 +19,7 @@
     --gold:#22D3EE;
     --gold-bright:#67E8F9;
     --orange:#FB923C;
-    --maroon:#7C5CFC;
+    --maroon:#FB923C;
     --maroon-soft:rgba(124,92,252,.35);
     --bone:#E7E7FB;
     --mist:#9797C9;
@@ -29,7 +29,7 @@
     --bad:#FB7185;
     --low:#60A5FA;
     --warn:#67E8F9;
-    --teal:#38BDF8;
+    --teal:#F472B6;
     --r-card:14px;
   }
   *{box-sizing:border-box;}
@@ -78,6 +78,13 @@
   }
   .upload-btn:hover{background:var(--gold);color:var(--pitch-950);}
   .upload-status{margin-top:6px;font-size:10.5px;max-width:260px;min-height:14px;transition:opacity .3s ease;opacity:0;}
+  .mc-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:14px;}
+  .mc-table th{text-align:left;font-family:'IBM Plex Mono';font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mist);padding:8px 10px;border-bottom:1px solid var(--line-strong);}
+  .mc-table td{padding:7px 10px;border-bottom:1px solid var(--line);color:var(--bone);}
+  .mc-table tr.mc-match td{color:var(--gold-bright);font-weight:600;border-left:3px solid var(--gold);}
+  .mc-table tr.mc-rest td{color:var(--mist);font-style:italic;opacity:.75;}
+  .mc-table tr.mc-total td{background:rgba(103,232,249,.08);color:var(--gold-bright);font-weight:700;border-bottom:2px solid var(--gold);border-top:1px solid var(--gold);}
+  .mc-table tr.mc-total td:first-child{border-left:3px solid var(--gold);}
   .rpe-status-msg{margin-top:10px;font-size:13.5px;line-height:1.5;color:var(--bone);}
   .rpe-status-msg.locked{padding:10px 14px;border-radius:8px;border:1px solid var(--bad);background:rgba(251,113,133,.1);color:var(--bad);font-weight:600;}
   .upload-status.ok{color:var(--good);}
@@ -419,6 +426,26 @@
         <div class="tl-label" id="ttLabel">—</div>
       </div>
       <button class="tl-btn" id="ttNext" data-i18n-title="sesionesSiguientes" title="Sesiones siguientes">▶</button>
+    </div>
+  </div>
+
+  <div class="panel team-only" style="margin-bottom:18px;">
+    <div class="panel-head">
+      <h3>Microciclo (partido a partido)</h3>
+      <span class="tag">promedio diario · total por microciclo · últimos 4</span>
+    </div>
+    <div id="nextMatchWrap" style="position:relative;display:none;padding:0 18px 12px;">
+      <button id="nextMatchBtn" class="upload-btn" style="padding:7px 10px;">📅 Próximo partido</button>
+      <span id="nextMatchLabel" style="margin-left:8px;font-size:11.5px;color:var(--mist);font-family:'IBM Plex Mono';"></span>
+      <div id="nextMatchForm" style="display:none;position:absolute;top:38px;left:18px;background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:10px;padding:12px;z-index:50;min-width:230px;box-shadow:0 8px 24px rgba(0,0,0,.4);">
+        <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:6px;">Fecha del próximo partido</label>
+        <input id="nextMatchInput" type="date" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:8px;box-sizing:border-box;">
+        <button id="nextMatchSubmit" class="upload-btn" style="width:100%;">Guardar fecha</button>
+        <div id="nextMatchStatus" style="font-size:11px;color:var(--mist);margin-top:6px;"></div>
+      </div>
+    </div>
+    <div class="rec-scroll">
+      <div id="microcycleTable"></div>
     </div>
   </div>
 
@@ -774,6 +801,37 @@ function setupAddPlayerBar(){
   document.addEventListener('click',(e)=>{ if(!wrap.contains(e.target)) form.style.display='none'; });
 }
 
+// ---------- Admin: fijar manualmente la fecha del próximo partido (para el conteo MD del microciclo) ----------
+function setupNextMatchBar(){
+  if(!(myProfile && myProfile.role==='admin')) return;
+  const wrap = document.getElementById('nextMatchWrap');
+  wrap.style.display = 'block';
+  const btn = document.getElementById('nextMatchBtn');
+  const form = document.getElementById('nextMatchForm');
+  const input = document.getElementById('nextMatchInput');
+  const status = document.getElementById('nextMatchStatus');
+  const label = document.getElementById('nextMatchLabel');
+  const refreshLabel = ()=>{
+    label.textContent = NEXT_MATCH_DATE ? `próximo partido: ${NEXT_MATCH_DATE.split('-').reverse().join('/')}` : '';
+  };
+  refreshLabel();
+  if(NEXT_MATCH_DATE) input.value = NEXT_MATCH_DATE;
+  btn.onclick = ()=>{ form.style.display = form.style.display==='block' ? 'none' : 'block'; };
+  document.getElementById('nextMatchSubmit').onclick = async ()=>{
+    const dateVal = input.value;
+    if(!dateVal){ status.textContent='Elegí una fecha.'; return; }
+    status.textContent = 'Guardando…';
+    const {error} = await supabaseClient.from('app_settings')
+      .upsert({club:CURRENT_CLUB, key:'next_match_date', value:dateVal, updated_at:new Date().toISOString()}, {onConflict:'club,key'});
+    if(error){ status.textContent = 'No se pudo guardar: ' + error.message; return; }
+    NEXT_MATCH_DATE = dateVal;
+    status.textContent = '✅ Fecha guardada.';
+    refreshLabel();
+    buildMicrocycleTable();
+  };
+  document.addEventListener('click',(e)=>{ if(!wrap.contains(e.target)) form.style.display='none'; });
+}
+
 let previewingAsPlayer = null;
 let ORIGINAL_BRAND_SUB = null;
 function setupPreviewBar(){
@@ -801,7 +859,8 @@ function resizeAllCharts(){
     }catch(e){ console.warn('resize teamTimelineChart falló:', e); }
     try{
       if(weeklyMicroChart){ weeklyMicroChart.destroy(); weeklyMicroChart=null; }
-      buildWeeklyMicrocycle();
+      buildMicrocycleTable();
+  buildWeeklyMicrocycle();
     }catch(e){ console.warn('resize weeklyMicroChart falló:', e); }
   };
   // Varios intentos escalonados: cubre navegadores rápidos (rAF) y layouts más lentos (timeouts).
@@ -1160,8 +1219,16 @@ async function saveAllRpeMinutes(){
 }
 
 let TEAM_SQUAD_MAX = null, TEAM_SQUAD_AVG = null;
+let NEXT_MATCH_DATE = null;
+async function loadNextMatchDate(){
+  try{
+    const {data} = await supabaseClient.from('app_settings').select('value').eq('club',CURRENT_CLUB).eq('key','next_match_date').maybeSingle();
+    NEXT_MATCH_DATE = data && data.value ? data.value : null;
+  }catch(e){ console.warn('No se pudo cargar la fecha del próximo partido:', e); NEXT_MATCH_DATE = null; }
+}
 async function startDashboard(){
   try{ await loadRemoteData(); }catch(error){ console.warn(error); }
+  await loadNextMatchDate();
   document.getElementById('authScreen').style.display='none';
   document.getElementById('nameScreen').style.display='none';
   if(myProfile && myProfile.role==='player'){
@@ -1177,6 +1244,7 @@ async function startDashboard(){
   renderAll(myProfile && myProfile.role==='player' ? myProfile.player_name : undefined);
   setupPreviewBar();
   setupAddPlayerBar();
+  setupNextMatchBar();
   checkNewPlayerSignups();
 }
 
@@ -1485,6 +1553,91 @@ function buildMonotonyStrain(){
   box.querySelectorAll('.acwr-row').forEach(el=> el.addEventListener('click',()=>selectPlayer(el.dataset.p)));
 }
 
+// ---------- Microciclos reales (partido a partido, cerrando en el/los día(s) libre(s)) ----------
+const REST_DAY_KEYWORDS = ['day off','descanso','día libre','dia libre','rest day','libre'];
+function isRestDayEvent(e){
+  if(!e || !e.detalle) return false;
+  const d = String(e.detalle).toLowerCase().trim();
+  return REST_DAY_KEYWORDS.some(k => d===k || d.includes(k));
+}
+function computeMicrocycles(events){
+  const byDate = {};
+  events.forEach(e=>{
+    if(!byDate[e.fecha]) byDate[e.fecha] = [];
+    byDate[e.fecha].push(e);
+  });
+  const dates = Object.keys(byDate).sort();
+  const cycles = [];
+  let current = [];
+  for(let i=0;i<dates.length;i++){
+    const d = dates[i];
+    current.push(d);
+    const isRest = byDate[d].some(isRestDayEvent);
+    const nextIsRest = dates[i+1] ? byDate[dates[i+1]].some(isRestDayEvent) : false;
+    // Cierra el microciclo apenas termina el último día libre consecutivo (o al llegar al final de los datos).
+    if(isRest && !nextIsRest){
+      cycles.push(current);
+      current = [];
+    }
+  }
+  if(current.length) cycles.push(current);
+  return {cycles, byDate};
+}
+function buildMicrocycleTable(){
+  const box = document.getElementById('microcycleTable');
+  if(!box) return;
+  const {cycles, byDate} = computeMicrocycles(ACTIVE_EVENTS);
+  if(!cycles.length){ box.innerHTML=''; return; }
+  const last4 = cycles.slice(-4); // últimos 4 microciclos, para no saturar la pantalla
+  const bodyHtml = last4.map((datesArr, i)=>{
+    // Buscamos el partido de este ciclo para poder contar los días hacia/desde él (MD-5, MD-4... MD, MD+1...)
+    let matchDate = datesArr.find(d=> (byDate[d]||[]).some(e=>e.tipo==='Partido'));
+    let matchIsManual = false;
+    // Si es el ciclo actual (el último, todavía abierto) y no tiene partido cargado, usamos la fecha que cargaste manualmente.
+    if(!matchDate && i===last4.length-1 && NEXT_MATCH_DATE){
+      matchDate = NEXT_MATCH_DATE;
+      matchIsManual = true;
+    }
+    const dayDiff = (a,b)=> Math.round((new Date(a+'T00:00:00') - new Date(b+'T00:00:00')) / 86400000);
+    let cycleTotal = 0; // suma de los promedios diarios: se corta y arranca de nuevo en cada microciclo
+    const dayRows = datesArr.map(d=>{
+      const dayEvents = byDate[d]||[];
+      const isRest = dayEvents.some(isRestDayEvent);
+      const match = dayEvents.find(e=>e.tipo==='Partido');
+      const withDist = dayEvents.filter(e=> e.dist!==null && e.dist!==undefined && !isNaN(e.dist));
+      const distAvg = withDist.length ? withDist.reduce((a,e)=>a+e.dist,0)/withDist.length : null;
+      if(distAvg!==null) cycleTotal += distAvg;
+      const nombre = isRest ? 'Día libre' : (match ? `Partido vs ${match.detalle}` : (dayEvents[0]?.detalle || dayEvents[0]?.tipo || '—'));
+      const rowClass = isRest ? 'mc-rest' : (match ? 'mc-match' : '');
+      const dateStr = d.split('-').reverse().join('/');
+      let mdLabel = '—';
+      if(matchDate){
+        const diff = dayDiff(matchDate, d); // días QUE FALTAN respecto a esta fila (positivo = antes del partido)
+        mdLabel = diff===0 ? 'MD' : (diff>0 ? `MD-${diff}` : `MD+${Math.abs(diff)}`);
+      }
+      return `<tr class="${rowClass}">
+        <td class="mono">${dateStr}</td>
+        <td class="mono" style="font-weight:700;${match?'color:var(--gold-bright);':''}">${mdLabel}</td>
+        <td>${nombre}</td>
+        <td class="mono">${isRest || distAvg===null ? '—' : fmt(Math.round(distAvg))}</td>
+      </tr>`;
+    }).join('');
+    let cycleLabel;
+    if(matchDate && byDate[matchDate] && byDate[matchDate].some(e=>e.tipo==='Partido')){
+      cycleLabel = `Ciclo vs ${byDate[matchDate].find(e=>e.tipo==='Partido').detalle} (${matchDate.split('-').reverse().join('/')})`;
+    } else if(matchIsManual){
+      cycleLabel = `Ciclo → próximo partido (${matchDate.split('-').reverse().join('/')})`;
+    } else {
+      cycleLabel = 'Bloque sin partido';
+    }
+    return `${dayRows}<tr class="mc-total"><td colspan="3">${cycleLabel} · Total del microciclo</td><td class="mono">${cycleTotal>0 ? fmt(Math.round(cycleTotal))+' m' : '—'}</td></tr>`;
+  }).join('');
+  box.innerHTML = `<table class="mc-table">
+    <thead><tr><th>Fecha</th><th>MD</th><th>Sesión</th><th>Distancia promedio (m)</th></tr></thead>
+    <tbody>${bodyHtml}</tbody>
+  </table>`;
+}
+
 // ---------- Carga semanal del plantel (microciclo) ----------
 let weeklyMicroChart;
 function buildWeeklyMicrocycle(){
@@ -1657,7 +1810,7 @@ function drawRadar(player){
   if(rec){
     const normRec = METRIC_ORDER.map(m=> squadMax[m]? Math.min(1,(rec[m].valor||0)/squadMax[m]) : 0);
     const recPts = polygonPoints(normRec,cx,cy,R);
-    recPts.forEach(p=>{ parts.push(`<rect x="${p[0]-3}" y="${p[1]-3}" width="6" height="6" fill="#7C5CFC" transform="rotate(45 ${p[0]} ${p[1]})"/>`); });
+    recPts.forEach(p=>{ parts.push(`<rect x="${p[0]-3}" y="${p[1]-3}" width="6" height="6" fill="#FB923C" transform="rotate(45 ${p[0]} ${p[1]})"/>`); });
     METRIC_ORDER.forEach((m,i)=>{
       const rv = rec[m] ? rec[m].valor : null;
       if(rv===null || rv===undefined) return;
@@ -1667,7 +1820,7 @@ function drawRadar(player){
       const lx = cx + labelR*Math.cos(angle), ly = cy + labelR*Math.sin(angle);
       const unit = METRICS[m].unit;
       const text = `${fmt(rv, METRICS[m].dec)}${unit?(' '+unit):''}`;
-      parts.push(`<text x="${lx}" y="${ly}" fill="#C4B5FD" font-size="9.5" font-weight="700" font-family="IBM Plex Mono" text-anchor="middle" dominant-baseline="middle" paint-order="stroke" stroke="#14143A" stroke-width="3">${text}</text>`);
+      parts.push(`<text x="${lx}" y="${ly}" fill="#FDBA74" font-size="9.5" font-weight="700" font-family="IBM Plex Mono" text-anchor="middle" dominant-baseline="middle" paint-order="stroke" stroke="#14143A" stroke-width="3">${text}</text>`);
     });
   }
 
@@ -2225,8 +2378,8 @@ function drawCompareRadar(pA,pB){
     const normA = METRIC_ORDER.map(m=> squadMax[m]? Math.min(1,(playerAvg[pA][m]||0)/squadMax[m]):0);
     const normB = METRIC_ORDER.map(m=> squadMax[m]? Math.min(1,(playerAvg[pB][m]||0)/squadMax[m]):0);
     const ptsB = polygonPoints(normB,cx,cy,R);
-    parts.push(`<polygon points="${ptsB.map(p=>p.join(',')).join(' ')}" fill="rgba(95,180,184,.16)" stroke="#38BDF8" stroke-width="2"/>`);
-    ptsB.forEach(p=>parts.push(`<circle cx="${p[0]}" cy="${p[1]}" r="3.4" fill="#38BDF8"/>`));
+    parts.push(`<polygon points="${ptsB.map(p=>p.join(',')).join(' ')}" fill="rgba(244,114,182,.16)" stroke="#F472B6" stroke-width="2"/>`);
+    ptsB.forEach(p=>parts.push(`<circle cx="${p[0]}" cy="${p[1]}" r="3.4" fill="#F472B6"/>`));
     const ptsA = polygonPoints(normA,cx,cy,R);
     parts.push(`<polygon points="${ptsA.map(p=>p.join(',')).join(' ')}" fill="rgba(34,211,238,.20)" stroke="#22D3EE" stroke-width="2"/>`);
     ptsA.forEach(p=>parts.push(`<circle cx="${p[0]}" cy="${p[1]}" r="3.4" fill="#67E8F9"/>`));
@@ -2292,6 +2445,7 @@ function renderAll(keepPlayer){
   buildWeeklyLoadChart(true);
   buildTeamTimeline(true);
   buildMonotonyStrain();
+  buildMicrocycleTable();
   buildWeeklyMicrocycle();
   buildDataQuality();
   if(!(myProfile && myProfile.role==='player')) buildRpeTeamList();
