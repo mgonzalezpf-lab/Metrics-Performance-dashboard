@@ -95,7 +95,7 @@
   .auth-card label{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mist);margin:14px 0 6px;}.auth-card input,.auth-card select{width:100%;padding:11px 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:14px 'IBM Plex Sans';outline:none;}.auth-card input:focus,.auth-card select:focus{border-color:var(--gold);}.auth-submit{width:100%;margin-top:20px;padding:11px;border:0;border-radius:8px;background:var(--gold);color:var(--pitch-950);font:700 13px 'IBM Plex Mono';cursor:pointer;}.auth-switch{width:100%;background:none;border:0;color:var(--gold-bright);padding:14px 0 0;cursor:pointer;font:12px 'IBM Plex Sans';}.auth-message{min-height:20px;margin-top:12px;font-size:12px;color:var(--mist);}.auth-message.error{color:var(--bad);}.auth-message.ok{color:var(--good);}
 
   /* ---------- KPI STRIP ---------- */
-  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px;}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:26px;}
   .kpi{
     background:linear-gradient(180deg,var(--pitch-800),var(--pitch-900));
     border:1px solid var(--line);border-radius:var(--r-card);padding:16px 18px;
@@ -1554,6 +1554,29 @@ function buildMonotonyStrain(){
 }
 
 // ---------- Microciclos reales (partido a partido, cerrando en el/los día(s) libre(s)) ----------
+// Info del último partido REALMENTE jugado (no la fecha manual futura) — sirve de referencia fija
+// tanto para el % de intensidad de cada sesión como para saber desde cuándo arranca a contar el ciclo actual.
+function getLastMatchInfo(events){
+  const matches = events.filter(e=>e.tipo==='Partido');
+  if(!matches.length) return null;
+  const lastDate = matches.map(e=>e.fecha).sort().pop();
+  const sameDay = matches.filter(e=> e.fecha===lastDate && e.dist!==null && e.dist!==undefined && !isNaN(e.dist));
+  const avgDist = sameDay.length ? sameDay.reduce((a,e)=>a+e.dist,0)/sameDay.length : null;
+  return { fecha:lastDate, rival: matches.find(e=>e.fecha===lastDate).detalle, avgDist };
+}
+function sumCycleDistanceAvg(datesArr, byDate){
+  let total = 0;
+  datesArr.forEach(d=>{
+    const withDist = (byDate[d]||[]).filter(e=> e.dist!==null && e.dist!==undefined && !isNaN(e.dist));
+    if(withDist.length) total += withDist.reduce((a,e)=>a+e.dist,0)/withDist.length;
+  });
+  return total;
+}
+function computeCurrentCycleTotal(){
+  const {cycles, byDate} = computeMicrocycles(ACTIVE_EVENTS);
+  if(!cycles.length) return null;
+  return Math.round(sumCycleDistanceAvg(cycles[cycles.length-1], byDate));
+}
 const REST_DAY_KEYWORDS = ['day off','descanso','día libre','dia libre','rest day','libre'];
 function isRestDayEvent(e){
   if(!e || !e.detalle) return false;
@@ -1588,6 +1611,7 @@ function buildMicrocycleTable(){
   if(!box) return;
   const {cycles, byDate} = computeMicrocycles(ACTIVE_EVENTS);
   if(!cycles.length){ box.innerHTML=''; return; }
+  const lastMatch = getLastMatchInfo(ACTIVE_EVENTS); // referencia fija: último partido REALMENTE jugado
   const last4 = cycles.slice(-4); // últimos 4 microciclos, para no saturar la pantalla
   const bodyHtml = last4.map((datesArr, i)=>{
     // Buscamos el partido de este ciclo para poder contar los días hacia/desde él (MD-5, MD-4... MD, MD+1...)
@@ -1607,6 +1631,8 @@ function buildMicrocycleTable(){
       const withDist = dayEvents.filter(e=> e.dist!==null && e.dist!==undefined && !isNaN(e.dist));
       const distAvg = withDist.length ? withDist.reduce((a,e)=>a+e.dist,0)/withDist.length : null;
       if(distAvg!==null) cycleTotal += distAvg;
+      const intensityPct = (distAvg!==null && lastMatch && lastMatch.avgDist) ? Math.round((distAvg/lastMatch.avgDist)*100) : null;
+      const intensityColor = intensityPct===null ? '' : (intensityPct>100 ? 'color:var(--bad);' : intensityPct>=70 ? 'color:var(--gold-bright);' : 'color:var(--mist);');
       const nombre = isRest ? 'Día libre' : (match ? `Partido vs ${match.detalle}` : (dayEvents[0]?.detalle || dayEvents[0]?.tipo || '—'));
       const rowClass = isRest ? 'mc-rest' : (match ? 'mc-match' : '');
       const dateStr = d.split('-').reverse().join('/');
@@ -1620,6 +1646,7 @@ function buildMicrocycleTable(){
         <td class="mono" style="font-weight:700;${match?'color:var(--gold-bright);':''}">${mdLabel}</td>
         <td>${nombre}</td>
         <td class="mono">${isRest || distAvg===null ? '—' : fmt(Math.round(distAvg))}</td>
+        <td class="mono" style="${intensityColor}">${intensityPct===null ? '—' : intensityPct+'%'}</td>
       </tr>`;
     }).join('');
     let cycleLabel;
@@ -1630,10 +1657,10 @@ function buildMicrocycleTable(){
     } else {
       cycleLabel = 'Bloque sin partido';
     }
-    return `${dayRows}<tr class="mc-total"><td colspan="3">${cycleLabel} · Total del microciclo</td><td class="mono">${cycleTotal>0 ? fmt(Math.round(cycleTotal))+' m' : '—'}</td></tr>`;
+    return `${dayRows}<tr class="mc-total"><td colspan="3">${cycleLabel} · Total del microciclo</td><td class="mono">${cycleTotal>0 ? fmt(Math.round(cycleTotal))+' m' : '—'}</td><td class="mono">—</td></tr>`;
   }).join('');
   box.innerHTML = `<table class="mc-table">
-    <thead><tr><th>Fecha</th><th>MD</th><th>Sesión</th><th>Distancia promedio (m)</th></tr></thead>
+    <thead><tr><th>Fecha</th><th>MD</th><th>Sesión</th><th>Distancia promedio (m)</th><th>Intensidad (%)</th></tr></thead>
     <tbody>${bodyHtml}</tbody>
   </table>`;
 }
@@ -1730,11 +1757,15 @@ function buildKPIs(){
   const lastDate = dates[dates.length-1];
   document.getElementById('lastDate').textContent = lastDate.split('-').reverse().join('/');
   const todays = RECORDS.filter(r=>['dist','hsr','vel','acc','desa','pl'].some(m=>r[m].fecha===lastDate));
+  const lastMatch = getLastMatchInfo(ACTIVE_EVENTS);
+  const currentCycleTotal = computeCurrentCycleTotal();
   const kpis = [
     {lbl:t('kpiSesiones'), val:ACTIVE_EVENTS.length, sub:`${byPlayer[players[0]]?players.length:0} ${t('jugadores')} · ${dates.length} ${t('fechas')}`},
     {lbl:t('kpiDistancia'), val:fmt(Math.round(totalDist/1000)), unit:'km', sub:`${fmt(Math.round(totalDist))} ${t('acumulados')}`},
     {lbl:t('kpiPlayerLoad'), val:fmt(Math.round(avgPL)), unit:'', sub:t('porSesion')},
     {lbl:t('kpiRecords'), val:todays.length, unit:'', sub: todays.length? `<b>${todays.map(x=>x.jugador.split(' ')[0]).slice(0,3).join(', ')}${todays.length>3?'…':''}</b>` : t('sinNuevos')},
+    {lbl:'Carga microciclo actual', val: currentCycleTotal!==null ? fmt(currentCycleTotal) : '—', unit:'m',
+      sub: lastMatch ? `desde vs ${lastMatch.rival} (${lastMatch.fecha.split('-').reverse().join('/')})` : 'sin partido de referencia'},
   ];
   document.getElementById('kpiStrip').innerHTML = kpis.map(k=>`
     <div class="kpi">
