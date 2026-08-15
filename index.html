@@ -1610,15 +1610,15 @@ function sumCycleDistanceAvg(datesArr, byDate){
   });
   return total;
 }
-function computeCurrentCycleAvg(){
+function computeCurrentCycleAvg(field='dist'){
   const {cycles, byDate} = computeMicrocycles(ACTIVE_EVENTS);
   if(!cycles.length) return null;
   const lastCycle = cycles[cycles.length-1];
   let total = 0, count = 0;
   lastCycle.forEach(d=>{
-    const withDist = (byDate[d]||[]).filter(e=> e.dist!==null && e.dist!==undefined && !isNaN(e.dist));
-    if(withDist.length){
-      total += withDist.reduce((a,e)=>a+e.dist,0)/withDist.length;
+    const withVal = (byDate[d]||[]).filter(e=> e[field]!==null && e[field]!==undefined && !isNaN(e[field]));
+    if(withVal.length){
+      total += withVal.reduce((a,e)=>a+e[field],0)/withVal.length;
       count++;
     }
   });
@@ -1810,22 +1810,75 @@ function buildDataQuality(){
 }
 
 // ---------- KPI strip ----------
+// Player Load total de la semana actual vs la anterior (mismo agrupado lunes-domingo que "Carga semanal del plantel")
+function getWeeklyPLComparison(){
+  const weekMap = {};
+  ACTIVE_EVENTS.forEach(e=>{
+    const monday = isoDate(getMonday(e.fecha));
+    if(!weekMap[monday]) weekMap[monday] = 0;
+    if(e.pl!==null && !isNaN(e.pl)) weekMap[monday] += e.pl;
+  });
+  const weeks = Object.keys(weekMap).sort();
+  if(!weeks.length) return null;
+  const current = weekMap[weeks[weeks.length-1]];
+  const prev = weeks.length>=2 ? weekMap[weeks[weeks.length-2]] : null;
+  const pctChange = (prev!==null && prev>0) ? ((current-prev)/prev*100) : null;
+  return { current: Math.round(current), prev: prev!==null?Math.round(prev):null,
+    pctChange: pctChange!==null?Math.round(pctChange):null,
+    within20: pctChange!==null ? Math.abs(pctChange)<=20 : null };
+}
+
+// % de intensidad compuesta (dist+hsr+pl+m/min vs promedio de los últimos 3 partidos) de la sesión MÁS RECIENTE cargada
+function getCurrentSessionIntensity(){
+  const dates = [...new Set(ACTIVE_EVENTS.map(e=>e.fecha))].sort();
+  if(!dates.length) return null;
+  const lastDate = dates[dates.length-1];
+  const dayEvents = ACTIVE_EVENTS.filter(e=>e.fecha===lastDate);
+  const lastMatch = getLastMatchInfo(ACTIVE_EVENTS);
+  const distAvg = avgField(dayEvents,'dist');
+  const hsrAvg = avgField(dayEvents,'hsr');
+  const plAvg = avgField(dayEvents,'pl');
+  const mminAvg = avgMPerMin(dayEvents);
+  const pcts = [];
+  if(distAvg!==null && lastMatch && lastMatch.avgDist) pcts.push(distAvg/lastMatch.avgDist*100);
+  if(hsrAvg!==null && lastMatch && lastMatch.avgHsr) pcts.push(hsrAvg/lastMatch.avgHsr*100);
+  if(plAvg!==null && lastMatch && lastMatch.avgPl) pcts.push(plAvg/lastMatch.avgPl*100);
+  if(mminAvg!==null && lastMatch && lastMatch.avgMMin) pcts.push(mminAvg/lastMatch.avgMMin*100);
+  return { fecha:lastDate, pct: pcts.length ? Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length) : null };
+}
+
 function buildKPIs(){
-  const totalDist = ACTIVE_EVENTS.reduce((a,e)=>a+(e.dist||0),0);
   const avgPL = avg(ACTIVE_EVENTS,'pl');
   const dates = [...new Set(ACTIVE_EVENTS.map(e=>e.fecha))].sort();
   const lastDate = dates[dates.length-1];
   document.getElementById('lastDate').textContent = lastDate.split('-').reverse().join('/');
   const todays = RECORDS.filter(r=>['dist','hsr','vel','acc','desa','pl'].some(m=>r[m].fecha===lastDate));
   const lastMatch = getLastMatchInfo(ACTIVE_EVENTS);
-  const currentCycleAvg = computeCurrentCycleAvg();
+  const cycleDistAvg = computeCurrentCycleAvg('dist');
+  const cycleHsrAvg = computeCurrentCycleAvg('hsr');
+  const weeklyPL = getWeeklyPLComparison();
+  const sessionIntensity = getCurrentSessionIntensity();
+
+  const cycleSub = lastMatch ? `desde vs ${lastMatch.rival} (${lastMatch.fecha.split('-').reverse().join('/')})` : 'sin partido de referencia';
+
+  let weeklySub = 'sin semana anterior para comparar';
+  if(weeklyPL && weeklyPL.pctChange!==null){
+    const signo = weeklyPL.pctChange>=0 ? '+' : '';
+    weeklySub = weeklyPL.within20
+      ? `<b style="color:var(--good);">✓ dentro del ±20%</b> · ${signo}${weeklyPL.pctChange}% vs sem. anterior`
+      : `<b style="color:var(--bad);">⚠ fuera del ±20%</b> · ${signo}${weeklyPL.pctChange}% vs sem. anterior`;
+  }
+
   const kpis = [
-    {lbl:t('kpiSesiones'), val:ACTIVE_EVENTS.length, sub:`${byPlayer[players[0]]?players.length:0} ${t('jugadores')} · ${dates.length} ${t('fechas')}`},
-    {lbl:t('kpiDistancia'), val:fmt(Math.round(totalDist/1000)), unit:'km', sub:`${fmt(Math.round(totalDist))} ${t('acumulados')}`},
-    {lbl:t('kpiPlayerLoad'), val:fmt(Math.round(avgPL)), unit:'', sub:t('porSesion')},
+    {lbl:'Distancia microciclo actual', val: cycleDistAvg!==null ? fmt(cycleDistAvg) : '—', unit:'m',
+      sub: `promedio diario · ${cycleSub}`},
+    {lbl:'HSR microciclo actual', val: cycleHsrAvg!==null ? fmt(cycleHsrAvg) : '—', unit:'m',
+      sub: `promedio diario · ${cycleSub}`},
+    {lbl:'Player Load semanal', val: weeklyPL ? fmt(weeklyPL.current) : '—', unit:'',
+      sub: weeklySub},
     {lbl:t('kpiRecords'), val:todays.length, unit:'', sub: todays.length? `<b>${todays.map(x=>x.jugador.split(' ')[0]).slice(0,3).join(', ')}${todays.length>3?'…':''}</b>` : t('sinNuevos')},
-    {lbl:'Carga microciclo actual', val: currentCycleAvg!==null ? fmt(currentCycleAvg) : '—', unit:'m',
-      sub: lastMatch ? `promedio diario · desde vs ${lastMatch.rival} (${lastMatch.fecha.split('-').reverse().join('/')})` : 'sin partido de referencia'},
+    {lbl:'Intensidad sesión actual', val: sessionIntensity && sessionIntensity.pct!==null ? sessionIntensity.pct : '—', unit: sessionIntensity && sessionIntensity.pct!==null ? '%' : '',
+      sub: sessionIntensity ? `sesión del ${sessionIntensity.fecha.split('-').reverse().join('/')} · vs prom. últ. 3 partidos` : 'sin datos'},
   ];
   document.getElementById('kpiStrip').innerHTML = kpis.map(k=>`
     <div class="kpi">
