@@ -60,7 +60,7 @@
   }
   .brand{display:flex;align-items:center;gap:14px;}
   .mark{width:46px;height:46px;flex:none;}
-  .club-logo{object-fit:contain;width:95px;height:auto;}
+  .club-logo{object-fit:contain;}
   .brand h1{
     font-family:'Big Shoulders Display',sans-serif;
     font-weight:800;font-size:28px;letter-spacing:.03em;margin:0;line-height:1;
@@ -416,6 +416,34 @@
     </div>
   </header>
 
+  <div class="team-only" id="adminTabBar" style="display:flex;gap:8px;margin-bottom:18px;">
+    <button class="tab-btn active" id="tabBtnJugadores" onclick="switchAdminTab('jugadores')" style="padding:9px 18px;border-radius:10px;border:1px solid var(--gold);background:var(--gold);color:var(--pitch-950);font:700 13px 'IBM Plex Mono';cursor:pointer;">⚽ Jugadores de Campo</button>
+    <button class="tab-btn" id="tabBtnArqueros" onclick="switchAdminTab('arqueros')" style="padding:9px 18px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--mist);font:700 13px 'IBM Plex Mono';cursor:pointer;">🧤 Arqueros</button>
+  </div>
+
+  <div id="goalkeepersView" style="display:none;">
+    <div class="panel" style="margin-bottom:18px;">
+      <div class="panel-head">
+        <h3>🧤 Vista previa como arquero</h3>
+        <span class="tag">ver el dashboard como lo ve un arquero puntual</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <select id="gkPreviewSelect" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:12.5px 'IBM Plex Sans';outline:none;"></select>
+        <button id="gkPreviewStartBtn" class="upload-btn" style="padding:8px 14px;">Ver como este arquero</button>
+      </div>
+    </div>
+    <div class="panel" style="margin-bottom:18px;">
+      <div class="panel-head">
+        <h3>🧤 Arqueros</h3>
+        <span class="tag">distancia · impacto · buzos · PL · m/min · vel. máxima · acc-dece</span>
+      </div>
+      <div class="rec-scroll">
+        <div id="gkTable"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="fieldContentWrap">
   <div class="kpis team-only" id="kpiStrip"></div>
 
   <div class="panel team-only" style="margin-bottom:18px;">
@@ -521,6 +549,37 @@
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <div id="gkPlayerView" style="display:none;margin-bottom:18px;">
+    <div class="kpis" id="gkKpiStrip" style="margin-bottom:18px;"></div>
+    <div class="panel" style="margin-bottom:18px;">
+      <div class="panel-head">
+        <h3 id="gkRadarTitle">🧤 Radar de Vuelo</h3>
+        <span class="tag">perfil normalizado vs. arqueros</span>
+      </div>
+      <div class="radar-body">
+        <div class="radar-svg-wrap">
+          <div class="sweep"></div>
+          <svg id="gkRadarSvg" viewBox="0 0 340 340" width="100%" style="max-width:340px;"></svg>
+        </div>
+        <div class="radar-side" id="gkRadarSide"></div>
+      </div>
+      <div class="legend-row">
+        <span><span class="dot" style="background:var(--gold);"></span>Promedio del arquero</span>
+        <span><span class="dot" style="background:var(--mist);opacity:.6;"></span>Promedio de arqueros</span>
+        <span><span class="dot" style="background:var(--maroon);"></span>Récord personal</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <h3>🧤 Mis sesiones</h3>
+        <span class="tag">distancia · impacto · buzos · PL · m/min · vel. máxima · acc-dece</span>
+      </div>
+      <div class="rec-scroll">
+        <div id="gkPlayerTable"></div>
+      </div>
     </div>
   </div>
 
@@ -654,6 +713,8 @@
     </div>
   </div>
 
+  </div>
+
   <footer data-i18n="footer">Por Matías González Galindo — Head of Physical Performance</footer>
 </div>
 
@@ -727,9 +788,136 @@ function showNamePicker(availableNames){
 }
 function applyPlayerModeUI(){
   document.querySelectorAll('.team-only').forEach(el=>el.style.display='none');
+  const fieldWrap = document.getElementById('fieldContentWrap');
+  if(fieldWrap) fieldWrap.style.display=''; // la vista individual siempre necesita este contenedor visible, sin importar en qué pestaña haya quedado el admin
+  const gkAdminView = document.getElementById('goalkeepersView');
+  if(gkAdminView) gkAdminView.style.display='none'; // esa vista es solo para el admin navegando el plantel completo
   const mainGrid=document.getElementById('mainGrid');
-  if(mainGrid) mainGrid.style.gridTemplateColumns='1fr';
+  const gkView=document.getElementById('gkPlayerView');
+  const activePlayer = previewingAsPlayer || (myProfile && myProfile.player_name);
+  if(activePlayer && isGoalkeeper(activePlayer)){
+    if(mainGrid) mainGrid.style.display='none';
+    if(gkView) gkView.style.display='block';
+    buildGkPlayerView(activePlayer);
+  } else {
+    if(mainGrid){ mainGrid.style.display=''; mainGrid.style.gridTemplateColumns='1fr'; }
+    if(gkView) gkView.style.display='none';
+  }
   document.querySelector('.top .brand-sub').textContent = 'Tus métricas individuales — ' + CURRENT_CLUB;
+}
+
+// ---------- Vista individual del arquero: mismo lenguaje visual que jugadores de campo, otras métricas ----------
+function drawGkRadar(player){
+  const svg = document.getElementById('gkRadarSvg');
+  if(!svg) return;
+  const cx=170, cy=175, R=118;
+  const n = GK_METRIC_ORDER.length;
+  let parts = [];
+
+  [0.25,0.5,0.75,1].forEach(f=>{
+    const pts = polygonPoints(Array(n).fill(f), cx,cy,R);
+    parts.push(`<polygon points="${pts.map(p=>p.join(',')).join(' ')}" fill="none" stroke="rgba(231,231,251,.14)" stroke-width="1"/>`);
+  });
+  GK_METRIC_ORDER.forEach((m,i)=>{
+    const angle = -Math.PI/2 + i*(2*Math.PI/n);
+    const x2 = cx + R*Math.cos(angle), y2 = cy + R*Math.sin(angle);
+    parts.push(`<line x1="${cx}" y1="${cy}" x2="${x2}" y2="${y2}" stroke="rgba(231,231,251,.10)" stroke-width="1"/>`);
+    const lx = cx + (R+26)*Math.cos(angle), ly = cy + (R+26)*Math.sin(angle);
+    parts.push(`<text x="${lx}" y="${ly}" fill="#9797C9" font-size="10.5" font-family="IBM Plex Mono" text-anchor="middle" dominant-baseline="middle">${GK_METRICS[m].label.toUpperCase()}</text>`);
+  });
+
+  const pAvg = gkPlayerAvg[player] || {};
+  const normPlayer = GK_METRIC_ORDER.map(m=> gkSquadMax[m]? Math.min(1,(pAvg[m]||0)/gkSquadMax[m]) : 0);
+  const normSquad = GK_METRIC_ORDER.map(m=> gkSquadMax[m]? (gkSquadAvg[m]||0)/gkSquadMax[m] : 0);
+
+  const squadPts = polygonPoints(normSquad,cx,cy,R);
+  parts.push(`<polygon points="${squadPts.map(p=>p.join(',')).join(' ')}" fill="rgba(151,151,201,.08)" stroke="#9797C9" stroke-width="1.4" stroke-dasharray="4,3"/>`);
+
+  const playerPts = polygonPoints(normPlayer,cx,cy,R);
+  parts.push(`<polygon points="${playerPts.map(p=>p.join(',')).join(' ')}" fill="rgba(34,211,238,.22)" stroke="#22D3EE" stroke-width="2"/>`);
+  playerPts.forEach(p=>{ parts.push(`<circle cx="${p[0]}" cy="${p[1]}" r="3.4" fill="#67E8F9"/>`); });
+
+  const rec = gkRecordByPlayer[player];
+  if(rec){
+    const normRec = GK_METRIC_ORDER.map(m=> gkSquadMax[m]? Math.min(1,(rec[m]?.valor||0)/gkSquadMax[m]) : 0);
+    const recPts = polygonPoints(normRec,cx,cy,R);
+    recPts.forEach(p=>{ parts.push(`<rect x="${p[0]-3}" y="${p[1]-3}" width="6" height="6" fill="#FB923C" transform="rotate(45 ${p[0]} ${p[1]})"/>`); });
+    GK_METRIC_ORDER.forEach((m,i)=>{
+      const rv = rec[m] ? rec[m].valor : null;
+      if(rv===null || rv===undefined) return;
+      const angle = -Math.PI/2 + i*(2*Math.PI/n);
+      const p = recPts[i];
+      const labelR = Math.hypot(p[0]-cx, p[1]-cy) + 13;
+      const lx = cx + labelR*Math.cos(angle), ly = cy + labelR*Math.sin(angle);
+      const unit = GK_METRICS[m].unit;
+      const text = `${fmt(rv, GK_METRICS[m].dec)}${unit?(' '+unit):''}`;
+      parts.push(`<text x="${lx}" y="${ly}" fill="#FDBA74" font-size="9.5" font-weight="700" font-family="IBM Plex Mono" text-anchor="middle" dominant-baseline="middle" paint-order="stroke" stroke="#14143A" stroke-width="3">${text}</text>`);
+    });
+  }
+
+  parts.push(`<circle cx="${cx}" cy="${cy}" r="2" fill="#E7E7FB"/>`);
+  svg.innerHTML = parts.join('');
+
+  const side = document.getElementById('gkRadarSide');
+  if(side){
+    side.innerHTML = `
+      <div class="rs-item gold"><div class="k">Promedio arquero (últ. 5)</div><div class="v">${fmt(Math.round(pAvg.dist||0))}<span>m dist.</span></div></div>
+      <div class="rs-item gold"><div class="k">Player Load prom.</div><div class="v">${fmt(Math.round(pAvg.pl||0))}</div></div>
+      <div class="rs-item mist"><div class="k">Promedio de arqueros</div><div class="v">${fmt(Math.round(gkSquadAvg.dist||0))}<span>m dist.</span></div></div>
+    `;
+  }
+}
+
+function buildGkPlayerView(playerName){
+  const kpiBox = document.getElementById('gkKpiStrip');
+  const tableBox = document.getElementById('gkPlayerTable');
+  const radarTitle = document.getElementById('gkRadarTitle');
+  if(!kpiBox || !tableBox) return;
+  if(radarTitle) radarTitle.textContent = `🧤 Radar de Vuelo · ${playerName}`;
+  drawGkRadar(playerName);
+  const mySessions = GK_EVENTS.filter(e=>e.jugador===playerName).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  if(!mySessions.length){
+    kpiBox.innerHTML = '';
+    tableBox.innerHTML = '<p style="padding:14px 18px;color:var(--mist);font-size:12.5px;">Todavía no hay sesiones cargadas.</p>';
+    return;
+  }
+  const last = mySessions[mySessions.length-1];
+  const lastMmin = (last.dist!==null && last.min && last.min>0) ? Math.round(last.dist/last.min) : null;
+  const kpis = [
+    {lbl:'Distancia última sesión', val:last.dist!==null?fmt(Math.round(last.dist)):'—', unit:'m'},
+    {lbl:'Impacto', val:last.impact!==null?fmt(last.impact):'—', unit:''},
+    {lbl:'Buzos', val:last.dives!==null?fmt(last.dives):'—', unit:''},
+    {lbl:'Player Load', val:last.pl!==null?fmt(Math.round(last.pl)):'—', unit:''},
+    {lbl:'m/min', val:lastMmin!==null?fmt(lastMmin):'—', unit:''},
+    {lbl:'Vel. máxima', val:last.vel!==null?last.vel.toFixed(1):'—', unit:'km/h'},
+    {lbl:'Acc / Dece', val:`${last.acc!==null?last.acc:'—'} / ${last.dece!==null?last.dece:'—'}`, unit:''},
+  ];
+  kpiBox.innerHTML = kpis.map(k=>`
+    <div class="kpi">
+      <div class="lbl">${k.lbl}</div>
+      <div class="val">${k.val}${k.unit?`<small>${k.unit}</small>`:''}</div>
+      <div class="sub">${last.fecha.split('-').reverse().join('/')} · ${last.detalle||last.tipo}</div>
+    </div>`).join('');
+
+  const rows = [...mySessions].reverse().map(e=>{
+    const mmin = (e.dist!==null && e.min && e.min>0) ? Math.round(e.dist/e.min) : null;
+    const rowClass = e.tipo==='Partido' ? 'mc-match' : '';
+    return `<tr class="${rowClass}">
+      <td class="mono">${e.fecha.split('-').reverse().join('/')}</td>
+      <td>${e.detalle||e.tipo}</td>
+      <td class="mono">${e.dist!==null?fmt(Math.round(e.dist)):'—'}</td>
+      <td class="mono">${e.impact!==null?fmt(e.impact):'—'}</td>
+      <td class="mono">${e.dives!==null?fmt(e.dives):'—'}</td>
+      <td class="mono">${e.pl!==null?fmt(Math.round(e.pl)):'—'}</td>
+      <td class="mono">${mmin!==null?fmt(mmin):'—'}</td>
+      <td class="mono">${e.vel!==null?e.vel.toFixed(1):'—'}</td>
+      <td class="mono">${e.acc!==null?e.acc:'—'} / ${e.dece!==null?e.dece:'—'}</td>
+    </tr>`;
+  }).join('');
+  tableBox.innerHTML = `<table class="mc-table">
+    <thead><tr><th>Fecha</th><th>Sesión</th><th>Dist. (m)</th><th>Impacto</th><th>Buzos</th><th>PL</th><th>m/min</th><th>Vel. máx</th><th>Acc/Dece</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
 }
 
 // ---------- Campana de notificaciones: nuevos jugadores registrados ----------
@@ -840,14 +1028,23 @@ function setupNextMatchBar(){
 
 let previewingAsPlayer = null;
 let ORIGINAL_BRAND_SUB = null;
+let previewStartedFromArqueros = false;
 function setupPreviewBar(){
   if(!(myProfile && myProfile.role==='admin')) return;
   const bar = document.getElementById('previewBar');
   bar.style.display = 'block';
   const select = document.getElementById('previewPlayerSelect');
   select.innerHTML = players.map(p=>`<option value="${p}">${p}</option>`).join('');
-  document.getElementById('previewStartBtn').onclick = ()=> startPlayerPreview(select.value);
+  document.getElementById('previewStartBtn').onclick = ()=>{ previewStartedFromArqueros=false; startPlayerPreview(select.value); };
   document.getElementById('previewExitBtn').onclick = exitPlayerPreview;
+}
+function setupGkPreviewBar(){
+  if(!(myProfile && myProfile.role==='admin')) return;
+  const select = document.getElementById('gkPreviewSelect');
+  if(!select) return;
+  const gkNames = [...new Set(GK_EVENTS.map(e=>e.jugador))].sort();
+  select.innerHTML = gkNames.map(p=>`<option value="${p}">${p}</option>`).join('');
+  document.getElementById('gkPreviewStartBtn').onclick = ()=>{ previewStartedFromArqueros=true; startPlayerPreview(select.value); };
 }
 function resizeAllCharts(){
   const doRebuild = ()=>{
@@ -882,7 +1079,7 @@ function startPlayerPreview(playerName){
     const sub = document.querySelector('.top .brand-sub');
     ORIGINAL_BRAND_SUB = sub ? sub.textContent : '';
   }
-  selectPlayer(playerName);
+  if(!isGoalkeeper(playerName)) selectPlayer(playerName);
   applyPlayerModeUI();
   document.querySelector('.top .brand-sub').textContent = `Vista previa: ${playerName} — solo lectura`;
   document.getElementById('previewPlayerSelect').style.display='none';
@@ -894,13 +1091,16 @@ function exitPlayerPreview(){
   previewingAsPlayer = null;
   document.querySelectorAll('.team-only').forEach(el=>el.style.display='');
   const mainGrid=document.getElementById('mainGrid');
-  if(mainGrid) mainGrid.style.gridTemplateColumns='';
+  if(mainGrid){ mainGrid.style.gridTemplateColumns=''; mainGrid.style.display=''; }
+  const gkView=document.getElementById('gkPlayerView');
+  if(gkView) gkView.style.display='none';
   if(ORIGINAL_BRAND_SUB!==null) document.querySelector('.top .brand-sub').textContent = ORIGINAL_BRAND_SUB;
   document.getElementById('previewPlayerSelect').style.display='inline-block';
   document.getElementById('previewStartBtn').style.display='inline-block';
   document.getElementById('previewExitBtn').style.display='none';
   renderAll(PLAYER_BEFORE_PREVIEW);
   resizeAllCharts();
+  if(previewStartedFromArqueros){ switchAdminTab('arqueros'); previewStartedFromArqueros=false; }
 }
 async function handleAuthSubmit(event){
   event.preventDefault(); const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value;
@@ -914,9 +1114,11 @@ async function routeAfterLogin(){
   myProfile = await getMyProfile();
   if(!myProfile){ myProfile = await ensureProfile(); }
   if(myProfile.role==='player' && !myProfile.player_name){
+    await loadGkData(); // para que los arqueros también aparezcan en el picker de nombre
     const taken = await getTakenPlayerNames();
     const rosterExtra = await getRosterExtraNames();
-    const allNames = [...new Set([...ACTIVE_EVENTS.map(e=>e.jugador), ...rosterExtra])].sort();
+    const gkNames = [...new Set(GK_EVENTS.map(e=>e.jugador))];
+    const allNames = [...new Set([...ACTIVE_EVENTS.map(e=>e.jugador), ...rosterExtra, ...gkNames])].sort();
     const available = allNames.filter(n=>!taken.includes(n));
     showNamePicker(available);
     return;
@@ -1235,6 +1437,7 @@ async function loadNextMatchDate(){
 async function startDashboard(){
   try{ await loadRemoteData(); }catch(error){ console.warn(error); }
   await loadNextMatchDate();
+  await loadGkData();
   document.getElementById('authScreen').style.display='none';
   document.getElementById('nameScreen').style.display='none';
   if(myProfile && myProfile.role==='player'){
@@ -1249,6 +1452,7 @@ async function startDashboard(){
   if(TEAM_SQUAD_MAX){ squadMax = TEAM_SQUAD_MAX; squadAvg = TEAM_SQUAD_AVG; } // restaura la escala real para el radar
   renderAll(myProfile && myProfile.role==='player' ? myProfile.player_name : undefined);
   setupPreviewBar();
+  setupGkPreviewBar();
   setupAddPlayerBar();
   setupNextMatchBar();
   checkNewPlayerSignups();
@@ -1436,11 +1640,11 @@ function avg(arr,key){
 }
 function lastN(arr,n){ return arr.slice(Math.max(0,arr.length-n)); }
 
-function computeRecordsFromEvents(events){
+function computeRecordsFromEvents(events, metricOrder=METRIC_ORDER){
   const rec = {};
   events.forEach(e=>{
     if(!rec[e.jugador]) rec[e.jugador] = {jugador:e.jugador};
-    METRIC_ORDER.forEach(m=>{
+    metricOrder.forEach(m=>{
       const v = e[m];
       if(v===null||v===undefined||isNaN(v)) return;
       const cur = rec[e.jugador][m];
@@ -1616,15 +1820,15 @@ function sumCycleDistanceAvg(datesArr, byDate){
   });
   return total;
 }
-function computeCurrentCycleAvg(field='dist'){
+function computeCurrentCycleAvg(){
   const {cycles, byDate} = computeMicrocycles(ACTIVE_EVENTS);
   if(!cycles.length) return null;
   const lastCycle = cycles[cycles.length-1];
   let total = 0, count = 0;
   lastCycle.forEach(d=>{
-    const withVal = (byDate[d]||[]).filter(e=> e[field]!==null && e[field]!==undefined && !isNaN(e[field]));
-    if(withVal.length){
-      total += withVal.reduce((a,e)=>a+e[field],0)/withVal.length;
+    const withDist = (byDate[d]||[]).filter(e=> e.dist!==null && e.dist!==undefined && !isNaN(e.dist));
+    if(withDist.length){
+      total += withDist.reduce((a,e)=>a+e.dist,0)/withDist.length;
       count++;
     }
   });
@@ -1774,6 +1978,56 @@ function buildWeeklyMicrocycle(){
 
 // ---------- Calidad de datos (outliers) ----------
 // Marca valores que se alejan más de 3 desviaciones estándar del propio histórico del jugador.
+// ---------- Pestañas de admin: Jugadores de Campo vs Arqueros (vistas completamente separadas) ----------
+function switchAdminTab(tab){
+  const fieldWrap = document.getElementById('fieldContentWrap');
+  const gkView = document.getElementById('goalkeepersView');
+  const btnJ = document.getElementById('tabBtnJugadores');
+  const btnA = document.getElementById('tabBtnArqueros');
+  const activeStyle = 'border-color:var(--gold);background:var(--gold);color:var(--pitch-950);';
+  const inactiveStyle = 'border-color:var(--line-strong);background:transparent;color:var(--mist);';
+  if(tab==='arqueros'){
+    if(fieldWrap) fieldWrap.style.display='none';
+    if(gkView) gkView.style.display='block';
+    if(btnA) btnA.style.cssText += activeStyle;
+    if(btnJ) btnJ.style.cssText += inactiveStyle;
+  } else {
+    if(fieldWrap) fieldWrap.style.display='';
+    if(gkView) gkView.style.display='none';
+    if(btnJ) btnJ.style.cssText += activeStyle;
+    if(btnA) btnA.style.cssText += inactiveStyle;
+  }
+}
+
+// ---------- Arqueros: tabla admin con sus 7 métricas propias ----------
+function buildGkTable(){
+  const box = document.getElementById('gkTable');
+  if(!box) return;
+  if(!GK_EVENTS.length){ box.innerHTML = '<p style="padding:14px 18px;color:var(--mist);font-size:12.5px;">Todavía no hay datos de arqueros cargados.</p>'; return; }
+  const sorted = [...GK_EVENTS].sort((a,b)=> a.jugador===b.jugador ? b.fecha.localeCompare(a.fecha) : a.jugador.localeCompare(b.jugador));
+  const rows = sorted.map(e=>{
+    const mmin = (e.dist!==null && e.min && e.min>0) ? Math.round(e.dist/e.min) : null;
+    const dateStr = e.fecha.split('-').reverse().join('/');
+    const rowClass = e.tipo==='Partido' ? 'mc-match' : '';
+    return `<tr class="${rowClass}">
+      <td>${e.jugador}</td>
+      <td class="mono">${dateStr}</td>
+      <td>${e.detalle||e.tipo}</td>
+      <td class="mono">${e.dist!==null?fmt(Math.round(e.dist)):'—'}</td>
+      <td class="mono">${e.impact!==null?fmt(e.impact):'—'}</td>
+      <td class="mono">${e.dives!==null?fmt(e.dives):'—'}</td>
+      <td class="mono">${e.pl!==null?fmt(Math.round(e.pl)):'—'}</td>
+      <td class="mono">${mmin!==null?fmt(mmin):'—'}</td>
+      <td class="mono">${e.vel!==null?e.vel.toFixed(1):'—'}</td>
+      <td class="mono">${e.acc!==null?e.acc:'—'} / ${e.dece!==null?e.dece:'—'}</td>
+    </tr>`;
+  }).join('');
+  box.innerHTML = `<table class="mc-table">
+    <thead><tr><th>Jugador</th><th>Fecha</th><th>Sesión</th><th>Dist. (m)</th><th>Impacto</th><th>Buzos</th><th>PL</th><th>m/min</th><th>Vel. máx (km/h)</th><th>Acc/Dece</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
 function buildDataQuality(){
   const box = document.getElementById('dataQualityList');
   if(!box) return;
@@ -1816,75 +2070,22 @@ function buildDataQuality(){
 }
 
 // ---------- KPI strip ----------
-// Player Load total de la semana actual vs la anterior (mismo agrupado lunes-domingo que "Carga semanal del plantel")
-function getWeeklyPLComparison(){
-  const weekMap = {};
-  ACTIVE_EVENTS.forEach(e=>{
-    const monday = isoDate(getMonday(e.fecha));
-    if(!weekMap[monday]) weekMap[monday] = 0;
-    if(e.pl!==null && !isNaN(e.pl)) weekMap[monday] += e.pl;
-  });
-  const weeks = Object.keys(weekMap).sort();
-  if(!weeks.length) return null;
-  const current = weekMap[weeks[weeks.length-1]];
-  const prev = weeks.length>=2 ? weekMap[weeks[weeks.length-2]] : null;
-  const pctChange = (prev!==null && prev>0) ? ((current-prev)/prev*100) : null;
-  return { current: Math.round(current), prev: prev!==null?Math.round(prev):null,
-    pctChange: pctChange!==null?Math.round(pctChange):null,
-    within20: pctChange!==null ? Math.abs(pctChange)<=20 : null };
-}
-
-// % de intensidad compuesta (dist+hsr+pl+m/min vs promedio de los últimos 3 partidos) de la sesión MÁS RECIENTE cargada
-function getCurrentSessionIntensity(){
-  const dates = [...new Set(ACTIVE_EVENTS.map(e=>e.fecha))].sort();
-  if(!dates.length) return null;
-  const lastDate = dates[dates.length-1];
-  const dayEvents = ACTIVE_EVENTS.filter(e=>e.fecha===lastDate);
-  const lastMatch = getLastMatchInfo(ACTIVE_EVENTS);
-  const distAvg = avgField(dayEvents,'dist');
-  const hsrAvg = avgField(dayEvents,'hsr');
-  const plAvg = avgField(dayEvents,'pl');
-  const mminAvg = avgMPerMin(dayEvents);
-  const pcts = [];
-  if(distAvg!==null && lastMatch && lastMatch.avgDist) pcts.push(distAvg/lastMatch.avgDist*100);
-  if(hsrAvg!==null && lastMatch && lastMatch.avgHsr) pcts.push(hsrAvg/lastMatch.avgHsr*100);
-  if(plAvg!==null && lastMatch && lastMatch.avgPl) pcts.push(plAvg/lastMatch.avgPl*100);
-  if(mminAvg!==null && lastMatch && lastMatch.avgMMin) pcts.push(mminAvg/lastMatch.avgMMin*100);
-  return { fecha:lastDate, pct: pcts.length ? Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length) : null };
-}
-
 function buildKPIs(){
+  const totalDist = ACTIVE_EVENTS.reduce((a,e)=>a+(e.dist||0),0);
   const avgPL = avg(ACTIVE_EVENTS,'pl');
   const dates = [...new Set(ACTIVE_EVENTS.map(e=>e.fecha))].sort();
   const lastDate = dates[dates.length-1];
   document.getElementById('lastDate').textContent = lastDate.split('-').reverse().join('/');
   const todays = RECORDS.filter(r=>['dist','hsr','vel','acc','desa','pl'].some(m=>r[m].fecha===lastDate));
   const lastMatch = getLastMatchInfo(ACTIVE_EVENTS);
-  const cycleDistAvg = computeCurrentCycleAvg('dist');
-  const cycleHsrAvg = computeCurrentCycleAvg('hsr');
-  const weeklyPL = getWeeklyPLComparison();
-  const sessionIntensity = getCurrentSessionIntensity();
-
-  const cycleSub = lastMatch ? `desde vs ${lastMatch.rival} (${lastMatch.fecha.split('-').reverse().join('/')})` : 'sin partido de referencia';
-
-  let weeklySub = 'sin semana anterior para comparar';
-  if(weeklyPL && weeklyPL.pctChange!==null){
-    const signo = weeklyPL.pctChange>=0 ? '+' : '';
-    weeklySub = weeklyPL.within20
-      ? `<b style="color:var(--good);">✓ dentro del ±20%</b> · ${signo}${weeklyPL.pctChange}% vs sem. anterior`
-      : `<b style="color:var(--bad);">⚠ fuera del ±20%</b> · ${signo}${weeklyPL.pctChange}% vs sem. anterior`;
-  }
-
+  const currentCycleAvg = computeCurrentCycleAvg();
   const kpis = [
-    {lbl:'Distancia microciclo actual', val: cycleDistAvg!==null ? fmt(cycleDistAvg) : '—', unit:'m',
-      sub: `promedio diario · ${cycleSub}`},
-    {lbl:'HSR microciclo actual', val: cycleHsrAvg!==null ? fmt(cycleHsrAvg) : '—', unit:'m',
-      sub: `promedio diario · ${cycleSub}`},
-    {lbl:'Player Load semanal', val: weeklyPL ? fmt(weeklyPL.current) : '—', unit:'',
-      sub: weeklySub},
+    {lbl:t('kpiSesiones'), val:ACTIVE_EVENTS.length, sub:`${byPlayer[players[0]]?players.length:0} ${t('jugadores')} · ${dates.length} ${t('fechas')}`},
+    {lbl:t('kpiDistancia'), val:fmt(Math.round(totalDist/1000)), unit:'km', sub:`${fmt(Math.round(totalDist))} ${t('acumulados')}`},
+    {lbl:t('kpiPlayerLoad'), val:fmt(Math.round(avgPL)), unit:'', sub:t('porSesion')},
     {lbl:t('kpiRecords'), val:todays.length, unit:'', sub: todays.length? `<b>${todays.map(x=>x.jugador.split(' ')[0]).slice(0,3).join(', ')}${todays.length>3?'…':''}</b>` : t('sinNuevos')},
-    {lbl:'Intensidad sesión actual', val: sessionIntensity && sessionIntensity.pct!==null ? sessionIntensity.pct : '—', unit: sessionIntensity && sessionIntensity.pct!==null ? '%' : '',
-      sub: sessionIntensity ? `sesión del ${sessionIntensity.fecha.split('-').reverse().join('/')} · vs prom. últ. 3 partidos` : 'sin datos'},
+    {lbl:'Carga microciclo actual', val: currentCycleAvg!==null ? fmt(currentCycleAvg) : '—', unit:'m',
+      sub: lastMatch ? `promedio diario · desde vs ${lastMatch.rival} (${lastMatch.fecha.split('-').reverse().join('/')})` : 'sin partido de referencia'},
   ];
   document.getElementById('kpiStrip').innerHTML = kpis.map(k=>`
     <div class="kpi">
@@ -2597,13 +2798,14 @@ function renderAll(keepPlayer){
   buildMonotonyStrain();
   buildMicrocycleTable();
   buildWeeklyMicrocycle();
+  buildGkTable();
   buildDataQuality();
   if(!(myProfile && myProfile.role==='player')) buildRpeTeamList();
   populateCompareSelects();
   buildCompare();
   const defaultPlayer = (keepPlayer && players.includes(keepPlayer)) ? keepPlayer
     : (players.includes('Jasin Assehnoun') ? 'Jasin Assehnoun' : players[0]);
-  selectPlayer(defaultPlayer);
+  if(!(keepPlayer && isGoalkeeper(keepPlayer))) selectPlayer(defaultPlayer);
 }
 
 // ---------- Excel upload: refresh data in-browser ----------
@@ -2653,6 +2855,74 @@ function showStatus(msg, kind){
   clearTimeout(showStatus._t);
   showStatus._t = setTimeout(()=>{ el.style.opacity='0'; }, 7000);
 }
+// ---------- Arqueros: datos separados de los jugadores de campo (tabla gk_data en Supabase) ----------
+const GK_METRICS = {
+  dist: {label:'Distancia Total', unit:'m', dec:0},
+  impact: {label:'Impacto', unit:'', dec:0},
+  dives: {label:'Buzos', unit:'', dec:0},
+  pl: {label:'Player Load', unit:'', dec:0},
+  mmin: {label:'m/min', unit:'', dec:0},
+  vel: {label:'Vel. Máxima', unit:'km/h', dec:1},
+  accdece: {label:'Acc+Dece', unit:'', dec:0},
+};
+const GK_METRIC_ORDER = ['dist','impact','dives','pl','mmin','vel','accdece'];
+
+function withGkDerivedFields(e){
+  const mmin = (e.dist!==null && e.min && e.min>0) ? e.dist/e.min : null;
+  const accdece = (e.acc!==null && e.acc!==undefined) || (e.dece!==null && e.dece!==undefined)
+    ? (e.acc||0)+(e.dece||0) : null;
+  return {...e, mmin, accdece};
+}
+
+let GK_EVENTS = [];
+let gkPlayers=[], gkByPlayer={}, gkPlayerAvg={}, gkSquadMax={}, gkSquadAvg={}, gkRecordByPlayer={};
+function deriveGkData(){
+  gkPlayers = [...new Set(GK_EVENTS.map(e=>e.jugador))].sort();
+  gkByPlayer = {};
+  gkPlayers.forEach(p=>{ gkByPlayer[p] = GK_EVENTS.filter(e=>e.jugador===p).sort((a,b)=>a.fecha.localeCompare(b.fecha)); });
+
+  gkPlayerAvg = {};
+  gkPlayers.forEach(p=>{
+    const evs = lastN(gkByPlayer[p],5);
+    gkPlayerAvg[p] = {};
+    GK_METRIC_ORDER.forEach(m=> gkPlayerAvg[p][m] = avg(evs,m));
+  });
+
+  gkSquadMax = {}; gkSquadAvg = {};
+  GK_METRIC_ORDER.forEach(m=>{
+    gkSquadMax[m] = Math.max(...GK_EVENTS.map(e=>e[m]||0), 1);
+    gkSquadAvg[m] = avg(GK_EVENTS,m);
+  });
+
+  const gkRecords = computeRecordsFromEvents(GK_EVENTS, GK_METRIC_ORDER);
+  gkRecordByPlayer = {};
+  gkRecords.forEach(r=> gkRecordByPlayer[r.jugador]=r);
+}
+
+async function saveGkData(gkEvents){
+  const rows = gkEvents.map(e=>({
+    club: CURRENT_CLUB, fecha:e.fecha, jugador:e.jugador, tipo:e.tipo, detalle:e.detalle,
+    dist:e.dist, impact:e.impact, dives:e.dives, pl:e.pl, min:e.min, vel:e.vel, acc:e.acc, dece:e.dece,
+    updated_at: new Date().toISOString()
+  }));
+  const {error} = await supabaseClient.from('gk_data').upsert(rows, {onConflict:'club,fecha,jugador,tipo'});
+  if(error){ console.error('Error guardando datos de arqueros:', error); throw error; }
+  GK_EVENTS = gkEvents.map(withGkDerivedFields);
+  deriveGkData();
+}
+async function loadGkData(){
+  try{
+    const {data, error} = await supabaseClient.from('gk_data').select('*').eq('club', CURRENT_CLUB);
+    if(error) throw error;
+    GK_EVENTS = (data||[]).map(r=> withGkDerivedFields({fecha:r.fecha, jugador:r.jugador, tipo:r.tipo, detalle:r.detalle,
+      dist:r.dist, impact:r.impact, dives:r.dives, pl:r.pl, min:r.min, vel:r.vel, acc:r.acc, dece:r.dece}));
+  }catch(e){ console.warn('No se pudieron cargar los datos de arqueros:', e); GK_EVENTS = []; }
+  deriveGkData();
+}
+function isGoalkeeper(playerName){
+  return GK_EVENTS.some(e=>e.jugador===playerName);
+}
+
 async function handleFile(file){
   if(!file) return;
   showStatus('Leyendo '+file.name+'…','');
@@ -2686,6 +2956,18 @@ async function handleFile(file){
       if(wb.SheetNames.includes('Comparativo GPS')) teamTotals = parseComparativoSheet(wb.Sheets['Comparativo GPS']);
     }catch(err){ console.warn('Comparativo GPS no se pudo leer, se mantienen los totales de partido previos.', err); }
 
+    // Hoja "Porteros" (opcional): datos completamente separados de los jugadores de campo.
+    let gkEvents = [];
+    if(wb.SheetNames.includes('Porteros')){
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets['Porteros'], {header:1, raw:true, defval:null});
+      for(let i=1;i<rows.length;i++){
+        const r = rows[i]; if(!r || !r[1] || !r[0]) continue;
+        gkEvents.push({ fecha:toISO(r[0]), jugador:String(r[1]).trim(), tipo:r[2]||'Entreno', detalle:r[3]||'',
+          dist:num(r[4]), impact:num(r[5]), dives:num(r[6]), pl:num(r[7]), min:num(r[8]), vel:num(r[9]), acc:num(r[10]), dece:num(r[11]) });
+      }
+      if(gkEvents.length) await saveGkData(gkEvents);
+    }
+
     const prevPlayer = state.player;
     ACTIVE_EVENTS = events;
     ACTIVE_TEAMTOTALS = teamTotals;
@@ -2694,7 +2976,8 @@ async function handleFile(file){
     deriveAll(ACTIVE_EVENTS);
     renderAll(prevPlayer);
     const lastDate = [...new Set(events.map(e=>e.fecha))].sort().pop();
-    showStatus(`Datos actualizados ✓ ${events.length} registros · ${players.length} jugadores · última fecha ${lastDate.split('-').reverse().join('/')}`, 'ok');
+    const gkMsg = gkEvents.length ? ` · ${gkEvents.length} registros de arqueros` : '';
+    showStatus(`Datos actualizados ✓ ${events.length} registros · ${players.length} jugadores · última fecha ${lastDate.split('-').reverse().join('/')}${gkMsg}`, 'ok');
   }catch(err){
     console.error(err);
     showStatus('No se pudo leer el archivo: '+err.message, 'error');
