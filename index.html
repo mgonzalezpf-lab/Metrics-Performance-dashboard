@@ -1552,9 +1552,16 @@ function applyOwnerMode(){
   ownerBadge.style.display = isOwner ? 'inline-flex' : 'none';
 }async function routeAfterLogin(){
   myProfile = await getMyProfile();
-  if(!myProfile){ myProfile = await ensureProfile(); }
-    applyOwnerMode();
-  if(myProfile.role==='pending_staff' || myProfile.role==='pending_gk_coach'){
+ if(!myProfile){ myProfile = await ensureProfile(); }
+
+applyOwnerMode();
+
+if(myProfile.role === 'admin'){
+  authMessage('Acceso de propietario verificado ✓','ok');
+  await new Promise(resolve => setTimeout(resolve, 2500));
+}
+
+if(myProfile.role==='pending_staff' || myProfile.role==='pending_gk_coach'){
     showPendingScreen(myProfile.role);
     return;
   }
