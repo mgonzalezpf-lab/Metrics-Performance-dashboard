@@ -1,4 +1,4 @@
-const CACHE_NAME = "metrics-performance-shell-v1";
+const CACHE_NAME = "metrics-performance-shell-v2";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -40,6 +40,33 @@ self.addEventListener("fetch", (event) => {
   // Only handle same-origin app-shell resources.
   if (url.origin !== self.location.origin) return;
 
+  // El documento principal (index.html / "/") siempre se pide primero a la red,
+  // así el usuario ve la última versión apenas se sube un cambio a GitHub.
+  // Si no hay conexión, recién ahí se usa la copia guardada como respaldo.
+  const isAppShellHtml =
+    request.mode === "navigate" ||
+    url.pathname.endsWith("/index.html") ||
+    url.pathname === "/";
+
+  if (isAppShellHtml) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response && response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(() =>
+          caches.match(request).then((cached) => cached || caches.match("./index.html"))
+        )
+    );
+    return;
+  }
+
+  // El resto de los recursos (íconos, manifest) sigue igual que antes: caché primero,
+  // ya que casi nunca cambian y así la app carga más rápido / funciona offline.
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
