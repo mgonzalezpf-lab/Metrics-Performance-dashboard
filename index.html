@@ -358,12 +358,28 @@
     <p id="authDescription" data-i18n="authDescLogin" class="i18n-text">Inicia sesión para consultar y actualizar los datos del equipo.</p>
     <label for="authEmail" data-i18n="email" class="i18n-text">Email</label><input id="authEmail" type="email" autocomplete="email" required>
     <label for="authPassword" data-i18n="password" class="i18n-text">Contraseña</label><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required>
+    <div id="authRoleWrap" style="display:none;">
+      <label for="authRoleSelect" data-i18n="quienSos" class="i18n-text">¿Quién sos?</label>
+      <select id="authRoleSelect" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Sans';outline:none;margin-bottom:10px;">
+        <option value="player" data-i18n="rolJugador">Jugador o arquero</option>
+        <option value="pending_staff" data-i18n="rolStaff">Staff (médico y técnico)</option>
+        <option value="pending_gk_coach" data-i18n="rolGkCoach">Entrenador de arqueros</option>
+      </select>
+    </div>
     <button id="authSubmit" class="auth-submit" type="submit" data-i18n="ingresar">Ingresar</button>
     <button id="authSwitch" class="auth-switch" type="button" data-i18n="crearAcceso">Crear mi acceso</button>
     <button id="forgotPassword" class="auth-switch" type="button" style="padding-top:6px;" data-i18n="olvidasteContrasena">¿Olvidaste tu contraseña?</button>
     <p style="text-align:center;margin-top:16px;font-size:10.5px;color:var(--mist);letter-spacing:.02em;opacity:.75;" data-i18n="credit">By Matías González Galindo — Head of Physical Performance</p>
     <div id="authMessage" class="auth-message" aria-live="polite"></div>
   </form>
+</div>
+
+<div id="pendingScreen" class="auth-screen" style="display:none;">
+  <div class="auth-card">
+    <h2>Cuenta creada</h2>
+    <p id="pendingMessage" style="color:var(--mist);line-height:1.5;margin-bottom:18px;">Tu cuenta fue creada correctamente. Necesita la aprobación del administrador antes de poder acceder al panel.</p>
+    <button id="pendingLogoutBtn" class="auth-submit" type="button">Cerrar sesión</button>
+  </div>
 </div>
 
 <div id="recoveryScreen" class="auth-screen" style="display:none;">
@@ -493,7 +509,7 @@
   <div id="fieldContentWrap">
   <div class="kpis team-only" id="kpiStrip"></div>
 
-  <div class="panel team-only" style="margin-bottom:18px;">
+  <div class="panel team-only staff-ok" style="margin-bottom:18px;">
     <div class="panel-head">
       <h3 data-i18n="evolucionPlantel">Evolución del plantel</h3>
       <span class="tag" id="teamTimelineTag">—</span>
@@ -646,7 +662,7 @@
     </div>
   </div>
 
-  <div class="panel team-only" style="margin-bottom:18px;">
+  <div class="panel team-only staff-ok" style="margin-bottom:18px;">
     <div class="panel-head">
       <h3 data-i18n="alertasCarga">Alertas de carga · ACWR</h3>
       <span class="tag" data-i18n="acwrTag">agudo (7 días) : crónico (28 días) · sobre Player Load</span>
@@ -711,7 +727,7 @@
     <div class="lb-body" id="leaderboard"></div>
   </div>
 
-  <div class="panel team-only" style="margin-bottom:18px;">
+  <div class="panel team-only staff-ok" style="margin-bottom:18px;">
     <div class="panel-head">
       <h3 data-i18n="recordsPersonales">Récords personales</h3>
       <span class="tag" data-i18n="actualizadoDesde">actualizado desde Base de Datos y Partidos</span>
@@ -729,7 +745,7 @@
     <div class="match-grid" id="matchGrid"></div>
   </div>
 
-  <div class="panel team-only" style="margin-top:18px;">
+  <div class="panel team-only staff-ok" style="margin-top:18px;">
     <div class="panel-head">
       <h3 data-i18n="monotoniaStrain">Monotonía y Strain · método Foster</h3>
       <span class="tag" data-i18n="monotoniaTag">última semana con datos · sobre Player Load</span>
@@ -753,7 +769,7 @@
     <div class="acwr-body" id="dataQualityList"></div>
   </div>
 
-  <div class="panel team-only" style="margin-top:18px;">
+  <div class="panel team-only staff-ok" style="margin-top:18px;">
     <div class="panel-head">
       <h3 data-i18n="rpePlantel">RPE del plantel</h3>
       <span class="tag" data-i18n="rpePlantelTag">percepción de esfuerzo reportada por cada jugador</span>
@@ -761,7 +777,7 @@
     <div class="acwr-body" id="rpeTeamList"></div>
   </div>
 
-  <div class="panel team-only" style="margin-top:18px;">
+  <div class="panel team-only staff-ok" style="margin-top:18px;">
     <div class="panel-head">
       <h3 data-i18n="cargaInterna">Carga interna (RPE)</h3>
       <span class="tag" data-i18n="cargaInternaTag">carga aguda : crónica basada en RPE × minutos</span>
@@ -806,6 +822,8 @@ function updateAuthForm(){
   document.getElementById('authSubmit').textContent=creating?t('crearCuenta'):t('ingresar');
   document.getElementById('authSwitch').textContent=creating?t('yaTengoAcceso'):t('crearAcceso');
   document.getElementById('authPassword').autocomplete=creating?'new-password':'current-password'; authMessage('');
+  const roleWrap = document.getElementById('authRoleWrap');
+  if(roleWrap) roleWrap.style.display = creating ? 'block' : 'none';
 }
 async function loadRemoteData(){
   const {data,error}=await supabaseClient.from('dashboard_data').select('payload').eq('club',CURRENT_CLUB).single();
@@ -827,7 +845,9 @@ async function getMyProfile(){
 }
 async function ensureProfile(){
   const {data:{user}}=await supabaseClient.auth.getUser();
-  await supabaseClient.from('player_profiles').insert({user_id:user.id,club:CURRENT_CLUB,role:'player',player_name:null});
+  const roleSelectEl = document.getElementById('authRoleSelect');
+  const selectedRole = (roleSelectEl && roleSelectEl.value) || 'player';
+  await supabaseClient.from('player_profiles').insert({user_id:user.id,club:CURRENT_CLUB,role:selectedRole,player_name:null});
   return await getMyProfile();
 }
 async function getTakenPlayerNames(){
@@ -849,6 +869,48 @@ function showNamePicker(availableNames){
     ? availableNames.map(n=>`<option value="${n}">${n}</option>`).join('')
     : '<option value="">— No hay nombres disponibles, contacta al staff —</option>';
 }
+// ---------- Área médica: solo lectura, solo 5 paneles relevantes (ACWR, RPE x2, Récords, Monotonía/Strain), solo jugadores de campo ----------
+function applyStaffModeUI(){
+  document.querySelectorAll('.team-only').forEach(el=>{
+    el.style.display = el.classList.contains('staff-ok') ? '' : 'none';
+  });
+  const mainGrid = document.getElementById('mainGrid');
+  if(mainGrid) mainGrid.style.display = 'none';
+  const adminTabBar = document.getElementById('adminTabBar');
+  if(adminTabBar) adminTabBar.style.display = 'none';
+  const goalkeepersView = document.getElementById('goalkeepersView');
+  if(goalkeepersView) goalkeepersView.style.display = 'none';
+  const fieldWrap = document.getElementById('fieldContentWrap');
+  if(fieldWrap) fieldWrap.style.display = ''; // los paneles staff-ok viven adentro, tiene que estar visible
+  const previewBar = document.getElementById('previewBar');
+  if(previewBar) previewBar.style.display = 'none';
+  const gkPlayerView = document.getElementById('gkPlayerView');
+  if(gkPlayerView) gkPlayerView.style.display = 'none';
+  const saveAllBtn = document.getElementById('rpeSaveAllBtn');
+  if(saveAllBtn) saveAllBtn.style.display = 'none'; // ya viene deshabilitado, esto además lo oculta del todo
+  const subEl = document.querySelector('.top .brand-sub');
+  if(subEl) subEl.textContent = 'Staff (médico y técnico) — solo lectura — ' + CURRENT_CLUB;
+}
+
+// ---------- Entrenador de arqueros: solo la pestaña de Arqueros completa, de solo lectura ----------
+function applyGkCoachModeUI(){
+  document.querySelectorAll('.team-only').forEach(el=>{ el.style.display = 'none'; });
+  const mainGrid = document.getElementById('mainGrid');
+  if(mainGrid) mainGrid.style.display = 'none';
+  const adminTabBar = document.getElementById('adminTabBar');
+  if(adminTabBar) adminTabBar.style.display = 'none';
+  const fieldWrap = document.getElementById('fieldContentWrap');
+  if(fieldWrap) fieldWrap.style.display = 'none';
+  const goalkeepersView = document.getElementById('goalkeepersView');
+  if(goalkeepersView) goalkeepersView.style.display = 'block';
+  const previewBar = document.getElementById('previewBar');
+  if(previewBar) previewBar.style.display = 'none';
+  const gkPlayerView = document.getElementById('gkPlayerView');
+  if(gkPlayerView) gkPlayerView.style.display = 'none';
+  const subEl = document.querySelector('.top .brand-sub');
+  if(subEl) subEl.textContent = 'Entrenador de arqueros — solo lectura — ' + CURRENT_CLUB;
+}
+
 function applyPlayerModeUI(){
   document.querySelectorAll('.team-only').forEach(el=>el.style.display='none');
   const fieldWrap = document.getElementById('fieldContentWrap');
@@ -1290,6 +1352,10 @@ async function handleAuthSubmit(event){
 async function routeAfterLogin(){
   myProfile = await getMyProfile();
   if(!myProfile){ myProfile = await ensureProfile(); }
+  if(myProfile.role==='pending_staff' || myProfile.role==='pending_gk_coach'){
+    showPendingScreen(myProfile.role);
+    return;
+  }
   if(myProfile.role==='player' && !myProfile.player_name){
     await loadGkData(); // para que los arqueros también aparezcan en el picker de nombre
     const taken = await getTakenPlayerNames();
@@ -1301,6 +1367,19 @@ async function routeAfterLogin(){
     return;
   }
   await startDashboard();
+}
+function showPendingScreen(role){
+  document.getElementById('authScreen').style.display='none';
+  document.getElementById('nameScreen').style.display='none';
+  const screen = document.getElementById('pendingScreen');
+  const msg = document.getElementById('pendingMessage');
+  const roleLabel = role==='pending_gk_coach' ? 'Entrenador de arqueros' : 'Staff (médico y técnico)';
+  msg.textContent = `Tu cuenta fue creada correctamente como "${roleLabel}". Necesita la aprobación del administrador (Matías González) antes de poder acceder al panel. Avisale para que la active.`;
+  screen.style.display='flex';
+  document.getElementById('pendingLogoutBtn').onclick = async ()=>{
+    await supabaseClient.auth.signOut();
+    location.reload();
+  };
 }
 async function handleNameSubmit(event){
   event.preventDefault();
@@ -1628,6 +1707,8 @@ async function startDashboard(){
   deriveAll(ACTIVE_EVENTS);
   if(TEAM_SQUAD_MAX){ squadMax = TEAM_SQUAD_MAX; squadAvg = TEAM_SQUAD_AVG; } // restaura la escala real para el radar
   renderAll(myProfile && myProfile.role==='player' ? myProfile.player_name : undefined);
+  if(myProfile && myProfile.role==='staff'){ applyStaffModeUI(); }
+  if(myProfile && myProfile.role==='gk_coach'){ applyGkCoachModeUI(); }
   setupPreviewBar();
   setupGkPreviewBar();
   setupAddPlayerBar();
@@ -1717,7 +1798,7 @@ const I18N = {
     gkPromedioArquero:'Promedio del arquero', gkPromedioArqueros:'Promedio de arqueros',
     gkSinDatos:'Todavía no hay datos de arqueros cargados.', gkSinSesiones:'Todavía no hay sesiones cargadas.', gkSinArqueros:'Todavía no hay arqueros cargados.',
     gkColJugador:'Jugador', gkColFecha:'Fecha', gkColSesion:'Sesión', gkColDist:'Dist. (m)', gkColVelMax:'Vel. máx (km/h)', gkColVelMax2:'Vel. máx',
-    gkDistUltimaSesion:'Distancia última sesión',
+    gkDistUltimaSesion:'Distancia última sesión', quienSos:'¿Quién sos?', rolJugador:'Jugador o arquero', rolStaff:'Staff (médico y técnico)', rolGkCoach:'Entrenador de arqueros',
   },
   en: {
     metrics:{dist:'Total Distance',hsr:'HSR',vel:'Max Speed',acc:'Acc',desa:'Dec',pl:'Player Load',sprint:'Sprint'},
@@ -1760,7 +1841,7 @@ const I18N = {
     gkPromedioArquero:'Goalkeeper average', gkPromedioArqueros:'Goalkeepers average',
     gkSinDatos:'No goalkeeper data loaded yet.', gkSinSesiones:'No sessions loaded yet.', gkSinArqueros:'No goalkeepers loaded yet.',
     gkColJugador:'Player', gkColFecha:'Date', gkColSesion:'Session', gkColDist:'Dist. (m)', gkColVelMax:'Max speed (km/h)', gkColVelMax2:'Max speed',
-    gkDistUltimaSesion:'Distance last session',
+    gkDistUltimaSesion:'Distance last session', quienSos:'Who are you?', rolJugador:'Player or goalkeeper', rolStaff:'Staff (medical & technical)', rolGkCoach:'Goalkeeper coach',
   },
   ar: {
     metrics:{dist:'المسافة الإجمالية',hsr:'الجري عالي السرعة',vel:'السرعة القصوى',acc:'تسارع',desa:'تباطؤ',pl:'حمل اللاعب',sprint:'عدد السرعات القصوى'},
@@ -1803,7 +1884,7 @@ const I18N = {
     gkPromedioArquero:'متوسط الحارس', gkPromedioArqueros:'متوسط حراس المرمى',
     gkSinDatos:'لا توجد بيانات حراس مرمى محمّلة بعد.', gkSinSesiones:'لا توجد حصص محمّلة بعد.', gkSinArqueros:'لا يوجد حراس مرمى محمّلون بعد.',
     gkColJugador:'اللاعب', gkColFecha:'التاريخ', gkColSesion:'الحصة', gkColDist:'المسافة (م)', gkColVelMax:'السرعة القصوى (كم/س)', gkColVelMax2:'السرعة القصوى',
-    gkDistUltimaSesion:'مسافة آخر حصة',
+    gkDistUltimaSesion:'مسافة آخر حصة', quienSos:'من أنت؟', rolJugador:'لاعب أو حارس مرمى', rolStaff:'الطاقم (طبي وفني)', rolGkCoach:'مدرب حراس المرمى',
   }
 };
 let currentLang = localStorage.getItem('dashboard_lang') || 'es';
