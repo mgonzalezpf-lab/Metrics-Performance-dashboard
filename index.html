@@ -3176,10 +3176,7 @@ function computeTeamDailySeries(){
 function buildTeamMetricTabs(){
   const box = document.getElementById('teamMetricTabs');
   if(!box) return;
-  const isStaff = myProfile && myProfile.role==='staff';
-  const metricsToShow = isStaff ? ['dist','hsr'] : TEAM_METRICS;
-  if(isStaff && !metricsToShow.includes(state.ttMetric)) state.ttMetric = 'dist';
-  box.innerHTML = metricsToShow.map(k=>`<button class="mtab ${k===state.ttMetric?'active':''}" data-m="${k}">${METRICS[k].label}</button>`).join('');
+  box.innerHTML = TEAM_METRICS.map(k=>`<button class="mtab ${k===state.ttMetric?'active':''}" data-m="${k}">${METRICS[k].label}</button>`).join('');
   box.querySelectorAll('.mtab').forEach(el=>{
     el.addEventListener('click', ()=>{
       state.ttMetric = el.dataset.m;
