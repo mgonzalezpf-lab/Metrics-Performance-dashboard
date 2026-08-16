@@ -567,7 +567,7 @@
 
   <div class="main-grid" id="mainGrid">
     <!-- LEFT RAIL -->
-    <div class="panel team-only">
+    <div class="panel team-only staff-ok">
       <div class="panel-head"><h3 data-i18n="plantel">Plantel</h3><span class="tag" id="railCount">23</span></div>
       <div class="rail-search"><input id="searchInput" data-i18n-placeholder="buscarJugador" placeholder="Buscar jugador…" /></div>
       <div class="player-list" id="playerList"></div>
@@ -675,7 +675,7 @@
       <span><span class="dot" style="background:var(--bad);"></span>&gt;1.5 riesgo alto</span>
     </div>
     <div class="acwr-body" id="acwrList"></div>
-    <div class="weekly-load-box">
+    <div class="weekly-load-box" id="acwrDailyTeamBox">
       <div class="weekly-load-head">
         <h4>ACWR diario del equipo</h4>
         <span class="tag" id="weeklyLoadTag" data-i18n="promedioPlantel">Promedio del plantel · un dato por día</span>
@@ -769,7 +769,7 @@
     <div class="acwr-body" id="dataQualityList"></div>
   </div>
 
-  <div class="panel team-only staff-ok" style="margin-top:18px;">
+  <div class="panel team-only" style="margin-top:18px;">
     <div class="panel-head">
       <h3 data-i18n="rpePlantel">RPE del plantel</h3>
       <span class="tag" data-i18n="rpePlantelTag">percepción de esfuerzo reportada por cada jugador</span>
@@ -777,7 +777,7 @@
     <div class="acwr-body" id="rpeTeamList"></div>
   </div>
 
-  <div class="panel team-only staff-ok" style="margin-top:18px;">
+  <div class="panel team-only" style="margin-top:18px;">
     <div class="panel-head">
       <h3 data-i18n="cargaInterna">Carga interna (RPE)</h3>
       <span class="tag" data-i18n="cargaInternaTag">carga aguda : crónica basada en RPE × minutos</span>
@@ -875,7 +875,7 @@ function applyStaffModeUI(){
     el.style.display = el.classList.contains('staff-ok') ? '' : 'none';
   });
   const mainGrid = document.getElementById('mainGrid');
-  if(mainGrid) mainGrid.style.display = 'none';
+  if(mainGrid) mainGrid.style.display = ''; // Staff sí puede navegar el plantel y ver Radar + Evolución por sesión de cualquier jugador
   const adminTabBar = document.getElementById('adminTabBar');
   if(adminTabBar) adminTabBar.style.display = 'none';
   const goalkeepersView = document.getElementById('goalkeepersView');
@@ -888,6 +888,8 @@ function applyStaffModeUI(){
   if(gkPlayerView) gkPlayerView.style.display = 'none';
   const saveAllBtn = document.getElementById('rpeSaveAllBtn');
   if(saveAllBtn) saveAllBtn.style.display = 'none'; // ya viene deshabilitado, esto además lo oculta del todo
+  const acwrDailyBox = document.getElementById('acwrDailyTeamBox');
+  if(acwrDailyBox) acwrDailyBox.style.display = 'none'; // Staff ve la lista por jugador, no el gráfico diario del equipo
   const subEl = document.querySelector('.top .brand-sub');
   if(subEl) subEl.textContent = 'Staff (médico y técnico) — solo lectura — ' + CURRENT_CLUB;
 }
@@ -3174,7 +3176,10 @@ function computeTeamDailySeries(){
 function buildTeamMetricTabs(){
   const box = document.getElementById('teamMetricTabs');
   if(!box) return;
-  box.innerHTML = TEAM_METRICS.map(k=>`<button class="mtab ${k===state.ttMetric?'active':''}" data-m="${k}">${METRICS[k].label}</button>`).join('');
+  const isStaff = myProfile && myProfile.role==='staff';
+  const metricsToShow = isStaff ? ['dist','hsr'] : TEAM_METRICS;
+  if(isStaff && !metricsToShow.includes(state.ttMetric)) state.ttMetric = 'dist';
+  box.innerHTML = metricsToShow.map(k=>`<button class="mtab ${k===state.ttMetric?'active':''}" data-m="${k}">${METRICS[k].label}</button>`).join('');
   box.querySelectorAll('.mtab').forEach(el=>{
     el.addEventListener('click', ()=>{
       state.ttMetric = el.dataset.m;
