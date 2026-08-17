@@ -2399,7 +2399,8 @@ function buildMicrocycleTable(){
       matchIsManual = true;
     }
     const dayDiff = (a,b)=> Math.round((new Date(a+'T00:00:00') - new Date(b+'T00:00:00')) / 86400000);
-    let cycleTotal = 0; // suma de los promedios diarios de distancia: se corta y arranca de nuevo en cada microciclo
+    let cycleTotal = 0, hsrTotal = 0, plTotal = 0; // suma de los promedios diarios: se corta y arranca de nuevo en cada microciclo
+    const intensityValues = [];
     const dayRows = datesArr.map(d=>{
       const dayEvents = byDate[d]||[];
       const isRest = dayEvents.some(isRestDayEvent);
@@ -2408,6 +2409,8 @@ function buildMicrocycleTable(){
       const hsrAvg = avgField(dayEvents,'hsr');
       const plAvg = avgField(dayEvents,'pl');
       if(distAvg!==null) cycleTotal += distAvg;
+      if(hsrAvg!==null) hsrTotal += hsrAvg;
+      if(plAvg!==null) plTotal += plAvg;
 
       // Intensidad compuesta: promedio de los % de cada métrica disponible ese día, contra el último partido jugado.
       const pcts = [];
@@ -2415,6 +2418,7 @@ function buildMicrocycleTable(){
       if(hsrAvg!==null && lastMatch && lastMatch.avgHsr) pcts.push(hsrAvg/lastMatch.avgHsr*100);
       if(plAvg!==null && lastMatch && lastMatch.avgPl) pcts.push(plAvg/lastMatch.avgPl*100);
       const intensityPct = pcts.length ? Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length) : null;
+      if(intensityPct!==null) intensityValues.push(intensityPct);
       const intensityColor = intensityPct===null ? '' : (intensityPct>100 ? 'color:var(--bad);' : intensityPct>=70 ? 'color:var(--gold-bright);' : 'color:var(--mist);');
 
       const nombre = isRest ? 'Día libre' : (match ? `Partido vs ${match.detalle}` : (dayEvents[0]?.detalle || dayEvents[0]?.tipo || '—'));
@@ -2443,7 +2447,8 @@ function buildMicrocycleTable(){
     } else {
       cycleLabel = 'Bloque sin partido';
     }
-    return `${dayRows}<tr class="mc-total"><td colspan="3">${cycleLabel} · Total del microciclo</td><td class="mono">${cycleTotal>0 ? fmt(Math.round(cycleTotal))+' m' : '—'}</td><td class="mono">—</td><td class="mono">—</td><td class="mono">—</td></tr>`;
+    const avgIntensity = intensityValues.length ? Math.round(intensityValues.reduce((a,b)=>a+b,0)/intensityValues.length) : null;
+    return `${dayRows}<tr class="mc-total"><td colspan="3">${cycleLabel} · Total del microciclo</td><td class="mono">${cycleTotal>0 ? fmt(Math.round(cycleTotal))+' m' : '—'}</td><td class="mono">${hsrTotal>0 ? fmt(Math.round(hsrTotal))+' m' : '—'}</td><td class="mono">${plTotal>0 ? fmt(Math.round(plTotal)) : '—'}</td><td class="mono">${avgIntensity===null ? '—' : avgIntensity+'% prom.'}</td></tr>`;
   }).join('');
   box.innerHTML = `<table class="mc-table">
     <thead><tr><th>Fecha</th><th>MD</th><th>Sesión</th><th>Dist. prom. (m)</th><th>HSR prom. (m)</th><th>PL prom.</th><th>Intensidad (%)</th></tr></thead>
