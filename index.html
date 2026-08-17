@@ -2452,9 +2452,10 @@ function buildWeeklyMicrocycle(){
   const weekMap = {};
   ACTIVE_EVENTS.forEach(e=>{
     const monday = isoDate(getMonday(e.fecha));
-    if(!weekMap[monday]) weekMap[monday] = {pl:0, dist:0};
+    if(!weekMap[monday]) weekMap[monday] = {pl:0, dist:0, jugadores:new Set()};
     if(e.pl!==null && !isNaN(e.pl)) weekMap[monday].pl += e.pl;
     if(e.dist!==null && !isNaN(e.dist)) weekMap[monday].dist += e.dist;
+    weekMap[monday].jugadores.add(e.jugador);
   });
   const weeks = Object.keys(weekMap).sort().slice(-8); // últimas 8 semanas
   const labels = weeks.map(w=>{
@@ -2462,6 +2463,11 @@ function buildWeeklyMicrocycle(){
     return 'sem. ' + String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0');
   });
   const plData = weeks.map(w=> Math.round(weekMap[w].pl));
+  const plAvgData = weeks.map(w=>{
+    const n = weekMap[w].jugadores.size;
+    return n>0 ? Math.round(weekMap[w].pl/n) : null;
+  });
+  const jugadoresPorSemana = weeks.map(w=> weekMap[w].jugadores.size);
   const tag = document.getElementById('weeklyTag');
   if(tag && weeks.length>=2){
     const last = weekMap[weeks[weeks.length-1]].pl, prev = weekMap[weeks[weeks.length-2]].pl;
@@ -2471,18 +2477,35 @@ function buildWeeklyMicrocycle(){
   const ctx = canvas.getContext('2d');
   const cfg = {
     type:'bar',
-    data:{ labels, datasets:[{ label:'Player Load semanal', data:plData, backgroundColor:'rgba(34,211,238,.55)', borderColor:'#22D3EE', borderWidth:1, borderRadius:4 }]},
+    data:{ labels, datasets:[
+      { type:'bar', label:'Player Load total', data:plData, backgroundColor:'rgba(34,211,238,.55)', borderColor:'#22D3EE', borderWidth:1, borderRadius:4, yAxisID:'y' },
+      { type:'line', label:'Player Load promedio por jugador', data:plAvgData, borderColor:'#FBBF24', backgroundColor:'rgba(251,191,36,.12)',
+        pointBackgroundColor:'#FBBF24', pointBorderColor:'#FBBF24', pointRadius:5, pointHoverRadius:7,
+        tension:.3, borderWidth:2.2, yAxisID:'y1' },
+    ]},
     options:{
       responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1E1E58', borderColor:'#22D3EE', borderWidth:1, titleColor:'#67E8F9', bodyColor:'#E7E7FB' } },
+      plugins:{
+        legend:{display:true, labels:{color:'#9797C9', font:{family:'IBM Plex Mono', size:10.5}, boxWidth:12, padding:12}},
+        tooltip:{ backgroundColor:'#1E1E58', borderColor:'#22D3EE', borderWidth:1, titleColor:'#67E8F9', bodyColor:'#E7E7FB',
+          callbacks:{
+            afterBody:(items)=>{
+              const idx = items[0].dataIndex;
+              return `${jugadoresPorSemana[idx]} jugadores distintos esa semana`;
+            }
+          }
+        }
+      },
       scales:{
         x:{ grid:{display:false}, ticks:{color:'#9797C9', font:{family:'IBM Plex Mono', size:9.5}} },
-        y:{ grace:'12%', grid:{color:'rgba(231,231,251,.06)'}, ticks:{color:'#9797C9', font:{family:'IBM Plex Mono', size:10}} }
+        y:{ position:'left', grace:'12%', grid:{color:'rgba(231,231,251,.06)'}, ticks:{color:'#22D3EE', font:{family:'IBM Plex Mono', size:10}}, title:{display:true, text:'Total plantel', color:'#22D3EE', font:{family:'IBM Plex Mono', size:10}} },
+        y1:{ position:'right', grace:'15%', grid:{display:false}, ticks:{color:'#FBBF24', font:{family:'IBM Plex Mono', size:10}}, title:{display:true, text:'Promedio/jugador', color:'#FBBF24', font:{family:'IBM Plex Mono', size:10}} }
       }
     }
   };
-  if(weeklyMicroChart){ weeklyMicroChart.data = cfg.data; weeklyMicroChart.options = cfg.options; weeklyMicroChart.update(); }
-  else{ weeklyMicroChart = new Chart(ctx, cfg); requestAnimationFrame(()=>{ if(weeklyMicroChart) weeklyMicroChart.resize(); }); }
+  if(weeklyMicroChart){ weeklyMicroChart.destroy(); weeklyMicroChart=null; }
+  weeklyMicroChart = new Chart(ctx, cfg);
+  requestAnimationFrame(()=>{ if(weeklyMicroChart) weeklyMicroChart.resize(); });
 }
 
 // ---------- Calidad de datos (outliers) ----------
