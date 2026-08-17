@@ -432,6 +432,7 @@
   .badge.partido{background:var(--maroon-soft);color:#D8CCFF;}
   .badge.new{background:var(--orange);color:var(--pitch-950);font-weight:700;}
   .rec-scroll{max-height:420px;overflow-y:auto;overflow-x:auto;}
+  .rec-scroll-tall{max-height:700px;}
   .rec-scroll::-webkit-scrollbar{width:6px;}
   .rec-scroll::-webkit-scrollbar-thumb{background:var(--pitch-650);border-radius:3px;}
 
@@ -630,9 +631,11 @@
     </div>
   </header>
 
-  <div class="team-only" id="adminTabBar" style="display:flex;gap:8px;margin-bottom:18px;">
+  <div class="team-only" id="adminTabBar" style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;">
     <button class="tab-btn active" id="tabBtnJugadores" onclick="switchAdminTab('jugadores')" style="padding:9px 18px;border-radius:10px;border:1px solid var(--gold);background:var(--gold);color:var(--pitch-950);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabJugadoresCampo">⚽ Jugadores de Campo</button>
     <button class="tab-btn" id="tabBtnArqueros" onclick="switchAdminTab('arqueros')" style="padding:9px 18px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--mist);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabArqueros">🧤 Arqueros</button>
+    <button class="tab-btn" id="tabBtnCarga" onclick="switchAdminTab('carga')" style="padding:9px 18px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--mist);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabControlCarga">📊 Control de Carga</button>
+    <button class="tab-btn" id="tabBtnPartidos" onclick="switchAdminTab('partidos')" style="padding:9px 18px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--mist);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabPartidos">🆚 Partidos</button>
   </div>
 
   <div id="goalkeepersView" style="display:none;">
@@ -693,6 +696,100 @@
         <div id="gkTable"></div>
       </div>
     </div>
+  </div>
+
+  <div id="controlCargaView" style="display:none;">
+<div class="panel team-only staff-ok" style="margin-bottom:18px;">
+    <div class="panel-head">
+      <h3 data-i18n="alertasCarga">Alertas de carga · ACWR</h3>
+      <span class="tag" data-i18n="acwrTag">agudo (7 días) : crónico (28 días) · sobre Player Load</span>
+    </div>
+    <div class="acwr-note">Ratio entre la carga de los últimos <b>7 días</b> y el promedio semanal de los últimos <b>28 días</b>. Con poco historial cargado el número es orientativo — se vuelve más confiable a medida que sumás sesiones. No reemplaza el criterio del cuerpo técnico ni médico.</div>
+    <div class="acwr-legend">
+      <span><span class="dot" style="background:var(--low);"></span>&lt;0.8 carga baja</span>
+      <span><span class="dot" style="background:var(--good);"></span>0.8–1.3 zona óptima</span>
+      <span><span class="dot" style="background:var(--warn);"></span>1.3–1.5 precaución</span>
+      <span><span class="dot" style="background:var(--bad);"></span>&gt;1.5 riesgo alto</span>
+    </div>
+    <div class="acwr-body" id="acwrList"></div>
+    <div class="weekly-load-box" id="acwrDailyTeamBox">
+      <div class="weekly-load-head">
+        <h4>ACWR diario del equipo</h4>
+        <span class="tag" id="weeklyLoadTag" data-i18n="promedioPlantel">Promedio del plantel · un dato por día</span>
+      </div>
+      <div class="acwr-legend" style="padding:0 0 6px;">
+        <span><span class="dot" style="background:var(--good);"></span>0.80–1.30 zona óptima</span>
+        <span><span class="dot" style="background:var(--bad);"></span>1.50 riesgo alto</span>
+      </div>
+      <div class="weekly-chart-box"><canvas id="weeklyLoadChart"></canvas></div>
+      <div class="timeline-nav">
+        <button class="tl-btn" id="wlPrev" data-i18n-title="diasAnteriores" title="Días anteriores">◀</button>
+        <div class="tl-range">
+          <input type="range" id="wlSlider" min="0" max="0" value="0" step="1">
+          <div class="tl-label" id="wlLabel">—</div>
+        </div>
+        <button class="tl-btn" id="wlNext" data-i18n-title="diasSiguientes" title="Días siguientes">▶</button>
+      </div>
+    </div>
+  </div>
+
+<div class="panel team-only staff-ok" style="margin-top:18px;">
+    <div class="panel-head">
+      <h3 data-i18n="monotoniaStrain">Monotonía y Strain · método Foster</h3>
+      <span class="tag" data-i18n="monotoniaTag">última semana con datos · sobre Player Load</span>
+    </div>
+    <div class="acwr-body" id="monotonyList"></div>
+  </div>
+
+<div class="panel team-only" style="margin-top:18px;">
+    <div class="panel-head">
+      <h3 data-i18n="cargaSemanal">Carga semanal del plantel</h3>
+      <span class="tag" id="weeklyTag" data-i18n="cargaSemanalTag">Player Load total por semana</span>
+    </div>
+    <div class="metric-tabs" id="weeklyMicroTabs"></div>
+    <div class="chart-box" style="height:260px;"><canvas id="weeklyMicroChart"></canvas></div>
+  </div>
+
+<div class="panel team-only" style="margin-top:18px;">
+    <div class="panel-head">
+      <h3 data-i18n="calidadDatos">Calidad de datos</h3>
+      <span class="tag" data-i18n="valoresAtipicos">valores atípicos a revisar</span>
+    </div>
+    <div class="acwr-body" id="dataQualityList"></div>
+  </div>
+
+<div class="panel team-only" style="margin-top:18px;">
+    <div class="panel-head">
+      <h3 data-i18n="rpePlantel">RPE del plantel</h3>
+      <span class="tag" data-i18n="rpePlantelTag">percepción de esfuerzo reportada por cada jugador</span>
+    </div>
+    <div class="acwr-body" id="rpeTeamList"></div>
+  </div>
+
+<div class="panel team-only" style="margin-top:18px;">
+    <div class="panel-head">
+      <h3 data-i18n="cargaInterna">Carga interna (RPE)</h3>
+      <span class="tag" data-i18n="cargaInternaTag">carga aguda : crónica basada en RPE × minutos</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin:8px 0 14px;flex-wrap:wrap;">
+      <label for="rpeDatePicker" data-i18n="fecha2" style="font-size:11px;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;">Fecha</label>
+      <input id="rpeDatePicker" type="date" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;">
+      <button id="rpeSaveAllBtn" type="button" style="padding:8px 14px;border-radius:8px;border:1px solid var(--gold);background:var(--gold);color:var(--pitch-950);font:700 12px 'IBM Plex Mono';cursor:pointer;">Guardar todos</button>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="cmp-table" id="rpeLoadTable"></table>
+    </div>
+  </div>
+  </div>
+
+  <div id="partidosView" style="display:none;">
+<div class="panel team-only">
+    <div class="panel-head">
+      <h3 data-i18n="comparativoPartidos">Comparativo de partidos</h3>
+      <span class="tag" data-i18n="totalesEquipo">totales de equipo</span>
+    </div>
+    <div class="match-grid" id="matchGrid"></div>
+  </div>
   </div>
 
   <div id="fieldContentWrap">
@@ -851,39 +948,7 @@
     </div>
   </div>
 
-  <div class="panel team-only staff-ok" style="margin-bottom:18px;">
-    <div class="panel-head">
-      <h3 data-i18n="alertasCarga">Alertas de carga · ACWR</h3>
-      <span class="tag" data-i18n="acwrTag">agudo (7 días) : crónico (28 días) · sobre Player Load</span>
-    </div>
-    <div class="acwr-note">Ratio entre la carga de los últimos <b>7 días</b> y el promedio semanal de los últimos <b>28 días</b>. Con poco historial cargado el número es orientativo — se vuelve más confiable a medida que sumás sesiones. No reemplaza el criterio del cuerpo técnico ni médico.</div>
-    <div class="acwr-legend">
-      <span><span class="dot" style="background:var(--low);"></span>&lt;0.8 carga baja</span>
-      <span><span class="dot" style="background:var(--good);"></span>0.8–1.3 zona óptima</span>
-      <span><span class="dot" style="background:var(--warn);"></span>1.3–1.5 precaución</span>
-      <span><span class="dot" style="background:var(--bad);"></span>&gt;1.5 riesgo alto</span>
-    </div>
-    <div class="acwr-body" id="acwrList"></div>
-    <div class="weekly-load-box" id="acwrDailyTeamBox">
-      <div class="weekly-load-head">
-        <h4>ACWR diario del equipo</h4>
-        <span class="tag" id="weeklyLoadTag" data-i18n="promedioPlantel">Promedio del plantel · un dato por día</span>
-      </div>
-      <div class="acwr-legend" style="padding:0 0 6px;">
-        <span><span class="dot" style="background:var(--good);"></span>0.80–1.30 zona óptima</span>
-        <span><span class="dot" style="background:var(--bad);"></span>1.50 riesgo alto</span>
-      </div>
-      <div class="weekly-chart-box"><canvas id="weeklyLoadChart"></canvas></div>
-      <div class="timeline-nav">
-        <button class="tl-btn" id="wlPrev" data-i18n-title="diasAnteriores" title="Días anteriores">◀</button>
-        <div class="tl-range">
-          <input type="range" id="wlSlider" min="0" max="0" value="0" step="1">
-          <div class="tl-label" id="wlLabel">—</div>
-        </div>
-        <button class="tl-btn" id="wlNext" data-i18n-title="diasSiguientes" title="Días siguientes">▶</button>
-      </div>
-    </div>
-  </div>
+  
 
   <div class="panel team-only" style="margin-bottom:18px;">
     <div class="panel-head">
@@ -921,66 +986,22 @@
       <h3 data-i18n="recordsPersonales">Récords personales</h3>
       <span class="tag" data-i18n="actualizadoDesde">actualizado desde Base de Datos y Partidos</span>
     </div>
-    <div class="rec-scroll">
+    <div class="rec-scroll rec-scroll-tall">
       <table class="rec-table" id="recTable"></table>
     </div>
   </div>
 
-  <div class="panel team-only">
-    <div class="panel-head">
-      <h3 data-i18n="comparativoPartidos">Comparativo de partidos</h3>
-      <span class="tag" data-i18n="totalesEquipo">totales de equipo</span>
-    </div>
-    <div class="match-grid" id="matchGrid"></div>
-  </div>
+  
 
-  <div class="panel team-only staff-ok" style="margin-top:18px;">
-    <div class="panel-head">
-      <h3 data-i18n="monotoniaStrain">Monotonía y Strain · método Foster</h3>
-      <span class="tag" data-i18n="monotoniaTag">última semana con datos · sobre Player Load</span>
-    </div>
-    <div class="acwr-body" id="monotonyList"></div>
-  </div>
+  
 
-  <div class="panel team-only" style="margin-top:18px;">
-    <div class="panel-head">
-      <h3 data-i18n="cargaSemanal">Carga semanal del plantel</h3>
-      <span class="tag" id="weeklyTag" data-i18n="cargaSemanalTag">Player Load total por semana</span>
-    </div>
-    <div class="metric-tabs" id="weeklyMicroTabs"></div>
-    <div class="chart-box" style="height:260px;"><canvas id="weeklyMicroChart"></canvas></div>
-  </div>
+  
 
-  <div class="panel team-only" style="margin-top:18px;">
-    <div class="panel-head">
-      <h3 data-i18n="calidadDatos">Calidad de datos</h3>
-      <span class="tag" data-i18n="valoresAtipicos">valores atípicos a revisar</span>
-    </div>
-    <div class="acwr-body" id="dataQualityList"></div>
-  </div>
+  
 
-  <div class="panel team-only" style="margin-top:18px;">
-    <div class="panel-head">
-      <h3 data-i18n="rpePlantel">RPE del plantel</h3>
-      <span class="tag" data-i18n="rpePlantelTag">percepción de esfuerzo reportada por cada jugador</span>
-    </div>
-    <div class="acwr-body" id="rpeTeamList"></div>
-  </div>
+  
 
-  <div class="panel team-only" style="margin-top:18px;">
-    <div class="panel-head">
-      <h3 data-i18n="cargaInterna">Carga interna (RPE)</h3>
-      <span class="tag" data-i18n="cargaInternaTag">carga aguda : crónica basada en RPE × minutos</span>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;margin:8px 0 14px;flex-wrap:wrap;">
-      <label for="rpeDatePicker" data-i18n="fecha2" style="font-size:11px;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;">Fecha</label>
-      <input id="rpeDatePicker" type="date" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;">
-      <button id="rpeSaveAllBtn" type="button" style="padding:8px 14px;border-radius:8px;border:1px solid var(--gold);background:var(--gold);color:var(--pitch-950);font:700 12px 'IBM Plex Mono';cursor:pointer;">Guardar todos</button>
-    </div>
-    <div style="overflow-x:auto;">
-      <table class="cmp-table" id="rpeLoadTable"></table>
-    </div>
-  </div>
+  
 
   </div>
 
@@ -1072,6 +1093,10 @@ function applyStaffModeUI(){
   if(goalkeepersView) goalkeepersView.style.display = 'none';
   const fieldWrap = document.getElementById('fieldContentWrap');
   if(fieldWrap) fieldWrap.style.display = ''; // los paneles staff-ok viven adentro, tiene que estar visible
+  const controlCargaView = document.getElementById('controlCargaView');
+  if(controlCargaView) controlCargaView.style.display = ''; // ACWR y Monotonía (staff-ok) ahora viven acá
+  const partidosView = document.getElementById('partidosView');
+  if(partidosView) partidosView.style.display = 'none'; // Staff no ve Comparativo de partidos
   const previewBar = document.getElementById('previewBar');
   if(previewBar) previewBar.style.display = 'none';
   const gkPlayerView = document.getElementById('gkPlayerView');
@@ -1093,6 +1118,10 @@ function applyGkCoachModeUI(){
   if(adminTabBar) adminTabBar.style.display = 'none';
   const fieldWrap = document.getElementById('fieldContentWrap');
   if(fieldWrap) fieldWrap.style.display = 'none';
+  const controlCargaView = document.getElementById('controlCargaView');
+  if(controlCargaView) controlCargaView.style.display = 'none';
+  const partidosView = document.getElementById('partidosView');
+  if(partidosView) partidosView.style.display = 'none';
   const goalkeepersView = document.getElementById('goalkeepersView');
   if(goalkeepersView) goalkeepersView.style.display = 'block';
   const previewBar = document.getElementById('previewBar');
@@ -1109,6 +1138,10 @@ function applyPlayerModeUI(){
   if(fieldWrap) fieldWrap.style.display=''; // la vista individual siempre necesita este contenedor visible, sin importar en qué pestaña haya quedado el admin
   const gkAdminView = document.getElementById('goalkeepersView');
   if(gkAdminView) gkAdminView.style.display='none'; // esa vista es solo para el admin navegando el plantel completo
+  const cargaAdminView = document.getElementById('controlCargaView');
+  if(cargaAdminView) cargaAdminView.style.display='none'; // idem, solo para el admin
+  const partidosAdminView = document.getElementById('partidosView');
+  if(partidosAdminView) partidosAdminView.style.display='none'; // idem, solo para el admin
   const mainGrid=document.getElementById('mainGrid');
   const gkView=document.getElementById('gkPlayerView');
   const activePlayer = previewingAsPlayer || (myProfile && myProfile.player_name);
@@ -1452,14 +1485,14 @@ function setupNextMatchBar(){
 
 let previewingAsPlayer = null;
 let ORIGINAL_BRAND_SUB = null;
-let previewStartedFromArqueros = false;
+let currentAdminTab = 'jugadores'; // recuerda en qué pestaña estaba el admin, para volver ahí al salir de una vista previa
 function setupPreviewBar(){
   if(!(myProfile && myProfile.role==='admin')) return;
   const bar = document.getElementById('previewBar');
   bar.style.display = 'block';
   const select = document.getElementById('previewPlayerSelect');
   select.innerHTML = players.map(p=>`<option value="${p}">${p}</option>`).join('');
-  document.getElementById('previewStartBtn').onclick = ()=>{ previewStartedFromArqueros=false; startPlayerPreview(select.value); };
+  document.getElementById('previewStartBtn').onclick = ()=>{ startPlayerPreview(select.value); };
   document.getElementById('previewExitBtn').onclick = exitPlayerPreview;
 }
 function setupGkPreviewBar(){
@@ -1468,7 +1501,7 @@ function setupGkPreviewBar(){
   if(!select) return;
   const gkNames = [...new Set(GK_EVENTS.map(e=>e.jugador))].sort();
   select.innerHTML = gkNames.map(p=>`<option value="${p}">${p}</option>`).join('');
-  document.getElementById('gkPreviewStartBtn').onclick = ()=>{ previewStartedFromArqueros=true; startPlayerPreview(select.value); };
+  document.getElementById('gkPreviewStartBtn').onclick = ()=>{ startPlayerPreview(select.value); };
 }
 function resizeAllCharts(){
   const doRebuild = ()=>{
@@ -1531,7 +1564,7 @@ function exitPlayerPreview(){
   document.getElementById('previewExitBtn').style.display='none';
   renderAll(PLAYER_BEFORE_PREVIEW);
   resizeAllCharts();
-  if(previewStartedFromArqueros){ switchAdminTab('arqueros'); previewStartedFromArqueros=false; }
+  switchAdminTab(currentAdminTab);
 }
 async function handleAuthSubmit(event){
   event.preventDefault(); const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value;
@@ -1999,7 +2032,7 @@ const I18N = {
     cargaInterna:'Carga interna (RPE)', cargaInternaTag:'carga aguda : crónica basada en RPE × minutos', fecha2:'Fecha',
     footer:'Por Matías González Galindo — Head of Physical Performance',
     gkMetrics:{dist:'Distancia Total', impact:'Impacto', dives:'Buzos', pl:'Player Load', vel:'Vel. Máxima', acc:'Acc', dece:'Dece'},
-    tabJugadoresCampo:'⚽ Jugadores de Campo', tabArqueros:'🧤 Arqueros',
+    tabJugadoresCampo:'⚽ Jugadores de Campo', tabArqueros:'🧤 Arqueros', tabControlCarga:'📊 Control de Carga', tabPartidos:'🆚 Partidos',
     gkVistaPrevia:'🧤 Vista previa como arquero', gkVistaPreviaTag:'ver el dashboard como lo ve un arquero puntual', gkVerComo:'Ver como este arquero',
     gkEvolucion:'🧤 Evolución de arqueros', gkEvolucionTag:'promedio diario de arqueros',
     gkRanking:'🧤 Ranking de arqueros', gkOrdenMayorMenor:'orden de mayor a menor · récord personal como tope',
@@ -2042,7 +2075,7 @@ const I18N = {
     cargaInterna:'Internal load (RPE)', cargaInternaTag:'acute : chronic load based on RPE × minutes', fecha2:'Date',
     footer:'By Matías González Galindo — Head of Physical Performance',
     gkMetrics:{dist:'Total Distance', impact:'Impact', dives:'Dives', pl:'Player Load', vel:'Max Speed', acc:'Acc', dece:'Dec'},
-    tabJugadoresCampo:'⚽ Field Players', tabArqueros:'🧤 Goalkeepers',
+    tabJugadoresCampo:'⚽ Field Players', tabArqueros:'🧤 Goalkeepers', tabControlCarga:'📊 Load Control', tabPartidos:'🆚 Matches',
     gkVistaPrevia:'🧤 Preview as goalkeeper', gkVistaPreviaTag:'see the dashboard as a given goalkeeper sees it', gkVerComo:'View as this goalkeeper',
     gkEvolucion:'🧤 Goalkeeper evolution', gkEvolucionTag:'daily average of goalkeepers',
     gkRanking:'🧤 Goalkeeper ranking', gkOrdenMayorMenor:'highest to lowest · personal record as ceiling',
@@ -2085,7 +2118,7 @@ const I18N = {
     cargaInterna:'الحمل الداخلي (RPE)', cargaInternaTag:'الحمل الحاد : المزمن استنادًا إلى RPE × الدقائق', fecha2:'التاريخ',
     footer:'بواسطة ماتياس غونزاليس غاليندو — مسؤول الأداء البدني',
     gkMetrics:{dist:'المسافة الإجمالية', impact:'الارتطام', dives:'الغطسات', pl:'حمل اللاعب', vel:'السرعة القصوى', acc:'تسارع', dece:'تباطؤ'},
-    tabJugadoresCampo:'⚽ لاعبو الميدان', tabArqueros:'🧤 حراس المرمى',
+    tabJugadoresCampo:'⚽ لاعبو الميدان', tabArqueros:'🧤 حراس المرمى', tabControlCarga:'📊 التحكم بالحمل', tabPartidos:'🆚 المباريات',
     gkVistaPrevia:'🧤 معاينة كحارس مرمى', gkVistaPreviaTag:'شاهد لوحة التحكم كما يراها حارس مرمى محدد', gkVerComo:'عرض كهذا الحارس',
     gkEvolucion:'🧤 تطور حراس المرمى', gkEvolucionTag:'المتوسط اليومي لحراس المرمى',
     gkRanking:'🧤 تصنيف حراس المرمى', gkOrdenMayorMenor:'من الأعلى إلى الأدنى · الرقم القياسي الشخصي كحد أقصى',
@@ -2559,21 +2592,23 @@ function buildWeeklyMicrocycle(){
 function switchAdminTab(tab){
   const fieldWrap = document.getElementById('fieldContentWrap');
   const gkView = document.getElementById('goalkeepersView');
+  const cargaView = document.getElementById('controlCargaView');
+  const partidosView = document.getElementById('partidosView');
   const btnJ = document.getElementById('tabBtnJugadores');
   const btnA = document.getElementById('tabBtnArqueros');
+  const btnC = document.getElementById('tabBtnCarga');
+  const btnP = document.getElementById('tabBtnPartidos');
   const activeStyle = 'border-color:var(--gold);background:var(--gold);color:var(--pitch-950);';
   const inactiveStyle = 'border-color:var(--line-strong);background:transparent;color:var(--mist);';
-  if(tab==='arqueros'){
-    if(fieldWrap) fieldWrap.style.display='none';
-    if(gkView) gkView.style.display='block';
-    if(btnA) btnA.style.cssText += activeStyle;
-    if(btnJ) btnJ.style.cssText += inactiveStyle;
-  } else {
-    if(fieldWrap) fieldWrap.style.display='';
-    if(gkView) gkView.style.display='none';
-    if(btnJ) btnJ.style.cssText += activeStyle;
-    if(btnA) btnA.style.cssText += inactiveStyle;
-  }
+
+  const views = {jugadores:fieldWrap, arqueros:gkView, carga:cargaView, partidos:partidosView};
+  const btns = {jugadores:btnJ, arqueros:btnA, carga:btnC, partidos:btnP};
+  const selected = views[tab] ? tab : 'jugadores';
+  currentAdminTab = selected;
+  Object.keys(views).forEach(key=>{
+    if(views[key]) views[key].style.display = (key===selected) ? '' : 'none';
+    if(btns[key]) btns[key].style.cssText += (key===selected) ? activeStyle : inactiveStyle;
+  });
 }
 
 // ---------- Arqueros: tabla admin con sus 7 métricas propias ----------
@@ -2631,7 +2666,6 @@ function buildGkLeaderboard(){
   }).join('');
   box.querySelectorAll('.lb-row').forEach(el=>{
     el.addEventListener('click',()=>{
-      previewStartedFromArqueros = true;
       startPlayerPreview(el.dataset.p);
     });
   });
@@ -2791,7 +2825,6 @@ function buildGkACWR(){
   }).join('');
   box.querySelectorAll('.acwr-row').forEach(el=>{
     el.addEventListener('click',()=>{
-      previewStartedFromArqueros = true;
       startPlayerPreview(el.dataset.p);
     });
   });
