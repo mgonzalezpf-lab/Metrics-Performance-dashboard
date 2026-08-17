@@ -2362,10 +2362,12 @@ function computeMicrocycles(events){
   for(let i=0;i<dates.length;i++){
     const d = dates[i];
     current.push(d);
+    const isMatch = byDate[d].some(e=>e.tipo==='Partido');
     const isRest = byDate[d].some(isRestDayEvent);
     const nextIsRest = dates[i+1] ? byDate[dates[i+1]].some(isRestDayEvent) : false;
-    // Cierra el microciclo apenas termina el último día libre consecutivo (o al llegar al final de los datos).
-    if(isRest && !nextIsRest){
+    // El microciclo cierra: (a) el mismo día del partido (el partido es el último día del ciclo, "MD"),
+    // o (b) al terminar el último día libre consecutivo (bloques sin partido, ej. pretemporada).
+    if(isMatch || (isRest && !nextIsRest)){
       cycles.push(current);
       current = [];
     }
@@ -2398,7 +2400,6 @@ function buildMicrocycleTable(){
       const distAvg = avgField(dayEvents,'dist');
       const hsrAvg = avgField(dayEvents,'hsr');
       const plAvg = avgField(dayEvents,'pl');
-      const mminAvg = avgMPerMin(dayEvents); // solo tiene valor en días de partido (únicos con minutos cargados)
       if(distAvg!==null) cycleTotal += distAvg;
 
       // Intensidad compuesta: promedio de los % de cada métrica disponible ese día, contra el último partido jugado.
@@ -2406,7 +2407,6 @@ function buildMicrocycleTable(){
       if(distAvg!==null && lastMatch && lastMatch.avgDist) pcts.push(distAvg/lastMatch.avgDist*100);
       if(hsrAvg!==null && lastMatch && lastMatch.avgHsr) pcts.push(hsrAvg/lastMatch.avgHsr*100);
       if(plAvg!==null && lastMatch && lastMatch.avgPl) pcts.push(plAvg/lastMatch.avgPl*100);
-      if(mminAvg!==null && lastMatch && lastMatch.avgMMin) pcts.push(mminAvg/lastMatch.avgMMin*100);
       const intensityPct = pcts.length ? Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length) : null;
       const intensityColor = intensityPct===null ? '' : (intensityPct>100 ? 'color:var(--bad);' : intensityPct>=70 ? 'color:var(--gold-bright);' : 'color:var(--mist);');
 
@@ -2414,7 +2414,7 @@ function buildMicrocycleTable(){
       const rowClass = isRest ? 'mc-rest' : (match ? 'mc-match' : '');
       const dateStr = d.split('-').reverse().join('/');
       let mdLabel = '—';
-      if(matchDate){
+      if(matchDate && !isRest){
         const diff = dayDiff(matchDate, d); // días QUE FALTAN respecto a esta fila (positivo = antes del partido)
         mdLabel = diff===0 ? 'MD' : (diff>0 ? `MD-${diff}` : `MD+${Math.abs(diff)}`);
       }
@@ -2424,7 +2424,6 @@ function buildMicrocycleTable(){
         <td>${nombre}</td>
         <td class="mono">${isRest || distAvg===null ? '—' : fmt(Math.round(distAvg))}</td>
         <td class="mono">${isRest || hsrAvg===null ? '—' : fmt(Math.round(hsrAvg))}</td>
-        <td class="mono">${isRest || mminAvg===null ? '—' : fmt(Math.round(mminAvg))}</td>
         <td class="mono">${isRest || plAvg===null ? '—' : fmt(Math.round(plAvg))}</td>
         <td class="mono" style="${intensityColor}">${intensityPct===null ? '—' : intensityPct+'%'}</td>
       </tr>`;
@@ -2437,10 +2436,10 @@ function buildMicrocycleTable(){
     } else {
       cycleLabel = 'Bloque sin partido';
     }
-    return `${dayRows}<tr class="mc-total"><td colspan="3">${cycleLabel} · Total del microciclo</td><td class="mono">${cycleTotal>0 ? fmt(Math.round(cycleTotal))+' m' : '—'}</td><td class="mono">—</td><td class="mono">—</td><td class="mono">—</td><td class="mono">—</td></tr>`;
+    return `${dayRows}<tr class="mc-total"><td colspan="3">${cycleLabel} · Total del microciclo</td><td class="mono">${cycleTotal>0 ? fmt(Math.round(cycleTotal))+' m' : '—'}</td><td class="mono">—</td><td class="mono">—</td><td class="mono">—</td></tr>`;
   }).join('');
   box.innerHTML = `<table class="mc-table">
-    <thead><tr><th>Fecha</th><th>MD</th><th>Sesión</th><th>Dist. prom. (m)</th><th>HSR prom. (m)</th><th>m/min</th><th>PL prom.</th><th>Intensidad (%)</th></tr></thead>
+    <thead><tr><th>Fecha</th><th>MD</th><th>Sesión</th><th>Dist. prom. (m)</th><th>HSR prom. (m)</th><th>PL prom.</th><th>Intensidad (%)</th></tr></thead>
     <tbody>${bodyHtml}</tbody>
   </table>`;
 }
