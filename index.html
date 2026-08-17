@@ -2359,6 +2359,7 @@ function computeMicrocycles(events){
   const dates = Object.keys(byDate).sort();
   const cycles = [];
   let current = [];
+  let lastCycleWasClosed = true; // se vuelve false solo si el último bloque queda sin cerrar (ni partido ni día libre final)
   for(let i=0;i<dates.length;i++){
     const d = dates[i];
     current.push(d);
@@ -2370,15 +2371,19 @@ function computeMicrocycles(events){
     if(isMatch || (isRest && !nextIsRest)){
       cycles.push(current);
       current = [];
+      lastCycleWasClosed = true;
     }
   }
-  if(current.length) cycles.push(current);
-  return {cycles, byDate};
+  if(current.length){
+    cycles.push(current);
+    lastCycleWasClosed = false; // este bloque final quedó genuinamente abierto, sin partido ni día libre que lo cierre
+  }
+  return {cycles, byDate, lastCycleWasClosed};
 }
 function buildMicrocycleTable(){
   const box = document.getElementById('microcycleTable');
   if(!box) return;
-  const {cycles, byDate} = computeMicrocycles(ACTIVE_EVENTS);
+  const {cycles, byDate, lastCycleWasClosed} = computeMicrocycles(ACTIVE_EVENTS);
   if(!cycles.length){ box.innerHTML=''; return; }
   const lastMatch = getLastMatchInfo(ACTIVE_EVENTS); // referencia fija: último partido REALMENTE jugado
   const last4 = cycles.slice(-4); // últimos 4 microciclos, para no saturar la pantalla
@@ -2386,8 +2391,10 @@ function buildMicrocycleTable(){
     // Buscamos el partido de este ciclo para poder contar los días hacia/desde él (MD-5, MD-4... MD, MD+1...)
     let matchDate = datesArr.find(d=> (byDate[d]||[]).some(e=>e.tipo==='Partido'));
     let matchIsManual = false;
-    // Si es el ciclo actual (el último, todavía abierto) y no tiene partido cargado, usamos la fecha que cargaste manualmente.
-    if(!matchDate && i===last4.length-1 && NEXT_MATCH_DATE){
+    // Si es el ciclo actual y quedó GENUINAMENTE abierto (sin partido ni día libre que lo cierre),
+    // recién ahí usamos la fecha que cargaste manualmente. Un ciclo ya cerrado por un día libre
+    // no debe "engancharse" al próximo partido — eso generaba el bug de MD-11, MD-10...
+    if(!matchDate && i===last4.length-1 && NEXT_MATCH_DATE && !lastCycleWasClosed){
       matchDate = NEXT_MATCH_DATE;
       matchIsManual = true;
     }
