@@ -947,6 +947,7 @@
       <h3 data-i18n="cargaSemanal">Carga semanal del plantel</h3>
       <span class="tag" id="weeklyTag" data-i18n="cargaSemanalTag">Player Load total por semana</span>
     </div>
+    <div class="metric-tabs" id="weeklyMicroTabs"></div>
     <div class="chart-box" style="height:260px;"><canvas id="weeklyMicroChart"></canvas></div>
   </div>
 
@@ -2130,7 +2131,7 @@ function setLang(lang){
   }
 }
 
-let state = { player:null, metric:'dist', tlOffset:0, wlOffset:0, ttMetric:'dist', ttOffset:0, lbMetric:'dist', gkMetric:'dist', gkTlOffset:0, gkLbMetric:'dist', gkTtMetric:'dist', gkTtOffset:0 };
+let state = { player:null, metric:'dist', tlOffset:0, wlOffset:0, ttMetric:'dist', ttOffset:0, lbMetric:'dist', gkMetric:'dist', gkTlOffset:0, gkLbMetric:'dist', gkTtMetric:'dist', gkTtOffset:0, weeklyMicroTab:'total' };
 const TIMELINE_WINDOW = 20;
 
 function fmt(v,dec=0){
@@ -2446,6 +2447,22 @@ function buildMicrocycleTable(){
 
 // ---------- Carga semanal del plantel (microciclo) ----------
 let weeklyMicroChart;
+function buildWeeklyMicroTabs(){
+  const box = document.getElementById('weeklyMicroTabs');
+  if(!box) return;
+  const opts = [
+    {key:'total', label:'Total del plantel'},
+    {key:'promedio', label:'Promedio por jugador'},
+  ];
+  box.innerHTML = opts.map(o=>`<div class="mtab ${o.key===state.weeklyMicroTab?'active':''}" data-k="${o.key}">${o.label}</div>`).join('');
+  box.querySelectorAll('.mtab').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      state.weeklyMicroTab = el.dataset.k;
+      buildWeeklyMicroTabs();
+      buildWeeklyMicrocycle();
+    });
+  });
+}
 function buildWeeklyMicrocycle(){
   const canvas = document.getElementById('weeklyMicroChart');
   if(!canvas || typeof Chart==='undefined') return;
@@ -2462,46 +2479,63 @@ function buildWeeklyMicrocycle(){
     const d = new Date(w+'T00:00:00');
     return 'sem. ' + String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0');
   });
-  const plData = weeks.map(w=> Math.round(weekMap[w].pl));
-  const plAvgData = weeks.map(w=>{
-    const n = weekMap[w].jugadores.size;
-    return n>0 ? Math.round(weekMap[w].pl/n) : null;
-  });
   const jugadoresPorSemana = weeks.map(w=> weekMap[w].jugadores.size);
+  const totalData = weeks.map(w=> Math.round(weekMap[w].pl));
+  const avgData = weeks.map((w,i)=> jugadoresPorSemana[i]>0 ? Math.round(weekMap[w].pl/jugadoresPorSemana[i]) : null);
+
   const tag = document.getElementById('weeklyTag');
   if(tag && weeks.length>=2){
     const last = weekMap[weeks[weeks.length-1]].pl, prev = weekMap[weeks[weeks.length-2]].pl;
     const pctChange = prev>0 ? Math.round(((last-prev)/prev)*100) : null;
-    if(pctChange!==null) tag.textContent = `Player Load total por semana · ${pctChange>=0?'+':''}${pctChange}% vs semana anterior`;
+    const base = state.weeklyMicroTab==='promedio' ? 'Player Load promedio por jugador' : 'Player Load total por semana';
+    tag.textContent = pctChange!==null ? `${base} · ${pctChange>=0?'+':''}${pctChange}% vs semana anterior` : base;
   }
+
+  const isTotal = state.weeklyMicroTab!=='promedio';
+  const data = isTotal ? totalData : avgData;
+  const color = isTotal ? '#22D3EE' : '#FBBF24';
+  const colorBg = isTotal ? 'rgba(34,211,238,.55)' : 'rgba(251,191,36,.55)';
+  const label = isTotal ? 'Player Load total' : 'Player Load promedio por jugador';
+
+  // plugin propio: dibuja el valor arriba de cada barra (misma técnica que ya usamos en el ACWR diario)
+  const dataLabelPlugin = {
+    id: 'weeklyMicroLabels',
+    afterDatasetsDraw(chart){
+      const {ctx} = chart;
+      const meta = chart.getDatasetMeta(0);
+      ctx.save();
+      ctx.font = "600 11px 'IBM Plex Mono', monospace";
+      ctx.fillStyle = color;
+      ctx.textAlign = 'center';
+      meta.data.forEach((bar, idx)=>{
+        const v = chart.data.datasets[0].data[idx];
+        if(v===null || v===undefined) return;
+        ctx.fillText(fmt(v), bar.x, bar.y - 8);
+      });
+      ctx.restore();
+    }
+  };
+
   const ctx = canvas.getContext('2d');
   const cfg = {
     type:'bar',
-    data:{ labels, datasets:[
-      { type:'bar', label:'Player Load total', data:plData, backgroundColor:'rgba(34,211,238,.55)', borderColor:'#22D3EE', borderWidth:1, borderRadius:4, yAxisID:'y' },
-      { type:'line', label:'Player Load promedio por jugador', data:plAvgData, borderColor:'#FBBF24', backgroundColor:'rgba(251,191,36,.12)',
-        pointBackgroundColor:'#FBBF24', pointBorderColor:'#FBBF24', pointRadius:5, pointHoverRadius:7,
-        tension:.3, borderWidth:2.2, yAxisID:'y1' },
-    ]},
+    data:{ labels, datasets:[{ label, data, backgroundColor:colorBg, borderColor:color, borderWidth:1, borderRadius:4 }]},
     options:{
       responsive:true, maintainAspectRatio:false,
+      layout:{ padding:{ top:18 } },
       plugins:{
-        legend:{display:true, labels:{color:'#9797C9', font:{family:'IBM Plex Mono', size:10.5}, boxWidth:12, padding:12}},
-        tooltip:{ backgroundColor:'#1E1E58', borderColor:'#22D3EE', borderWidth:1, titleColor:'#67E8F9', bodyColor:'#E7E7FB',
-          callbacks:{
-            afterBody:(items)=>{
-              const idx = items[0].dataIndex;
-              return `${jugadoresPorSemana[idx]} jugadores distintos esa semana`;
-            }
-          }
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#1E1E58', borderColor:color, borderWidth:1, titleColor:'#67E8F9', bodyColor:'#E7E7FB',
+          callbacks:{ afterBody:(items)=> `${jugadoresPorSemana[items[0].dataIndex]} jugadores distintos esa semana` }
         }
       },
       scales:{
         x:{ grid:{display:false}, ticks:{color:'#9797C9', font:{family:'IBM Plex Mono', size:9.5}} },
-        y:{ position:'left', grace:'12%', grid:{color:'rgba(231,231,251,.06)'}, ticks:{color:'#22D3EE', font:{family:'IBM Plex Mono', size:10}}, title:{display:true, text:'Total plantel', color:'#22D3EE', font:{family:'IBM Plex Mono', size:10}} },
-        y1:{ position:'right', grace:'15%', grid:{display:false}, ticks:{color:'#FBBF24', font:{family:'IBM Plex Mono', size:10}}, title:{display:true, text:'Promedio/jugador', color:'#FBBF24', font:{family:'IBM Plex Mono', size:10}} }
+        y:{ grace:'18%', grid:{color:'rgba(231,231,251,.06)'}, ticks:{color:'#9797C9', font:{family:'IBM Plex Mono', size:10}} }
       }
-    }
+    },
+    plugins:[dataLabelPlugin]
   };
   if(weeklyMicroChart){ weeklyMicroChart.destroy(); weeklyMicroChart=null; }
   weeklyMicroChart = new Chart(ctx, cfg);
@@ -3598,6 +3632,7 @@ function renderAll(keepPlayer){
   buildTeamTimeline(true);
   buildMonotonyStrain();
   buildMicrocycleTable();
+  buildWeeklyMicroTabs();
   buildWeeklyMicrocycle();
   buildGkTeamMetricTabs();
   buildGkTeamTimeline(true);
