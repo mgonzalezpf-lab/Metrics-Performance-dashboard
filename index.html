@@ -1068,7 +1068,7 @@ const STORAGE_KEY = 'saqer-gps-dashboard-data-v1';
 const SUPABASE_URL = 'https://sbrngckhkdurndrewvdo.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_sV0k2jMH1RN7nY1nE_4d5g_gyLqG0Rw';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true }
+  auth: { persistSession: false, autoRefreshToken: false }
 });
 let CURRENT_CLUB = 'Al Saqer FC'; // valor de arranque, antes de saber a qué club pertenece quien inicia sesión; se actualiza en routeAfterLogin()
 let pendingSignupClub = null; // nombre de club tipeado en el registro, se usa una sola vez en ensureProfile()
