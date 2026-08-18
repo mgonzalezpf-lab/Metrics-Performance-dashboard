@@ -549,6 +549,8 @@
     <label for="authEmail" data-i18n="email" class="i18n-text">Email</label><input id="authEmail" type="email" autocomplete="email" required>
     <label for="authPassword" data-i18n="password" class="i18n-text">Contraseña</label><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required>
     <div id="authRoleWrap" style="display:none;">
+      <label for="authClubName" data-i18n="nombreClub" class="i18n-text">Nombre del club</label>
+      <input id="authClubName" type="text" autocomplete="organization" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Sans';outline:none;margin-bottom:10px;box-sizing:border-box;" placeholder="Ej: Al Saqer FC">
       <label for="authRoleSelect" data-i18n="quienSos" class="i18n-text">¿Quién sos?</label>
       <select id="authRoleSelect" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Sans';outline:none;margin-bottom:10px;">
         <option value="player" data-i18n="rolJugador">Jugador o arquero</option>
@@ -636,6 +638,7 @@
     <button class="tab-btn" id="tabBtnArqueros" onclick="switchAdminTab('arqueros')" style="padding:9px 18px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--mist);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabArqueros">🧤 Arqueros</button>
     <button class="tab-btn" id="tabBtnCarga" onclick="switchAdminTab('carga')" style="padding:9px 18px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--mist);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabControlCarga">📊 Control de Carga</button>
     <button class="tab-btn" id="tabBtnPartidos" onclick="switchAdminTab('partidos')" style="padding:9px 18px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--mist);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabPartidos">🆚 Partidos</button>
+    <button class="tab-btn" id="tabBtnClubes" onclick="switchAdminTab('clubes')" style="display:none;padding:9px 18px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--mist);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabClubes">🏢 Clubes</button>
   </div>
 
   <div id="goalkeepersView" style="display:none;">
@@ -790,6 +793,18 @@
     </div>
     <div class="match-grid" id="matchGrid"></div>
   </div>
+  </div>
+
+  <div id="clubesView" style="display:none;">
+    <div class="panel">
+      <div class="panel-head">
+        <h3 data-i18n="clubesRegistrados">🏢 Clubes en la plataforma</h3>
+        <span class="tag" id="clubesCountTag">—</span>
+      </div>
+      <div class="rec-scroll">
+        <div id="clubesList"></div>
+      </div>
+    </div>
   </div>
 
   <div id="fieldContentWrap">
@@ -1022,7 +1037,8 @@ const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_sV0k2jMH1RN7nY1nE_4d5g_gyLqG0Rw
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false }
 });
-const CURRENT_CLUB = 'Al Saqer FC';
+let CURRENT_CLUB = 'Al Saqer FC'; // valor de arranque, antes de saber a qué club pertenece quien inicia sesión; se actualiza en routeAfterLogin()
+let pendingSignupClub = null; // nombre de club tipeado en el registro, se usa una sola vez en ensureProfile()
 let authMode = 'login';
 let myProfile = null;
 
@@ -1061,7 +1077,19 @@ async function ensureProfile(){
   const {data:{user}}=await supabaseClient.auth.getUser();
   const roleSelectEl = document.getElementById('authRoleSelect');
   const selectedRole = (roleSelectEl && roleSelectEl.value) || 'player';
-  await supabaseClient.from('player_profiles').insert({user_id:user.id,club:CURRENT_CLUB,role:selectedRole,player_name:null});
+  const clubName = (pendingSignupClub || '').trim();
+  if(!clubName){
+    // resguardo: no debería pasar (el club es obligatorio en el registro), pero por las dudas no rompe nada
+    await supabaseClient.from('player_profiles').insert({user_id:user.id,club:CURRENT_CLUB||'Sin club',role:selectedRole,player_name:null});
+    return await getMyProfile();
+  }
+  // ¿Ya existe alguien registrado en ese club? Si es la primera persona, queda como admin de ese club nuevo.
+  const {data:existing} = await supabaseClient.from('player_profiles').select('club').ilike('club', clubName).limit(1);
+  const clubExists = existing && existing.length > 0;
+  const finalClub = clubExists ? existing[0].club : clubName; // reutiliza el nombre exacto ya guardado si el club existe
+  const finalRole = clubExists ? selectedRole : 'admin';
+  await supabaseClient.from('player_profiles').insert({user_id:user.id,club:finalClub,role:finalRole,player_name:null});
+  pendingSignupClub = null;
   return await getMyProfile();
 }
 async function getTakenPlayerNames(){
@@ -1100,6 +1128,8 @@ function applyStaffModeUI(){
   if(controlCargaView) controlCargaView.style.display = ''; // ACWR y Monotonía (staff-ok) ahora viven acá
   const partidosView = document.getElementById('partidosView');
   if(partidosView) partidosView.style.display = 'none'; // Staff no ve Comparativo de partidos
+  const clubesView = document.getElementById('clubesView');
+  if(clubesView) clubesView.style.display = 'none'; // esa vista es exclusiva del owner
   const previewBar = document.getElementById('previewBar');
   if(previewBar) previewBar.style.display = 'none';
   const gkPlayerView = document.getElementById('gkPlayerView');
@@ -1125,6 +1155,8 @@ function applyGkCoachModeUI(){
   if(controlCargaView) controlCargaView.style.display = 'none';
   const partidosView = document.getElementById('partidosView');
   if(partidosView) partidosView.style.display = 'none';
+  const clubesView = document.getElementById('clubesView');
+  if(clubesView) clubesView.style.display = 'none'; // esa vista es exclusiva del owner
   const goalkeepersView = document.getElementById('goalkeepersView');
   if(goalkeepersView) goalkeepersView.style.display = 'block';
   const previewBar = document.getElementById('previewBar');
@@ -1145,6 +1177,8 @@ function applyPlayerModeUI(){
   if(cargaAdminView) cargaAdminView.style.display='none'; // idem, solo para el admin
   const partidosAdminView = document.getElementById('partidosView');
   if(partidosAdminView) partidosAdminView.style.display='none'; // idem, solo para el admin
+  const clubesAdminView = document.getElementById('clubesView');
+  if(clubesAdminView) clubesAdminView.style.display='none'; // idem, exclusiva del owner
   const mainGrid=document.getElementById('mainGrid');
   const gkView=document.getElementById('gkPlayerView');
   const activePlayer = previewingAsPlayer || (myProfile && myProfile.player_name);
@@ -1571,6 +1605,12 @@ function exitPlayerPreview(){
 }
 async function handleAuthSubmit(event){
   event.preventDefault(); const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value;
+  if(authMode==='signup'){
+    const clubNameEl = document.getElementById('authClubName');
+    const clubName = clubNameEl ? clubNameEl.value.trim() : '';
+    if(!clubName){ authMessage('Ingresá el nombre de tu club para continuar.','error'); return; }
+    pendingSignupClub = clubName; // se usa en ensureProfile() al crear el perfil
+  }
   authMessage('Comprobando acceso…');
   const result=authMode==='login'?await supabaseClient.auth.signInWithPassword({email,password}):await supabaseClient.auth.signUp({email,password});
   if(result.error){ authMessage(result.error.message,'error'); return; }
@@ -1583,17 +1623,18 @@ function applyOwnerMode(){
 
   if(!authCard || !ownerBadge) return;
 
-  const isOwner = !!myProfile && myProfile.role === 'admin';
+  const isOwner = !!myProfile && myProfile.role === 'owner';
 
   authCard.classList.toggle('owner-mode', isOwner);
   ownerBadge.style.display = isOwner ? 'inline-flex' : 'none';
 }async function routeAfterLogin(){
   myProfile = await getMyProfile();
  if(!myProfile){ myProfile = await ensureProfile(); }
+ CURRENT_CLUB = myProfile.club || CURRENT_CLUB; // a partir de acá, todo el dashboard usa el club de quien inició sesión
 
 applyOwnerMode();
 
-if(myProfile.role === 'admin'){
+if(myProfile.role === 'owner'){
   authMessage('Acceso de propietario verificado ✓','ok');
   await new Promise(resolve => setTimeout(resolve, 2500));
 }
@@ -1955,6 +1996,10 @@ async function startDashboard(){
   renderAll(myProfile && myProfile.role==='player' ? myProfile.player_name : undefined);
   if(myProfile && myProfile.role==='staff'){ applyStaffModeUI(); }
   if(myProfile && myProfile.role==='gk_coach'){ applyGkCoachModeUI(); }
+  if(myProfile && myProfile.role==='owner'){
+    const tabBtnClubes = document.getElementById('tabBtnClubes');
+    if(tabBtnClubes) tabBtnClubes.style.display = '';
+  }
   setupPreviewBar();
   setupGkPreviewBar();
   setupAddPlayerBar();
@@ -2035,7 +2080,7 @@ const I18N = {
     cargaInterna:'Carga interna (RPE)', cargaInternaTag:'carga aguda : crónica basada en RPE × minutos', fecha2:'Fecha',
     footer:'Por Matías González Galindo — Head of Physical Performance',
     gkMetrics:{dist:'Distancia Total', impact:'Impacto', dives:'Buzos', pl:'Player Load', vel:'Vel. Máxima', acc:'Acc', dece:'Dece'},
-    tabJugadoresCampo:'⚽ Jugadores de Campo', tabArqueros:'🧤 Arqueros', tabControlCarga:'📊 Control de Carga', tabPartidos:'🆚 Partidos',
+    tabJugadoresCampo:'⚽ Jugadores de Campo', tabArqueros:'🧤 Arqueros', tabControlCarga:'📊 Control de Carga', tabPartidos:'🆚 Partidos', tabClubes:'🏢 Clubes', nombreClub:'Nombre del club', clubesRegistrados:'🏢 Clubes en la plataforma',
     gkVistaPrevia:'🧤 Vista previa como arquero', gkVistaPreviaTag:'ver el dashboard como lo ve un arquero puntual', gkVerComo:'Ver como este arquero',
     gkEvolucion:'🧤 Evolución de arqueros', gkEvolucionTag:'promedio diario de arqueros',
     gkRanking:'🧤 Ranking de arqueros', gkOrdenMayorMenor:'orden de mayor a menor · récord personal como tope',
@@ -2078,7 +2123,7 @@ const I18N = {
     cargaInterna:'Internal load (RPE)', cargaInternaTag:'acute : chronic load based on RPE × minutes', fecha2:'Date',
     footer:'By Matías González Galindo — Head of Physical Performance',
     gkMetrics:{dist:'Total Distance', impact:'Impact', dives:'Dives', pl:'Player Load', vel:'Max Speed', acc:'Acc', dece:'Dec'},
-    tabJugadoresCampo:'⚽ Field Players', tabArqueros:'🧤 Goalkeepers', tabControlCarga:'📊 Load Control', tabPartidos:'🆚 Matches',
+    tabJugadoresCampo:'⚽ Field Players', tabArqueros:'🧤 Goalkeepers', tabControlCarga:'📊 Load Control', tabPartidos:'🆚 Matches', tabClubes:'🏢 Clubs', nombreClub:'Club name', clubesRegistrados:'🏢 Clubs on the platform',
     gkVistaPrevia:'🧤 Preview as goalkeeper', gkVistaPreviaTag:'see the dashboard as a given goalkeeper sees it', gkVerComo:'View as this goalkeeper',
     gkEvolucion:'🧤 Goalkeeper evolution', gkEvolucionTag:'daily average of goalkeepers',
     gkRanking:'🧤 Goalkeeper ranking', gkOrdenMayorMenor:'highest to lowest · personal record as ceiling',
@@ -2121,7 +2166,7 @@ const I18N = {
     cargaInterna:'الحمل الداخلي (RPE)', cargaInternaTag:'الحمل الحاد : المزمن استنادًا إلى RPE × الدقائق', fecha2:'التاريخ',
     footer:'بواسطة ماتياس غونزاليس غاليندو — مسؤول الأداء البدني',
     gkMetrics:{dist:'المسافة الإجمالية', impact:'الارتطام', dives:'الغطسات', pl:'حمل اللاعب', vel:'السرعة القصوى', acc:'تسارع', dece:'تباطؤ'},
-    tabJugadoresCampo:'⚽ لاعبو الميدان', tabArqueros:'🧤 حراس المرمى', tabControlCarga:'📊 التحكم بالحمل', tabPartidos:'🆚 المباريات',
+    tabJugadoresCampo:'⚽ لاعبو الميدان', tabArqueros:'🧤 حراس المرمى', tabControlCarga:'📊 التحكم بالحمل', tabPartidos:'🆚 المباريات', tabClubes:'🏢 الأندية', nombreClub:'اسم النادي', clubesRegistrados:'🏢 الأندية على المنصة',
     gkVistaPrevia:'🧤 معاينة كحارس مرمى', gkVistaPreviaTag:'شاهد لوحة التحكم كما يراها حارس مرمى محدد', gkVerComo:'عرض كهذا الحارس',
     gkEvolucion:'🧤 تطور حراس المرمى', gkEvolucionTag:'المتوسط اليومي لحراس المرمى',
     gkRanking:'🧤 تصنيف حراس المرمى', gkOrdenMayorMenor:'من الأعلى إلى الأدنى · الرقم القياسي الشخصي كحد أقصى',
@@ -2597,21 +2642,69 @@ function switchAdminTab(tab){
   const gkView = document.getElementById('goalkeepersView');
   const cargaView = document.getElementById('controlCargaView');
   const partidosView = document.getElementById('partidosView');
+  const clubesView = document.getElementById('clubesView');
   const btnJ = document.getElementById('tabBtnJugadores');
   const btnA = document.getElementById('tabBtnArqueros');
   const btnC = document.getElementById('tabBtnCarga');
   const btnP = document.getElementById('tabBtnPartidos');
+  const btnCl = document.getElementById('tabBtnClubes');
   const activeStyle = 'border-color:var(--gold);background:var(--gold);color:var(--pitch-950);';
   const inactiveStyle = 'border-color:var(--line-strong);background:transparent;color:var(--mist);';
 
-  const views = {jugadores:fieldWrap, arqueros:gkView, carga:cargaView, partidos:partidosView};
-  const btns = {jugadores:btnJ, arqueros:btnA, carga:btnC, partidos:btnP};
+  const views = {jugadores:fieldWrap, arqueros:gkView, carga:cargaView, partidos:partidosView, clubes:clubesView};
+  const btns = {jugadores:btnJ, arqueros:btnA, carga:btnC, partidos:btnP, clubes:btnCl};
   const selected = views[tab] ? tab : 'jugadores';
   currentAdminTab = selected;
   Object.keys(views).forEach(key=>{
     if(views[key]) views[key].style.display = (key===selected) ? '' : 'none';
     if(btns[key]) btns[key].style.cssText += (key===selected) ? activeStyle : inactiveStyle;
   });
+  if(selected==='clubes' && myProfile && myProfile.role==='owner') buildClubesList();
+}
+
+// ---------- Clubes (solo owner): lista de todos los clubes en la plataforma, con acceso total a cada uno ----------
+async function buildClubesList(){
+  const box = document.getElementById('clubesList');
+  const tag = document.getElementById('clubesCountTag');
+  if(!box) return;
+  box.innerHTML = '<p style="padding:14px 18px;color:var(--mist);font-size:12.5px;">Cargando clubes…</p>';
+  const {data, error} = await supabaseClient.from('player_profiles').select('club');
+  if(error){
+    box.innerHTML = '<p style="padding:14px 18px;color:var(--mist);font-size:12.5px;">No se pudieron cargar los clubes.</p>';
+    return;
+  }
+  const counts = {};
+  (data||[]).forEach(r=>{ if(r.club) counts[r.club] = (counts[r.club]||0)+1; });
+  const clubs = Object.keys(counts).sort((a,b)=>a.localeCompare(b));
+  if(tag) tag.textContent = `${clubs.length} club${clubs.length===1?'':'es'} registrado${clubs.length===1?'':'s'}`;
+  if(!clubs.length){
+    box.innerHTML = '<p style="padding:14px 18px;color:var(--mist);font-size:12.5px;">Todavía no hay clubes registrados.</p>';
+    return;
+  }
+  box.innerHTML = clubs.map(c=>`
+    <div class="lb-row" data-club="${c}" style="cursor:pointer;">
+      <div class="nm">${c}${c===CURRENT_CLUB?' <span class="lb-record-tag">VIENDO AHORA</span>':''}</div>
+      <div class="num">${counts[c]} usuario${counts[c]===1?'':'s'}</div>
+    </div>`).join('');
+  box.querySelectorAll('.lb-row').forEach(el=>{
+    el.addEventListener('click', ()=> switchToClub(el.dataset.club));
+  });
+}
+async function switchToClub(clubName){
+  if(clubName === CURRENT_CLUB){ switchAdminTab('jugadores'); return; }
+  CURRENT_CLUB = clubName;
+  try{ await loadRemoteData(); }catch(error){ console.warn(error); }
+  await loadNextMatchDate();
+  await loadGkData();
+  deriveAll(ACTIVE_EVENTS);
+  renderAll();
+  setupPreviewBar();
+  setupGkPreviewBar();
+  setupAddPlayerBar();
+  setupNextMatchBar();
+  const subEl = document.querySelector('.top .brand-sub');
+  if(subEl) subEl.textContent = `Viendo: ${CURRENT_CLUB} (modo Owner)`;
+  switchAdminTab('jugadores');
 }
 
 // ---------- Arqueros: tabla admin con sus 7 métricas propias ----------
