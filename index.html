@@ -1086,9 +1086,11 @@ async function ensureProfile(){
     return await getMyProfile();
   }
   // ¿Ya existe alguien registrado en ese club? Si es la primera persona, queda como admin de ese club nuevo.
-  const {data:existing} = await supabaseClient.from('player_profiles').select('club').ilike('club', clubName).limit(1);
-  const clubExists = existing && existing.length > 0;
-  const finalClub = clubExists ? existing[0].club : clubName; // reutiliza el nombre exacto ya guardado si el club existe
+  // Usa una función especial (club_exists) en vez de consultar la tabla directo, porque con las reglas de
+  // seguridad por club, una persona sin club todavía no podría ver filas de otros clubes para chequear esto.
+  const {data:existingClub} = await supabaseClient.rpc('club_exists', {search_name: clubName});
+  const clubExists = !!existingClub;
+  const finalClub = clubExists ? existingClub : clubName; // reutiliza el nombre exacto ya guardado si el club existe
   const finalRole = clubExists ? selectedRole : 'admin';
   await supabaseClient.from('player_profiles').insert({user_id:user.id,club:finalClub,role:finalRole,player_name:null});
   pendingSignupClub = null;
