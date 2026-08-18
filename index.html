@@ -555,6 +555,7 @@
       <input id="authClubName" type="text" autocomplete="organization" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Sans';outline:none;margin-bottom:10px;box-sizing:border-box;" placeholder="Ej: Al Saqer FC">
       <label for="authRoleSelect" data-i18n="quienSos" class="i18n-text">¿Quién sos?</label>
       <select id="authRoleSelect" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Sans';outline:none;margin-bottom:10px;">
+        <option value="club_admin">Administrador del club</option>
         <option value="player" data-i18n="rolJugador">Jugador o arquero</option>
         <option value="pending_staff" data-i18n="rolStaff">Staff (médico y técnico)</option>
         <option value="pending_gk_coach" data-i18n="rolGkCoach">Entrenador de arqueros</option>
@@ -833,6 +834,13 @@
       <div class="panel-head">
         <h3 data-i18n="clubesRegistrados">🏢 Clubes en la plataforma</h3>
         <span class="tag" id="clubesCountTag">—</span>
+      </div>
+      <div id="pendingClubsPanel" style="display:none;margin:0 18px 16px;border:1px solid var(--gold);border-radius:10px;background:rgba(255,215,0,.03);">
+        <div class="panel-head" style="margin:0;padding:12px 14px;">
+          <h3>👑 Solicitudes de nuevos clubes</h3>
+          <span class="tag" id="pendingClubsCount">—</span>
+        </div>
+        <div class="rec-scroll"><div id="pendingClubsList"></div></div>
       </div>
       <div class="rec-scroll">
         <div id="clubesList"></div>
@@ -1120,22 +1128,42 @@ async function getMyProfile(){
 }
 async function ensureProfile(){
   const {data:{user}}=await supabaseClient.auth.getUser();
+  if(!user) return null;
+
+  const metadata = user.user_metadata || {};
   const roleSelectEl = document.getElementById('authRoleSelect');
-  const selectedRole = (roleSelectEl && roleSelectEl.value) || 'player';
-  const clubName = (pendingSignupClub || '').trim();
+  // Metadata tiene prioridad: sobrevive a confirmación de email y nuevos logins.
+  const selectedRole = metadata.requested_role || ((roleSelectEl && roleSelectEl.value) || 'player');
+  const clubName = (pendingSignupClub || metadata.club_name || '').trim();
+
   if(!clubName){
-    // resguardo: no debería pasar (el club es obligatorio en el registro), pero por las dudas no rompe nada
-    await supabaseClient.from('player_profiles').insert({user_id:user.id,club:CURRENT_CLUB||'Sin club',role:selectedRole,player_name:null,email:user.email});
+    const fallbackRole = selectedRole === 'club_admin' ? 'pending_club' : selectedRole;
+    const {error} = await supabaseClient.from('player_profiles').insert({
+      user_id:user.id, club:CURRENT_CLUB||'Sin club', role:fallbackRole, player_name:null, email:user.email
+    });
+    if(error) console.warn('No se pudo crear el perfil:', error);
     return await getMyProfile();
   }
-  // ¿Ya existe alguien registrado en ese club? Si es la primera persona, queda como admin de ese club nuevo.
-  // Usa una función especial (club_exists) en vez de consultar la tabla directo, porque con las reglas de
-  // seguridad por club, una persona sin club todavía no podría ver filas de otros clubes para chequear esto.
-  const {data:existingClub} = await supabaseClient.rpc('club_exists', {search_name: clubName});
+
+  const {data:existingClub, error:clubError} = await supabaseClient.rpc('club_exists', {search_name: clubName});
+  if(clubError){
+    console.warn('No se pudo comprobar el club:', clubError);
+    return await getMyProfile();
+  }
+
   const clubExists = !!existingClub;
-  const finalClub = clubExists ? existingClub : clubName; // reutiliza el nombre exacto ya guardado si el club existe
-  const finalRole = clubExists ? selectedRole : 'admin';
-  await supabaseClient.from('player_profiles').insert({user_id:user.id,club:finalClub,role:finalRole,player_name:null,email:user.email});
+  const finalClub = clubExists ? existingClub : clubName;
+  // Un club nuevo JAMÁS se activa automáticamente. El primer solicitante queda pendiente
+  // hasta que el OWNER lo apruebe y recién entonces pasa a admin.
+  const finalRole = clubExists
+    ? (selectedRole === 'club_admin' ? 'pending_club' : selectedRole)
+    : 'pending_club';
+
+  const {error} = await supabaseClient.from('player_profiles').insert({
+    user_id:user.id, club:finalClub, role:finalRole, player_name:null, email:user.email
+  });
+  if(error) console.warn('No se pudo crear el perfil:', error);
+
   pendingSignupClub = null;
   return await getMyProfile();
 }
@@ -1700,17 +1728,43 @@ function exitPlayerPreview(){
   switchAdminTab(currentAdminTab);
 }
 async function handleAuthSubmit(event){
-  event.preventDefault(); const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value;
+  event.preventDefault();
+  const email=document.getElementById('authEmail').value.trim();
+  const password=document.getElementById('authPassword').value;
+
   if(authMode==='signup'){
     const clubNameEl = document.getElementById('authClubName');
+    const roleEl = document.getElementById('authRoleSelect');
     const clubName = clubNameEl ? clubNameEl.value.trim() : '';
+    const selectedRole = roleEl ? roleEl.value : 'player';
     if(!clubName){ authMessage('Ingresá el nombre de tu club para continuar.','error'); return; }
-    pendingSignupClub = clubName; // se usa en ensureProfile() al crear el perfil
+
+    // El rol y el club quedan en Auth metadata para que sobrevivan a la confirmación del email.
+    pendingSignupClub = clubName;
+    authMessage('Comprobando acceso…');
+    const result = await supabaseClient.auth.signUp({
+      email,
+      password,
+      options:{
+        data:{
+          club_name:clubName,
+          requested_role:selectedRole,
+          club_request_status:'pending'
+        }
+      }
+    });
+    if(result.error){ authMessage(result.error.message,'error'); return; }
+    if(!result.data.session){
+      authMessage('Revisa tu correo y confirma el acceso antes de iniciar sesión.','ok');
+      return;
+    }
+    await routeAfterLogin();
+    return;
   }
+
   authMessage('Comprobando acceso…');
-  const result=authMode==='login'?await supabaseClient.auth.signInWithPassword({email,password}):await supabaseClient.auth.signUp({email,password});
+  const result=await supabaseClient.auth.signInWithPassword({email,password});
   if(result.error){ authMessage(result.error.message,'error'); return; }
-  if(authMode==='signup'&&!result.data.session){ authMessage('Revisa tu correo y confirma el acceso antes de iniciar sesión.','ok'); return; }
   await routeAfterLogin();
 }
 function applyOwnerMode(){
@@ -1735,7 +1789,7 @@ if(myProfile.role === 'owner'){
   await new Promise(resolve => setTimeout(resolve, 2500));
 }
 
-if(myProfile.role==='pending_staff' || myProfile.role==='pending_gk_coach'){
+if(myProfile.role==='pending_club' || myProfile.role==='pending_staff' || myProfile.role==='pending_gk_coach'){
     showPendingScreen(myProfile.role);
     return;
   }
@@ -1756,8 +1810,11 @@ function showPendingScreen(role){
   document.getElementById('nameScreen').style.display='none';
   const screen = document.getElementById('pendingScreen');
   const msg = document.getElementById('pendingMessage');
-  const roleLabel = role==='pending_gk_coach' ? 'Entrenador de arqueros' : 'Staff (médico y técnico)';
-  msg.textContent = `Tu cuenta fue creada correctamente como "${roleLabel}". Necesita la aprobación del administrador (Matías González) antes de poder acceder al panel. Avisale para que la active.`;
+  const roleLabel = role==='pending_club' ? 'Administrador de un nuevo club' : (role==='pending_gk_coach' ? 'Entrenador de arqueros' : 'Staff (médico y técnico)');
+  const approver = role==='pending_club' ? 'OWNER (Matías González)' : 'el administrador de tu club';
+  msg.textContent = role==='pending_club'
+    ? `La solicitud del club fue creada correctamente. Necesita la aprobación del OWNER (Matías González) antes de activar el club y asignarte como administrador.`
+    : `Tu cuenta fue creada correctamente como "${roleLabel}". Necesita la aprobación de ${approver} antes de poder acceder al panel.`;
   screen.style.display='flex';
   document.getElementById('pendingLogoutBtn').onclick = async ()=>{
     await supabaseClient.auth.signOut();
@@ -2093,6 +2150,7 @@ async function startDashboard(){
   if(myProfile && myProfile.role==='staff'){ applyStaffModeUI(); }
   if(myProfile && myProfile.role==='gk_coach'){ applyGkCoachModeUI(); }
   if(myProfile && myProfile.role==='owner'){
+    buildPendingClubsPanel();
     const tabBtnClubes = document.getElementById('tabBtnClubes');
     if(tabBtnClubes) tabBtnClubes.style.display = '';
   }
@@ -2773,7 +2831,68 @@ function switchAdminTab(tab){
     if(views[key]) views[key].style.display = (key===selected) ? '' : 'none';
     if(btns[key]) btns[key].style.cssText += (key===selected) ? activeStyle : inactiveStyle;
   });
-  if(selected==='clubes' && myProfile && myProfile.role==='owner') buildClubesList();
+  if(selected==='clubes' && myProfile && myProfile.role==='owner'){ buildPendingClubsPanel(); buildClubesList(); }
+}
+
+// ---------- Owner: solicitudes de nuevos clubes ----------
+async function buildPendingClubsPanel(){
+  const panel=document.getElementById('pendingClubsPanel');
+  const box=document.getElementById('pendingClubsList');
+  const count=document.getElementById('pendingClubsCount');
+  if(!panel || !box || !count) return;
+  if(!(myProfile && myProfile.role==='owner')){ panel.style.display='none'; return; }
+
+  const {data,error}=await supabaseClient.from('player_profiles')
+    .select('user_id,email,club,role,created_at')
+    .eq('role','pending_club')
+    .order('created_at',{ascending:true});
+  if(error){ console.warn('No se pudieron cargar las solicitudes de clubes:',error); panel.style.display='none'; return; }
+
+  if(!data || !data.length){ panel.style.display='none'; return; }
+  panel.style.display='';
+  count.textContent=`${data.length} pendiente${data.length===1?'':'s'}`;
+  box.innerHTML=data.map(r=>{
+    const fecha=new Date(r.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap;">
+      <div><div style="color:var(--bone);font-weight:600;font-size:13px;">${r.club||'Club sin nombre'}</div>
+      <div style="color:var(--mist);font-size:11.5px;margin-top:2px;">${r.email||'Sin email'} · Solicitud ${fecha}</div></div>
+      <div style="display:flex;gap:8px;">
+        <button class="upload-btn" data-approve-club="${r.user_id}" style="padding:7px 14px;white-space:nowrap;">✓ Aprobar y hacer Admin</button>
+        <button class="upload-btn" data-reject-club="${r.user_id}" style="padding:7px 14px;white-space:nowrap;">✕ Rechazar</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  box.querySelectorAll('[data-approve-club]').forEach(btn=>btn.onclick=async()=>{
+    btn.disabled=true; btn.textContent='Aprobando…';
+    try{ await approveNewClub(btn.dataset.approveClub); await buildPendingClubsPanel(); await buildClubesList(); }
+    catch(e){ console.error(e); btn.disabled=false; btn.textContent='⚠️ Reintentar'; }
+  });
+  box.querySelectorAll('[data-reject-club]').forEach(btn=>btn.onclick=async()=>{
+    btn.disabled=true; btn.textContent='Rechazando…';
+    try{ await rejectNewClub(btn.dataset.rejectClub); await buildPendingClubsPanel(); }
+    catch(e){ console.error(e); btn.disabled=false; btn.textContent='⚠️ Reintentar'; }
+  });
+}
+
+async function assertOwner(){
+  if(!(myProfile && myProfile.role==='owner')) throw new Error('Solo el OWNER puede realizar esta acción.');
+}
+async function approveNewClub(userId){
+  await assertOwner();
+  const {data,error}=await supabaseClient.from('player_profiles')
+    .update({role:'admin',player_name:null})
+    .eq('user_id',userId).eq('role','pending_club')
+    .select().single();
+  if(error) throw error;
+  return data;
+}
+async function rejectNewClub(userId){
+  await assertOwner();
+  const {error}=await supabaseClient.from('player_profiles')
+    .update({role:'rejected_club'})
+    .eq('user_id',userId).eq('role','pending_club');
+  if(error) throw error;
 }
 
 // ---------- Clubes (solo owner): lista de todos los clubes en la plataforma, con acceso total a cada uno ----------
