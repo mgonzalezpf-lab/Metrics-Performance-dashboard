@@ -553,7 +553,7 @@
     <div id="authRoleWrap" style="display:none;">
       <label for="authClubName" data-i18n="nombreClub" class="i18n-text">Nombre del club</label>
       <input id="authClubName" type="text" autocomplete="organization" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Sans';outline:none;margin-bottom:10px;box-sizing:border-box;" placeholder="Ej: Al Saqer FC">
-      <label for="authRoleSelect" data-i18n="quienSos" class="i18n-text">¿Quién sos?</label>
+      <label for="authRoleSelect" data-i18n="quienSos" class="i18n-text">¿Quién eres?</label>
       <select id="authRoleSelect" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Sans';outline:none;margin-bottom:10px;">
         <option value="player" data-i18n="rolJugador">Jugador o arquero</option>
         <option value="pending_staff" data-i18n="rolStaff">Staff (médico y técnico)</option>
@@ -572,8 +572,8 @@
 <div id="pendingScreen" class="auth-screen" style="display:none;">
   <div class="auth-card">
     <h2>Cuenta creada</h2>
-    <p id="pendingMessage" style="color:var(--mist);line-height:1.5;margin-bottom:18px;">Tu cuenta fue creada correctamente. Necesita la aprobación del administrador antes de poder acceder al panel.</p>
-    <button id="pendingLogoutBtn" class="auth-submit" type="button">Cerrar sesión</button>
+    <p id="pendingMessage" data-i18n="pendingMessageDefault" style="color:var(--mist);line-height:1.5;margin-bottom:18px;">Tu cuenta fue creada correctamente. Necesita la aprobación del administrador antes de poder acceder al panel.</p>
+    <button id="pendingLogoutBtn" class="auth-submit" type="button" data-i18n="cerrarSesion">Cerrar sesión</button>
   </div>
 </div>
 
@@ -625,7 +625,7 @@
         <button id="addPlayerBtn" class="upload-btn" style="padding:7px 10px;">➕ Jugador</button>
         <div id="addPlayerForm" style="display:none;position:absolute;top:42px;right:0;background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:10px;padding:12px;z-index:50;min-width:230px;box-shadow:0 8px 24px rgba(0,0,0,.4);">
           <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:6px;">Nombre del jugador nuevo</label>
-          <input id="addPlayerInput" type="text" placeholder="Ej: Carlos Pérez" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Sans';outline:none;margin-bottom:8px;box-sizing:border-box;">
+          <input id="addPlayerInput" type="text" data-i18n-placeholder="ejCarlosPerez" placeholder="Ej: Carlos Pérez" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Sans';outline:none;margin-bottom:8px;box-sizing:border-box;">
           <button id="addPlayerSubmit" class="upload-btn" style="width:100%;">Agregar a la lista</button>
           <div id="addPlayerStatus" style="font-size:11px;color:var(--mist);margin-top:6px;"></div>
         </div>
@@ -638,30 +638,30 @@
 
   <div id="csvImportModal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(20,20,58,.85);align-items:center;justify-content:center;padding:16px;">
     <div style="background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:14px;padding:22px;max-width:380px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.5);">
-      <h3 style="margin:0 0 6px;font-size:15px;color:var(--bone);">📊 Archivo de Catapult detectado</h3>
-      <p style="color:var(--mist);font-size:12px;margin:0 0 16px;line-height:1.5;">Encontramos <b id="csvImportCount" style="color:var(--gold-bright);">0</b> jugadores en este archivo. Completá estos datos para cargarlo:</p>
+      <h3 style="margin:0 0 6px;font-size:15px;color:var(--bone);" data-i18n="csvDetected">📊 Archivo de Catapult detectado</h3>
+      <p style="color:var(--mist);font-size:12px;margin:0 0 16px;line-height:1.5;"><span data-i18n="csvFoundPrefix">Encontramos</span> <b id="csvImportCount" style="color:var(--gold-bright);">0</b> <span data-i18n="csvFoundSuffix">jugadores en este archivo. Completa estos datos para cargarlo:</span></p>
 
-      <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:4px;">Tipo de sesión</label>
+      <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:4px;" data-i18n="csvSessionType">Tipo de sesión</label>
       <select id="csvImportTipo" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:10px;box-sizing:border-box;">
-        <option value="Partido">Partido</option>
-        <option value="Entreno">Entreno</option>
+        <option value="Partido" data-i18n="csvOptMatch">Partido</option>
+        <option value="Entreno" data-i18n="csvOptTraining">Entreno</option>
       </select>
 
       <div id="csvImportRivalWrap">
-        <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:4px;">Rival</label>
+        <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:4px;" data-i18n="csvRival">Rival</label>
         <input id="csvImportRival" type="text" placeholder="Ej: Dibba FC" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Sans';outline:none;margin-bottom:10px;box-sizing:border-box;">
       </div>
       <div id="csvImportDetalleWrap" style="display:none;">
-        <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:4px;">Nombre de la sesión</label>
+        <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:4px;" data-i18n="csvSessionName">Nombre de la sesión</label>
         <input id="csvImportDetalle" type="text" placeholder="Ej: Ball Possession-Transitions" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Sans';outline:none;margin-bottom:10px;box-sizing:border-box;">
       </div>
 
-      <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:4px;">Fecha</label>
+      <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:4px;" data-i18n="fecha2">Fecha</label>
       <input id="csvImportFecha" type="date" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:14px;box-sizing:border-box;">
 
       <div style="display:flex;gap:8px;">
-        <button id="csvImportCancel" class="upload-btn" style="flex:1;background:transparent;border-color:var(--mist);color:var(--mist);">Cancelar</button>
-        <button id="csvImportConfirm" class="upload-btn" style="flex:1;">Cargar datos</button>
+        <button id="csvImportCancel" class="upload-btn" style="flex:1;background:transparent;border-color:var(--mist);color:var(--mist);" data-i18n="cancelar">Cancelar</button>
+        <button id="csvImportConfirm" class="upload-btn" style="flex:1;" data-i18n="csvLoadData">Cargar datos</button>
       </div>
       <div id="csvImportStatus" style="font-size:11px;color:var(--mist);margin-top:8px;"></div>
     </div>
@@ -715,12 +715,12 @@
         <h3>🧤 <span data-i18n="alertasCarga">Alertas de carga · ACWR</span></h3>
         <span class="tag" data-i18n="acwrTag">agudo (7 días) : crónico (28 días) · sobre Player Load</span>
       </div>
-      <div class="acwr-note">Ratio entre la carga de los últimos <b>7 días</b> y el promedio semanal de los últimos <b>28 días</b>. Con poco historial cargado el número es orientativo. No reemplaza el criterio del cuerpo técnico ni médico.</div>
+      <div class="acwr-note" data-i18n-html="acwrNoteGk">Ratio entre la carga de los últimos <b>7 días</b> y el promedio semanal de los últimos <b>28 días</b>. Con poco historial cargado el número es orientativo. No reemplaza el criterio del cuerpo técnico ni médico.</div>
       <div class="acwr-legend">
-        <span><span class="dot" style="background:var(--low);"></span>&lt;0.8 carga baja</span>
-        <span><span class="dot" style="background:var(--good);"></span>0.8–1.3 zona óptima</span>
-        <span><span class="dot" style="background:var(--warn);"></span>1.3–1.5 precaución</span>
-        <span><span class="dot" style="background:var(--bad);"></span>&gt;1.5 riesgo alto</span>
+        <span><span class="dot" style="background:var(--low);"></span><span data-i18n="acwrLegendLow">&lt;0.8 carga baja</span></span>
+        <span><span class="dot" style="background:var(--good);"></span><span data-i18n="acwrLegendOptimal">0.8–1.3 zona óptima</span></span>
+        <span><span class="dot" style="background:var(--warn);"></span><span data-i18n="acwrLegendCaution">1.3–1.5 precaución</span></span>
+        <span><span class="dot" style="background:var(--bad);"></span><span data-i18n="acwrLegendHigh">&gt;1.5 riesgo alto</span></span>
       </div>
       <div class="acwr-body" id="gkAcwrList"></div>
     </div>
@@ -741,22 +741,22 @@
       <h3 data-i18n="alertasCarga">Alertas de carga · ACWR</h3>
       <span class="tag" data-i18n="acwrTag">agudo (7 días) : crónico (28 días) · sobre Player Load</span>
     </div>
-    <div class="acwr-note">Ratio entre la carga de los últimos <b>7 días</b> y el promedio semanal de los últimos <b>28 días</b>. Con poco historial cargado el número es orientativo — se vuelve más confiable a medida que sumás sesiones. No reemplaza el criterio del cuerpo técnico ni médico.</div>
+    <div class="acwr-note" data-i18n-html="acwrNoteMain">Ratio entre la carga de los últimos <b>7 días</b> y el promedio semanal de los últimos <b>28 días</b>. Con poco historial cargado el número es orientativo — se vuelve más confiable a medida que sumas sesiones. No reemplaza el criterio del cuerpo técnico ni médico.</div>
     <div class="acwr-legend">
-      <span><span class="dot" style="background:var(--low);"></span>&lt;0.8 carga baja</span>
-      <span><span class="dot" style="background:var(--good);"></span>0.8–1.3 zona óptima</span>
-      <span><span class="dot" style="background:var(--warn);"></span>1.3–1.5 precaución</span>
-      <span><span class="dot" style="background:var(--bad);"></span>&gt;1.5 riesgo alto</span>
+      <span><span class="dot" style="background:var(--low);"></span><span data-i18n="acwrLegendLow">&lt;0.8 carga baja</span></span>
+      <span><span class="dot" style="background:var(--good);"></span><span data-i18n="acwrLegendOptimal">0.8–1.3 zona óptima</span></span>
+      <span><span class="dot" style="background:var(--warn);"></span><span data-i18n="acwrLegendCaution">1.3–1.5 precaución</span></span>
+      <span><span class="dot" style="background:var(--bad);"></span><span data-i18n="acwrLegendHigh">&gt;1.5 riesgo alto</span></span>
     </div>
     <div class="acwr-body" id="acwrList"></div>
     <div class="weekly-load-box" id="acwrDailyTeamBox">
       <div class="weekly-load-head">
-        <h4>ACWR diario del equipo</h4>
+        <h4 data-i18n="acwrDailyTeamHeader">ACWR diario del equipo</h4>
         <span class="tag" id="weeklyLoadTag" data-i18n="promedioPlantel">Promedio del plantel · un dato por día</span>
       </div>
       <div class="acwr-legend" style="padding:0 0 6px;">
-        <span><span class="dot" style="background:var(--good);"></span>0.80–1.30 zona óptima</span>
-        <span><span class="dot" style="background:var(--bad);"></span>1.50 riesgo alto</span>
+        <span><span class="dot" style="background:var(--good);"></span><span data-i18n="acwrDailyLegendOptimal">0.80–1.30 zona óptima</span></span>
+        <span><span class="dot" style="background:var(--bad);"></span><span data-i18n="acwrDailyLegendHigh">1.50 riesgo alto</span></span>
       </div>
       <div class="weekly-chart-box"><canvas id="weeklyLoadChart"></canvas></div>
       <div class="timeline-nav">
@@ -814,7 +814,7 @@
         <span style="color:var(--mist);font-size:12px;">a</span>
         <input id="rpeWindowEnd" type="time" style="flex:1;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;box-sizing:border-box;">
       </div>
-      <p style="font-size:10.5px;color:var(--mist);margin:0 0 8px;line-height:1.4;">Ej: si entrenan de mañana, poné algo como 12:00 a 20:00. Para hasta medianoche, poné 23:59.</p>
+      <p style="font-size:10.5px;color:var(--mist);margin:0 0 8px;line-height:1.4;" data-i18n="rpeWindowHelp">Ej: si entrenan de mañana, pon algo como 12:00 a 20:00. Para hasta medianoche, pon 23:59.</p>
       <button id="rpeWindowSubmit" class="upload-btn" style="width:100%;">Guardar horario</button>
       <div id="rpeWindowStatus" style="font-size:11px;color:var(--mist);margin-top:6px;"></div>
     </div>
@@ -829,7 +829,7 @@
     <div style="display:flex;align-items:center;gap:10px;margin:8px 0 14px;flex-wrap:wrap;">
       <label for="rpeDatePicker" data-i18n="fecha2" style="font-size:11px;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;">Fecha</label>
       <input id="rpeDatePicker" type="date" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;">
-      <button id="rpeSaveAllBtn" type="button" style="padding:8px 14px;border-radius:8px;border:1px solid var(--gold);background:var(--gold);color:var(--pitch-950);font:700 12px 'IBM Plex Mono';cursor:pointer;">Guardar todos</button>
+      <button id="rpeSaveAllBtn" type="button" data-i18n="guardarTodos" style="padding:8px 14px;border-radius:8px;border:1px solid var(--gold);background:var(--gold);color:var(--pitch-950);font:700 12px 'IBM Plex Mono';cursor:pointer;">Guardar todos</button>
     </div>
     <div style="overflow-x:auto;">
       <table class="cmp-table" id="rpeLoadTable"></table>
@@ -898,13 +898,13 @@
   <div class="panel team-only" style="margin-bottom:18px;">
     <div class="panel-head">
       <h3>Microciclo (partido a partido)</h3>
-      <span class="tag">promedio diario · total por microciclo · intensidad vs prom. últimos 3 partidos</span>
+      <span class="tag" data-i18n="microcicloTag">promedio diario · total por microciclo · intensidad vs prom. últimos 3 partidos</span>
     </div>
     <div id="nextMatchWrap" style="position:relative;display:none;padding:0 18px 12px;">
-      <button id="nextMatchBtn" class="upload-btn" style="padding:7px 10px;">📅 Próximo partido</button>
+      <button id="nextMatchBtn" class="upload-btn" data-i18n="proximoPartidoBtn" style="padding:7px 10px;">📅 Próximo partido</button>
       <span id="nextMatchLabel" style="margin-left:8px;font-size:11.5px;color:var(--mist);font-family:'IBM Plex Mono';"></span>
       <div id="nextMatchForm" style="display:none;position:absolute;top:38px;left:18px;background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:10px;padding:12px;z-index:50;min-width:230px;box-shadow:0 8px 24px rgba(0,0,0,.4);">
-        <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:6px;">Fecha del próximo partido</label>
+        <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:6px;" data-i18n="fechaProximoPartido">Fecha del próximo partido</label>
         <input id="nextMatchInput" type="date" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:8px;box-sizing:border-box;">
         <button id="nextMatchSubmit" class="upload-btn" style="width:100%;">Guardar fecha</button>
         <div id="nextMatchStatus" style="font-size:11px;color:var(--mist);margin-top:6px;"></div>
@@ -958,9 +958,9 @@
           <div class="radar-side" id="radarSide"></div>
         </div>
         <div class="legend-row">
-          <span><span class="dot" style="background:var(--gold);"></span>Promedio del jugador</span>
-          <span><span class="dot" style="background:var(--mist);opacity:.6;"></span>Promedio del plantel</span>
-          <span><span class="dot" style="background:var(--maroon);"></span>Récord personal</span>
+          <span><span class="dot" style="background:var(--gold);"></span><span data-i18n="legendAvgPlayer">Promedio del jugador</span></span>
+          <span><span class="dot" style="background:var(--mist);opacity:.6;"></span><span data-i18n="legendAvgSquad">Promedio del plantel</span></span>
+          <span><span class="dot" style="background:var(--maroon);"></span><span data-i18n="legendPersonalRecord">Récord personal</span></span>
         </div>
       </div>
 
@@ -999,9 +999,9 @@
         <div class="radar-side" id="gkRadarSide"></div>
       </div>
       <div class="legend-row">
-        <span><span class="dot" style="background:var(--gold);"></span>Promedio del arquero</span>
-        <span><span class="dot" style="background:var(--mist);opacity:.6;"></span>Promedio de arqueros</span>
-        <span><span class="dot" style="background:var(--maroon);"></span>Récord personal</span>
+        <span><span class="dot" style="background:var(--gold);"></span><span data-i18n="legendAvgGk">Promedio del arquero</span></span>
+        <span><span class="dot" style="background:var(--mist);opacity:.6;"></span><span data-i18n="legendAvgGkSquad">Promedio de arqueros</span></span>
+        <span><span class="dot" style="background:var(--maroon);"></span><span data-i18n="legendPersonalRecord">Récord personal</span></span>
       </div>
     </div>
     <div class="panel" style="margin-bottom:18px;">
@@ -1232,7 +1232,7 @@ function applyStaffModeUI(){
   const acwrDailyBox = document.getElementById('acwrDailyTeamBox');
   if(acwrDailyBox) acwrDailyBox.style.display = 'none'; // Staff ve la lista por jugador, no el gráfico diario del equipo
   const subEl = document.querySelector('.top .brand-sub');
-  if(subEl) subEl.textContent = 'Staff (médico y técnico) — solo lectura — ' + CURRENT_CLUB;
+  if(subEl) subEl.textContent = msg('staffReadOnlyPrefix') + CURRENT_CLUB;
 }
 
 // ---------- Entrenador de arqueros: solo la pestaña de Arqueros completa, de solo lectura ----------
@@ -1283,7 +1283,7 @@ function applyPlayerModeUI(){
     if(mainGrid){ mainGrid.style.display=''; mainGrid.style.gridTemplateColumns='1fr'; }
     if(gkView) gkView.style.display='none';
   }
-  document.querySelector('.top .brand-sub').textContent = 'Tus métricas individuales — ' + CURRENT_CLUB;
+  document.querySelector('.top .brand-sub').textContent = msg('individualMetricsPrefix') + CURRENT_CLUB;
 }
 
 // ---------- Vista individual del arquero: mismo lenguaje visual que jugadores de campo, otras métricas ----------
@@ -1341,9 +1341,9 @@ function drawGkRadar(player){
   const side = document.getElementById('gkRadarSide');
   if(side){
     side.innerHTML = `
-      <div class="rs-item gold"><div class="k">Promedio arquero (últ. 5)</div><div class="v">${fmt(Math.round(pAvg.dist||0))}<span>m dist.</span></div></div>
-      <div class="rs-item gold"><div class="k">Player Load prom.</div><div class="v">${fmt(Math.round(pAvg.pl||0))}</div></div>
-      <div class="rs-item mist"><div class="k">Promedio de arqueros</div><div class="v">${fmt(Math.round(gkSquadAvg.dist||0))}<span>m dist.</span></div></div>
+      <div class="rs-item gold"><div class="k">${msg('gkAvgLast5')}</div><div class="v">${fmt(Math.round(pAvg.dist||0))}<span>${msg('distUnitSuffix')}</span></div></div>
+      <div class="rs-item gold"><div class="k">${msg('playerLoadAvg')}</div><div class="v">${fmt(Math.round(pAvg.pl||0))}</div></div>
+      <div class="rs-item mist"><div class="k">${msg('gkAvgSquad')}</div><div class="v">${fmt(Math.round(gkSquadAvg.dist||0))}<span>${msg('distUnitSuffix')}</span></div></div>
     `;
   }
 }
@@ -1389,7 +1389,7 @@ function buildGkTimeline(player, metric, resetToLatest){
 
   if(typeof Chart === 'undefined'){
     const box = document.getElementById('gkTimelineChart')?.closest('.chart-box');
-    if(box) box.innerHTML = '<div style="color:var(--mist);font-family:\'IBM Plex Mono\';font-size:12px;padding:20px;text-align:center;">No se pudo cargar Chart.js (sin conexión).</div>';
+    if(box) box.innerHTML = `<div style="color:var(--mist);font-family:'IBM Plex Mono';font-size:12px;padding:20px;text-align:center;">${msg('chartLoadError')}</div>`;
     return;
   }
   const canvas = document.getElementById('gkTimelineChart');
@@ -1543,7 +1543,7 @@ async function checkNewPlayerSignups(){
           <div style="color:var(--mist);font-size:11px;margin-top:2px;">Cuenta creada · ${fecha}</div>
         </div>`;
       }).join('')
-    : `<div style="padding:14px;color:var(--mist);font-size:12px;">Todavía no se registró ningún jugador.</div>`;
+    : `<div style="padding:14px;color:var(--mist);font-size:12px;">${msg('noPlayerSignupsYet')}</div>`;
   document.getElementById('notifBell').onclick = ()=>{
     dropdown.style.display = dropdown.style.display==='block' ? 'none' : 'block';
     if(dropdown.style.display==='block'){
@@ -1571,9 +1571,9 @@ async function buildPendingRequestsPanel(){
 
   if(!data || !data.length){ panel.style.display='none'; return; }
   panel.style.display = '';
-  document.getElementById('pendingRequestsCount').textContent = `${data.length} esperando aprobación`;
+  document.getElementById('pendingRequestsCount').textContent = msg('waitingApproval',{n:data.length});
 
-  const roleLabel = (r)=> r==='pending_gk_coach' ? 'Entrenador de arqueros' : 'Staff (médico y técnico)';
+  const roleLabel = (r)=> r==='pending_gk_coach' ? t('rolGkCoach') : t('rolStaff');
   const box = document.getElementById('pendingRequestsList');
   box.innerHTML = data.map(r=>{
     const fecha = new Date(r.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
@@ -1592,14 +1592,14 @@ async function buildPendingRequestsPanel(){
 }
 async function approvePendingUser(userId, newRole, btnEl){
   btnEl.disabled = true;
-  btnEl.textContent = 'Aprobando…';
+  btnEl.textContent = msg('approvingEllipsis');
   const {error} = await supabaseClient.from('player_profiles')
     .update({role:newRole, player_name:null})
     .eq('user_id', userId).eq('club', CURRENT_CLUB);
   if(error){
     console.error(error);
     btnEl.disabled = false;
-    btnEl.textContent = '⚠️ Reintentar';
+    btnEl.textContent = msg('retryWarning');
     return;
   }
   await buildPendingRequestsPanel();
@@ -1626,7 +1626,7 @@ function setupAddPlayerBar(){
     status.textContent = 'Agregando…';
     const {error} = await supabaseClient.from('roster_players').insert({club:CURRENT_CLUB, player_name:name});
     if(error){
-      status.textContent = error.code==='23505' ? 'Ese nombre ya está en la lista.' : 'No se pudo agregar: '+error.message;
+      status.textContent = error.code==='23505' ? msg('nameAlreadyTaken') : msg('couldNotAddPrefix')+error.message;
       return;
     }
     status.textContent = `✅ "${name}" agregado. Ya puede crear su cuenta y elegirlo.`;
@@ -1646,15 +1646,15 @@ function setupNextMatchBar(){
   const status = document.getElementById('nextMatchStatus');
   const label = document.getElementById('nextMatchLabel');
   const refreshLabel = ()=>{
-    label.textContent = NEXT_MATCH_DATE ? `próximo partido: ${NEXT_MATCH_DATE.split('-').reverse().join('/')}` : '';
+    label.textContent = NEXT_MATCH_DATE ? msg('nextMatchLabelPrefix')+NEXT_MATCH_DATE.split('-').reverse().join('/') : '';
   };
   refreshLabel();
   if(NEXT_MATCH_DATE) input.value = NEXT_MATCH_DATE;
   btn.onclick = ()=>{ form.style.display = form.style.display==='block' ? 'none' : 'block'; };
   document.getElementById('nextMatchSubmit').onclick = async ()=>{
     const dateVal = input.value;
-    if(!dateVal){ status.textContent='Elegí una fecha.'; return; }
-    status.textContent = 'Guardando…';
+    if(!dateVal){ status.textContent=msg('pickADate'); return; }
+    status.textContent = msg('savingEllipsis');
     const {error} = await supabaseClient.from('app_settings')
       .upsert({club:CURRENT_CLUB, key:'next_match_date', value:dateVal, updated_at:new Date().toISOString()}, {onConflict:'club,key'});
     if(error){ status.textContent = 'No se pudo guardar: ' + error.message; return; }
@@ -1759,11 +1759,11 @@ async function handleAuthSubmit(event){
     const roleEl = document.getElementById('authRoleSelect');
     const clubName = clubNameEl ? clubNameEl.value.trim() : '';
     const selectedRole = roleEl ? roleEl.value : 'player';
-    if(!clubName){ authMessage('Ingresá el nombre de tu club para continuar.','error'); return; }
+    if(!clubName){ authMessage(msg('enterClubName'),'error'); return; }
 
     // El rol y el club quedan en Auth metadata para que sobrevivan a la confirmación del email.
     pendingSignupClub = clubName;
-    authMessage('Comprobando acceso…');
+    authMessage(msg('checkingAccess'));
     const result = await supabaseClient.auth.signUp({
       email,
       password,
@@ -1777,14 +1777,14 @@ async function handleAuthSubmit(event){
     });
     if(result.error){ authMessage(result.error.message,'error'); return; }
     if(!result.data.session){
-      authMessage('Revisa tu correo y confirma el acceso antes de iniciar sesión.','ok');
+      authMessage(msg('checkYourEmail'),'ok');
       return;
     }
     await routeAfterLogin();
     return;
   }
 
-  authMessage('Comprobando acceso…');
+  authMessage(msg('checkingAccess'));
   const result=await supabaseClient.auth.signInWithPassword({email,password});
   if(result.error){ authMessage(result.error.message,'error'); return; }
   await routeAfterLogin();
@@ -1807,7 +1807,7 @@ function applyOwnerMode(){
 applyOwnerMode();
 
 if(myProfile.role === 'owner'){
-  authMessage('Acceso de propietario verificado ✓','ok');
+  authMessage(msg('ownerAccessVerified'),'ok');
   await new Promise(resolve => setTimeout(resolve, 2500));
 }
 
@@ -1835,15 +1835,15 @@ function showPendingScreen(role){
   document.getElementById('authScreen').style.display='none';
   document.getElementById('nameScreen').style.display='none';
   const screen = document.getElementById('pendingScreen');
-  const msg = document.getElementById('pendingMessage');
-  const roleLabel = role==='pending_club' ? 'Administrador de un nuevo club' : (role==='pending_gk_coach' ? 'Entrenador de arqueros' : 'Staff (médico y técnico)');
-  const approver = role==='pending_club' ? 'OWNER (Matías González)' : 'el administrador de tu club';
+  const msgEl = document.getElementById('pendingMessage');
+  const roleLabel = role==='pending_club' ? t('rolClubAdmin') : (role==='pending_gk_coach' ? t('rolGkCoach') : t('rolStaff'));
+  const approver = role==='pending_club' ? msg('approverOwner') : msg('approverClubAdmin');
   if(role==='rejected_club'){
-    msg.textContent = 'La solicitud para crear este club fue rechazada. Si pensás que es un error, contactá al OWNER (Matías González).';
+    msgEl.textContent = msg('clubRequestRejected');
   } else {
-    msg.textContent = role==='pending_club'
-      ? `La solicitud del club fue creada correctamente. Necesita la aprobación del OWNER (Matías González) antes de activar el club y asignarte como administrador.`
-      : `Tu cuenta fue creada correctamente como "${roleLabel}". Necesita la aprobación de ${approver} antes de poder acceder al panel.`;
+    msgEl.textContent = role==='pending_club'
+      ? msg('clubRequestCreated')
+      : msg('accountCreatedAs',{role:roleLabel, approver});
   }
   screen.style.display='flex';
   document.getElementById('pendingLogoutBtn').onclick = async ()=>{
@@ -1854,7 +1854,7 @@ function showPendingScreen(role){
 async function handleNameSubmit(event){
   event.preventDefault();
   const name=document.getElementById('nameSelect').value;
-  if(!name){ document.getElementById('nameMessage').textContent='Selecciona un nombre válido.'; return; }
+  if(!name){ document.getElementById('nameMessage').textContent=msg('selectValidName'); return; }
   try{
     await claimPlayerName(name);
     myProfile = await getMyProfile();
@@ -1927,7 +1927,7 @@ function buildRpeWidget(existing){
       <span style="font-size:20px;flex-shrink:0;">${row.emoji}</span>
     </div>`;
     submitBtn.style.display = 'none';
-    status.textContent = `✅ Ya enviaste tu RPE de hoy (${existing.rpe}/10). Podrás reportar de nuevo mañana.`;
+    status.textContent = msg('rpeAlreadySentToday',{rpe:existing.rpe});
     return;
   }
 
@@ -1957,7 +1957,7 @@ function buildRpeWidget(existing){
   });
   submitBtn.onclick = async ()=>{
     if(selected===null) return;
-    submitBtn.disabled = true; status.textContent = 'Guardando…';
+    submitBtn.disabled = true; status.textContent = msg('savingEllipsis');
     scale.querySelectorAll('.rpe-btn').forEach(b=> b.disabled = true);
     try{
       await submitRpe(selected);
@@ -1972,15 +1972,15 @@ function buildRpeWidget(existing){
 function rpeAcwrStatus(ratio){
   if(ratio===null) return {status:'insuf', label:'Datos insuf.', varName:'--mist'};
   if(ratio<0.8) return {status:'low', label:'Carga baja', varName:'--low'};
-  if(ratio<1.3) return {status:'optimal', label:'Óptima', varName:'--good'};
-  if(ratio<1.5) return {status:'caution', label:'Precaución', varName:'--warn'};
+  if(ratio<1.3) return {status:'optimal', label:msg('ratioLabelOptimal'), varName:'--good'};
+  if(ratio<1.5) return {status:'caution', label:msg('ratioLabelCaution'), varName:'--warn'};
   return {status:'high', label:'Riesgo alto', varName:'--bad'};
 }
 async function buildRpeTeamList(){
   const box = document.getElementById('rpeTeamList');
   if(!box) return;
   const {data,error} = await supabaseClient.from('rpe_reports').select('player_name,fecha,rpe,minutos,updated_at').eq('club',CURRENT_CLUB).order('fecha',{ascending:false});
-  if(error){ box.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">No se pudo cargar el RPE del plantel.</div>`; return; }
+  if(error){ box.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">${msg('rpeLoadNotAvailable')}</div>`; return; }
   RPE_REPORTS_CACHE = data || [];
   const byPlayerRpe = {};
   RPE_REPORTS_CACHE.forEach(r=>{ (byPlayerRpe[r.player_name] = byPlayerRpe[r.player_name]||[]).push(r); });
@@ -2048,7 +2048,7 @@ function fmtHM(str){
 function rpeLockMsg(lang){
   const range = `${fmtHM(RPE_WINDOW_START)} a ${fmtHM(RPE_WINDOW_END)}`;
   const msgs = {
-    es: `🔴 El envío de RPE está disponible de ${range}. Volvé a intentarlo dentro de ese horario.`,
+    es: `🔴 El envío de RPE está disponible de ${range}. Vuelve a intentarlo dentro de ese horario.`,
     en: `🔴 RPE submission is available from ${range}. Please try again within that window.`,
     ar: `🔴 إرسال مؤشر الجهد المدرك متاح من ${range}. حاول مرة أخرى خلال هذا الوقت.`
   };
@@ -2077,21 +2077,21 @@ function setupRpeWindowBar(){
   const endInput = document.getElementById('rpeWindowEnd');
   const status = document.getElementById('rpeWindowStatus');
   const label = document.getElementById('rpeWindowLabel');
-  const refreshLabel = ()=>{ label.textContent = `RPE habilitado: ${fmtHM(RPE_WINDOW_START)}–${fmtHM(RPE_WINDOW_END)}`; };
+  const refreshLabel = ()=>{ label.textContent = msg('rpeEnabledLabel',{start:fmtHM(RPE_WINDOW_START), end:fmtHM(RPE_WINDOW_END)}); };
   refreshLabel();
   startInput.value = RPE_WINDOW_START==='24:00' ? '00:00' : RPE_WINDOW_START;
   endInput.value = RPE_WINDOW_END==='24:00' ? '00:00' : RPE_WINDOW_END;
   btn.onclick = ()=>{ form.style.display = form.style.display==='block' ? 'none' : 'block'; };
   document.getElementById('rpeWindowSubmit').onclick = async ()=>{
     const startVal = startInput.value, endVal = endInput.value;
-    if(!startVal || !endVal){ status.textContent = 'Completá las dos horas.'; return; }
-    status.textContent = 'Guardando…';
+    if(!startVal || !endVal){ status.textContent = msg('fillBothTimes'); return; }
+    status.textContent = msg('savingEllipsis');
     const value = `${startVal}-${endVal}`;
     const {error} = await supabaseClient.from('app_settings')
       .upsert({club:CURRENT_CLUB, key:'rpe_window', value, updated_at:new Date().toISOString()}, {onConflict:'club,key'});
-    if(error){ status.textContent = 'No se pudo guardar: ' + error.message; return; }
+    if(error){ status.textContent = msg('couldNotSavePrefix') + error.message; return; }
     RPE_WINDOW_START = startVal; RPE_WINDOW_END = endVal;
-    status.textContent = '✅ Horario guardado.';
+    status.textContent = msg('scheduleSaved');
     refreshLabel();
   };
   document.addEventListener('click',(e)=>{ if(!wrap.contains(e.target)) form.style.display='none'; });
@@ -2120,10 +2120,10 @@ function buildRpeLoadTable(dateStr){
   const rowsHtml = rowsData.map(r=>{
     let ratioColor = 'var(--mist)', ratioLabel = '—';
     if(r.ratio!==null){
-      if(r.ratio<0.8){ ratioColor='var(--low)'; ratioLabel='Baja'; }
-      else if(r.ratio<1.3){ ratioColor='var(--good)'; ratioLabel='Óptima'; }
-      else if(r.ratio<1.5){ ratioColor='var(--warn)'; ratioLabel='Precaución'; }
-      else { ratioColor='var(--bad)'; ratioLabel='Riesgo alto'; }
+      if(r.ratio<0.8){ ratioColor='var(--low)'; ratioLabel=msg('ratioBaja'); }
+      else if(r.ratio<1.3){ ratioColor='var(--good)'; ratioLabel=msg('ratioOptima'); }
+      else if(r.ratio<1.5){ ratioColor='var(--warn)'; ratioLabel=msg('ratioPrecaucion'); }
+      else { ratioColor='var(--bad)'; ratioLabel=msg('ratioRiesgoAlto'); }
     }
     const isAdmin = myProfile && (myProfile.role==='admin' || myProfile.role==='owner');
     const minCell = r.todayReport
@@ -2150,7 +2150,7 @@ function buildRpeLoadTable(dateStr){
   const chronicAvg = avg(rowsData.map(r=>r.chronic).filter(v=>v!==null));
   const ratioAvg = avg(rowsData.map(r=>r.ratio).filter(v=>v!==null));
   const footerHtml = `<tr style="border-top:2px solid var(--line-strong);font-weight:700;">
-    <td class="metric-name" style="color:var(--gold-bright);">Promedio del plantel</td>
+    <td class="metric-name" style="color:var(--gold-bright);">${msg('squadAveragePrefix')}</td>
     <td>—</td>
     <td>${rpeAvg!==null? rpeAvg.toFixed(1)+'/10' : '—'}</td>
     <td>${minAvg!==null? minAvg.toFixed(0) : '—'}</td>
@@ -2161,13 +2161,13 @@ function buildRpeLoadTable(dateStr){
   </tr>`;
   const isAdminGlobal = myProfile && (myProfile.role==='admin' || myProfile.role==='owner');
   const minHeaderCell = isAdminGlobal
-    ? `<th>Min <span style="display:inline-flex;align-items:center;gap:4px;margin-left:4px;white-space:nowrap;">
-         <input id="rpeMinBulkFill" type="number" min="0" max="240" placeholder="min" title="Escribí un valor y aplicalo a todas las filas" style="width:46px;padding:3px 5px;border-radius:5px;border:1px solid var(--gold);background:var(--pitch-950);color:var(--gold-bright);font:11px 'IBM Plex Mono';outline:none;">
-         <button id="rpeMinBulkApplyBtn" type="button" title="Aplicar este valor a todos los jugadores" style="padding:3px 8px;border-radius:5px;border:1px solid var(--gold);background:var(--gold);color:var(--pitch-950);font:700 11px 'IBM Plex Mono';cursor:pointer;">✏️ Aplicar a todos</button>
+    ? `<th>${msg('colMin')} <span style="display:inline-flex;align-items:center;gap:4px;margin-left:4px;white-space:nowrap;">
+         <input id="rpeMinBulkFill" type="number" min="0" max="240" placeholder="min" title="${msg('bulkFillTitle')}" style="width:46px;padding:3px 5px;border-radius:5px;border:1px solid var(--gold);background:var(--pitch-950);color:var(--gold-bright);font:11px 'IBM Plex Mono';outline:none;">
+         <button id="rpeMinBulkApplyBtn" type="button" title="${msg('applyToAllTitle')}" style="padding:3px 8px;border-radius:5px;border:1px solid var(--gold);background:var(--gold);color:var(--pitch-950);font:700 11px 'IBM Plex Mono';cursor:pointer;">${msg('applyToAllBtn')}</button>
        </span></th>`
-    : `<th>Min</th>`;
+    : `<th>${msg('colMin')}</th>`;
   table.innerHTML = `<thead><tr>
-    <th>Jugador</th><th>Hora</th><th>RPE</th>${minHeaderCell}<th>C. Diaria</th><th>C. Aguda</th><th>C. Crónica</th><th>Ratio A:C</th>
+    <th>${msg('colJugador')}</th><th>${msg('colHora')}</th><th>RPE</th>${minHeaderCell}<th>${msg('colCDiaria')}</th><th>${msg('colCAguda')}</th><th>${msg('colCCronica')}</th><th>${msg('colRatioAC')}</th>
   </tr></thead><tbody>${rowsHtml}${footerHtml}</tbody>`;
   table.querySelectorAll('.rpe-min-input').forEach(input=>{
     const save = async ()=>{
@@ -2200,7 +2200,7 @@ async function saveAllRpeMinutes(){
   if(!inputs.length){ return; }
   const originalLabel = btn.textContent;
   btn.disabled = true;
-  btn.textContent = 'Guardando…';
+  btn.textContent = msg('savingEllipsis');
   const updates = Array.from(inputs).map(input=>{
     const val = input.value===''? null : Number(input.value);
     return supabaseClient.from('rpe_reports').update({minutos:val, updated_at:new Date().toISOString()})
@@ -2211,7 +2211,7 @@ async function saveAllRpeMinutes(){
   btn.textContent = originalLabel;
   if(failed.length){
     failed.forEach(f=>console.warn(f.error));
-    alert(`Se guardaron ${updates.length-failed.length} de ${updates.length} jugadores. Hubo ${failed.length} error(es), revisá la consola.`);
+    alert(msg('rpeSaveResultAlert',{saved:updates.length-failed.length, total:updates.length, failed:failed.length}));
   }
   await buildRpeTeamList(); // re-renderiza la tabla (esto ya vuelve a habilitar el botón según el horario)
 }
@@ -2315,6 +2315,7 @@ const I18N = {
     datosActualizados:'DATOS ACTUALIZADOS AL', jugadoresActivos:'jugadores activos',
     evolucionPlantel:'Evolución del plantel', sesionesAnteriores:'Sesiones anteriores', sesionesSiguientes:'Sesiones siguientes',
     plantel:'Plantel', buscarJugador:'Buscar jugador…', radarVuelo:'Radar de Vuelo', perfilNormalizado:'perfil normalizado vs. plantel',
+    legendAvgPlayer:'Promedio del jugador', legendAvgSquad:'Promedio del plantel', legendPersonalRecord:'Récord personal', legendAvgGk:'Promedio del arquero', legendAvgGkSquad:'Promedio de arqueros',
     evolucionSesion:'Evolución por sesión', tusSprints:'Tus Sprints (>25 km/h)', sprintTag:'distancia recorrida a máxima velocidad', alertasCarga:'Alertas de carga · ACWR', acwrTag:'agudo (7 días) : crónico (28 días) · sobre Player Load',
     promedioPlantel:'Promedio del plantel · un dato por día', diasAnteriores:'Días anteriores', diasSiguientes:'Días siguientes',
     compararJugadores:'Comparar jugadores', cabezaCabeza:'cabeza a cabeza', rankingPlantel:'Ranking del plantel',
@@ -2329,7 +2330,9 @@ const I18N = {
     rpePlantel:'RPE del plantel', rpePlantelTag:'percepción de esfuerzo reportada por cada jugador',
     rpeTitulo:'¿Cómo sentiste el entrenamiento de hoy?', rpeSubtitulo:'RPE de sesión · 0 (reposo) a 10 (esfuerzo máximo)',
     enviarRpe:'Enviar RPE', rpeMinutosLabel:'¿Cuántos minutos entrenaste hoy?',
-    cargaInterna:'Carga interna (RPE)', cargaInternaTag:'carga aguda : crónica basada en RPE × minutos', fecha2:'Fecha',
+    cargaInterna:'Carga interna (RPE)', cargaInternaTag:'carga aguda : crónica basada en RPE × minutos', fecha2:'Fecha', guardarTodos:'Guardar todos',
+    csvDetected:'📊 Archivo de Catapult detectado', csvFoundPrefix:'Encontramos', csvFoundSuffix:'jugadores en este archivo. Completa estos datos para cargarlo:',
+    csvSessionType:'Tipo de sesión', csvOptMatch:'Partido', csvOptTraining:'Entreno', csvRival:'Rival', csvSessionName:'Nombre de la sesión', csvLoadData:'Cargar datos', cancelar:'Cancelar',
     footer:'Por Matías González Galindo — Head of Physical Performance',
     gkMetrics:{dist:'Distancia Total', impact_left:'Impacto Izq.', impact_right:'Impacto Der.', dives_left:'Buzos Izq.', dives_right:'Buzos Der.', pl:'Player Load', vel:'Vel. Máxima', acc:'Acc', dece:'Dece'},
     tabJugadoresCampo:'⚽ Jugadores de Campo', tabArqueros:'🧤 Arqueros', tabControlCarga:'📊 Control de Carga', tabPartidos:'🆚 Partidos', tabClubes:'🏢 Clubes', nombreClub:'Nombre del club', clubesRegistrados:'🏢 Clubes en la plataforma',
@@ -2341,7 +2344,14 @@ const I18N = {
     gkPromedioArquero:'Promedio del arquero', gkPromedioArqueros:'Promedio de arqueros',
     gkSinDatos:'Todavía no hay datos de arqueros cargados.', gkSinSesiones:'Todavía no hay sesiones cargadas.', gkSinArqueros:'Todavía no hay arqueros cargados.',
     gkColJugador:'Jugador', gkColFecha:'Fecha', gkColSesion:'Sesión', gkColDist:'Dist. (m)', gkColVelMax:'Vel. máx (km/h)', gkColVelMax2:'Vel. máx',
-    gkDistUltimaSesion:'Distancia última sesión', quienSos:'¿Quién sos?', rolJugador:'Jugador o arquero', rolStaff:'Staff (médico y técnico)', rolGkCoach:'Entrenador de arqueros', rolClubAdmin:'Administrador de un club nuevo',
+    gkDistUltimaSesion:'Distancia última sesión', quienSos:'¿Quién eres?', rolJugador:'Jugador o arquero', rolStaff:'Staff (médico y técnico)', rolGkCoach:'Entrenador de arqueros', rolClubAdmin:'Administrador de un club nuevo',
+    acwrLegendLow:'<0.8 carga baja', acwrLegendOptimal:'0.8–1.3 zona óptima', acwrLegendCaution:'1.3–1.5 precaución', acwrLegendHigh:'>1.5 riesgo alto',
+    acwrDailyLegendOptimal:'0.80–1.30 zona óptima', acwrDailyLegendHigh:'1.50 riesgo alto', acwrDailyTeamHeader:'ACWR diario del equipo',
+    acwrNoteMain:'Ratio entre la carga de los últimos <b>7 días</b> y el promedio semanal de los últimos <b>28 días</b>. Con poco historial cargado el número es orientativo — se vuelve más confiable a medida que sumas sesiones. No reemplaza el criterio del cuerpo técnico ni médico.',
+    acwrNoteGk:'Ratio entre la carga de los últimos <b>7 días</b> y el promedio semanal de los últimos <b>28 días</b>. Con poco historial cargado el número es orientativo. No reemplaza el criterio del cuerpo técnico ni médico.',
+    ejCarlosPerez:'Ej: Carlos Pérez', rpeWindowHelp:'Ej: si entrenan de mañana, pon algo como 12:00 a 20:00. Para hasta medianoche, pon 23:59.',
+    microcicloTag:'promedio diario · total por microciclo · intensidad vs prom. últimos 3 partidos', proximoPartidoBtn:'📅 Próximo partido', fechaProximoPartido:'Fecha del próximo partido',
+    pendingMessageDefault:'Tu cuenta fue creada correctamente. Necesita la aprobación del administrador antes de poder acceder al panel.',
   },
   en: {
     metrics:{dist:'Total Distance',hsr:'HSR',vel:'Max Speed',acc:'Acc',desa:'Dec',pl:'Player Load',sprint:'Sprint'},
@@ -2358,6 +2368,7 @@ const I18N = {
     datosActualizados:'DATA UPDATED ON', jugadoresActivos:'active players',
     evolucionPlantel:'Squad evolution', sesionesAnteriores:'Previous sessions', sesionesSiguientes:'Next sessions',
     plantel:'Squad', buscarJugador:'Search player…', radarVuelo:'Flight Radar', perfilNormalizado:'normalized profile vs. squad',
+    legendAvgPlayer:'Player average', legendAvgSquad:'Squad average', legendPersonalRecord:'Personal record', legendAvgGk:'Goalkeeper average', legendAvgGkSquad:'Goalkeepers average',
     evolucionSesion:'Session evolution', tusSprints:'Your Sprints (>25 km/h)', sprintTag:'distance covered at top speed', alertasCarga:'Load alerts · ACWR', acwrTag:'acute (7 days) : chronic (28 days) · over Player Load',
     promedioPlantel:'Squad average · one data point per day', diasAnteriores:'Previous days', diasSiguientes:'Next days',
     compararJugadores:'Compare players', cabezaCabeza:'head to head', rankingPlantel:'Squad ranking',
@@ -2372,7 +2383,9 @@ const I18N = {
     rpePlantel:'Squad RPE', rpePlantelTag:'perceived exertion reported by each player',
     rpeTitulo:'How did today\'s training feel?', rpeSubtitulo:'Session RPE · 0 (rest) to 10 (maximum effort)',
     enviarRpe:'Submit RPE', rpeMinutosLabel:'How many minutes did you train today?',
-    cargaInterna:'Internal load (RPE)', cargaInternaTag:'acute : chronic load based on RPE × minutes', fecha2:'Date',
+    cargaInterna:'Internal load (RPE)', cargaInternaTag:'acute : chronic load based on RPE × minutes', fecha2:'Date', guardarTodos:'Save all',
+    csvDetected:'📊 Catapult file detected', csvFoundPrefix:'We found', csvFoundSuffix:'players in this file. Complete these details to load it:',
+    csvSessionType:'Session type', csvOptMatch:'Match', csvOptTraining:'Training', csvRival:'Opponent', csvSessionName:'Session name', csvLoadData:'Load data', cancelar:'Cancel',
     footer:'By Matías González Galindo — Head of Physical Performance',
     gkMetrics:{dist:'Total Distance', impact_left:'Impact L', impact_right:'Impact R', dives_left:'Dives L', dives_right:'Dives R', pl:'Player Load', vel:'Max Speed', acc:'Acc', dece:'Dec'},
     tabJugadoresCampo:'⚽ Field Players', tabArqueros:'🧤 Goalkeepers', tabControlCarga:'📊 Load Control', tabPartidos:'🆚 Matches', tabClubes:'🏢 Clubs', nombreClub:'Club name', clubesRegistrados:'🏢 Clubs on the platform',
@@ -2385,6 +2398,13 @@ const I18N = {
     gkSinDatos:'No goalkeeper data loaded yet.', gkSinSesiones:'No sessions loaded yet.', gkSinArqueros:'No goalkeepers loaded yet.',
     gkColJugador:'Player', gkColFecha:'Date', gkColSesion:'Session', gkColDist:'Dist. (m)', gkColVelMax:'Max speed (km/h)', gkColVelMax2:'Max speed',
     gkDistUltimaSesion:'Distance last session', quienSos:'Who are you?', rolJugador:'Player or goalkeeper', rolStaff:'Staff (medical & technical)', rolGkCoach:'Goalkeeper coach', rolClubAdmin:'New club administrator',
+    acwrLegendLow:'<0.8 low load', acwrLegendOptimal:'0.8–1.3 optimal zone', acwrLegendCaution:'1.3–1.5 caution', acwrLegendHigh:'>1.5 high risk',
+    acwrDailyLegendOptimal:'0.80–1.30 optimal zone', acwrDailyLegendHigh:'1.50 high risk', acwrDailyTeamHeader:'Daily team ACWR',
+    acwrNoteMain:'Ratio between the load of the last <b>7 days</b> and the weekly average of the last <b>28 days</b>. With little data logged the number is only a guide — it becomes more reliable as you log more sessions. It does not replace the judgment of the medical or technical staff.',
+    acwrNoteGk:'Ratio between the load of the last <b>7 days</b> and the weekly average of the last <b>28 days</b>. With little data logged the number is only a guide. It does not replace the judgment of the medical or technical staff.',
+    ejCarlosPerez:'E.g.: Carlos Pérez', rpeWindowHelp:'E.g.: if training happens in the morning, set something like 12:00 to 20:00. For up to midnight, set 23:59.',
+    microcicloTag:'daily average · total per microcycle · intensity vs avg. last 3 matches', proximoPartidoBtn:'📅 Next match', fechaProximoPartido:'Date of the next match',
+    pendingMessageDefault:'Your account was created successfully. It needs administrator approval before you can access the panel.',
   },
   ar: {
     metrics:{dist:'المسافة الإجمالية',hsr:'الجري عالي السرعة',vel:'السرعة القصوى',acc:'تسارع',desa:'تباطؤ',pl:'حمل اللاعب',sprint:'عدد السرعات القصوى'},
@@ -2401,6 +2421,7 @@ const I18N = {
     datosActualizados:'البيانات محدّثة حتى', jugadoresActivos:'لاعبًا نشطًا',
     evolucionPlantel:'تطور الفريق', sesionesAnteriores:'الحصص السابقة', sesionesSiguientes:'الحصص التالية',
     plantel:'قائمة الفريق', buscarJugador:'ابحث عن لاعب…', radarVuelo:'رادار الأداء', perfilNormalizado:'ملف معياري مقابل الفريق',
+    legendAvgPlayer:'متوسط اللاعب', legendAvgSquad:'متوسط الفريق', legendPersonalRecord:'الرقم القياسي الشخصي', legendAvgGk:'متوسط الحارس', legendAvgGkSquad:'متوسط حراس المرمى',
     evolucionSesion:'التطور خلال الحصة', tusSprints:'سرعاتك القصوى (>25 كم/س)', sprintTag:'المسافة المقطوعة بأقصى سرعة', alertasCarga:'تنبيهات الحمل · ACWR', acwrTag:'حاد (7 أيام) : مزمن (28 يومًا) · حسب حمل اللاعب',
     promedioPlantel:'متوسط الفريق · قيمة واحدة لكل يوم', diasAnteriores:'الأيام السابقة', diasSiguientes:'الأيام التالية',
     compararJugadores:'مقارنة اللاعبين', cabezaCabeza:'وجهًا لوجه', rankingPlantel:'تصنيف الفريق',
@@ -2415,7 +2436,9 @@ const I18N = {
     rpePlantel:'مؤشر الجهد المُدرَك للفريق', rpePlantelTag:'الجهد المُدرَك الذي يبلغ عنه كل لاعب',
     rpeTitulo:'كيف شعرت بتمرين اليوم؟', rpeSubtitulo:'مؤشر الجهد المُدرَك للحصة · 0 (راحة) إلى 10 (أقصى جهد)',
     enviarRpe:'إرسال مؤشر الجهد', rpeMinutosLabel:'كم دقيقة تدربت اليوم؟',
-    cargaInterna:'الحمل الداخلي (RPE)', cargaInternaTag:'الحمل الحاد : المزمن استنادًا إلى RPE × الدقائق', fecha2:'التاريخ',
+    cargaInterna:'الحمل الداخلي (RPE)', cargaInternaTag:'الحمل الحاد : المزمن استنادًا إلى RPE × الدقائق', fecha2:'التاريخ', guardarTodos:'حفظ الكل',
+    csvDetected:'📊 تم اكتشاف ملف Catapult', csvFoundPrefix:'وجدنا', csvFoundSuffix:'لاعبًا في هذا الملف. أكمل هذه البيانات لتحميله:',
+    csvSessionType:'نوع الحصة', csvOptMatch:'مباراة', csvOptTraining:'تدريب', csvRival:'الخصم', csvSessionName:'اسم الحصة', csvLoadData:'تحميل البيانات', cancelar:'إلغاء',
     footer:'بواسطة ماتياس غونزاليس غاليندو — مسؤول الأداء البدني',
     gkMetrics:{dist:'المسافة الإجمالية', impact_left:'ارتطام يسار', impact_right:'ارتطام يمين', dives_left:'غطسة يسار', dives_right:'غطسة يمين', pl:'حمل اللاعب', vel:'السرعة القصوى', acc:'تسارع', dece:'تباطؤ'},
     tabJugadoresCampo:'⚽ لاعبو الميدان', tabArqueros:'🧤 حراس المرمى', tabControlCarga:'📊 التحكم بالحمل', tabPartidos:'🆚 المباريات', tabClubes:'🏢 الأندية', nombreClub:'اسم النادي', clubesRegistrados:'🏢 الأندية على المنصة',
@@ -2428,14 +2451,147 @@ const I18N = {
     gkSinDatos:'لا توجد بيانات حراس مرمى محمّلة بعد.', gkSinSesiones:'لا توجد حصص محمّلة بعد.', gkSinArqueros:'لا يوجد حراس مرمى محمّلون بعد.',
     gkColJugador:'اللاعب', gkColFecha:'التاريخ', gkColSesion:'الحصة', gkColDist:'المسافة (م)', gkColVelMax:'السرعة القصوى (كم/س)', gkColVelMax2:'السرعة القصوى',
     gkDistUltimaSesion:'مسافة آخر حصة', quienSos:'من أنت؟', rolJugador:'لاعب أو حارس مرمى', rolStaff:'الطاقم (طبي وفني)', rolGkCoach:'مدرب حراس المرمى', rolClubAdmin:'مسؤول نادٍ جديد',
+    acwrLegendLow:'أقل من 0.8 حمل منخفض', acwrLegendOptimal:'0.8–1.3 منطقة مثالية', acwrLegendCaution:'1.3–1.5 تنبيه', acwrLegendHigh:'أكثر من 1.5 خطر مرتفع',
+    acwrDailyLegendOptimal:'0.80–1.30 منطقة مثالية', acwrDailyLegendHigh:'1.50 خطر مرتفع', acwrDailyTeamHeader:'ACWR اليومي للفريق',
+    acwrNoteMain:'نسبة بين حمل آخر <b>7 أيام</b> والمتوسط الأسبوعي لآخر <b>28 يومًا</b>. مع قلة البيانات المسجّلة يكون الرقم استرشاديًا فقط — ويصبح أكثر موثوقية كلما سجّلت المزيد من الحصص. لا يغني عن تقييم الطاقم الفني أو الطبي.',
+    acwrNoteGk:'نسبة بين حمل آخر <b>7 أيام</b> والمتوسط الأسبوعي لآخر <b>28 يومًا</b>. مع قلة البيانات المسجّلة يكون الرقم استرشاديًا فقط. لا يغني عن تقييم الطاقم الفني أو الطبي.',
+    ejCarlosPerez:'مثال: Carlos Pérez', rpeWindowHelp:'مثال: إذا كان التدريب صباحًا، اضبط الوقت من 12:00 إلى 20:00. للوصول حتى منتصف الليل، اضبط 23:59.',
+    microcicloTag:'المتوسط اليومي · الإجمالي لكل دورة صغرى · الشدة مقابل متوسط آخر 3 مباريات', proximoPartidoBtn:'📅 المباراة القادمة', fechaProximoPartido:'تاريخ المباراة القادمة',
+    pendingMessageDefault:'تم إنشاء حسابك بنجاح. يحتاج إلى موافقة المسؤول قبل أن تتمكن من الوصول إلى اللوحة.',
   }
 };
 let currentLang = localStorage.getItem('dashboard_lang') || 'es';
 function t(key){ return (I18N[currentLang]&&I18N[currentLang][key]) || I18N.es[key] || key; }
+
+// ---------- Mensajes dinámicos (alertas, estados, banners) traducidos a los 3 idiomas ----------
+// A diferencia de I18N (etiquetas estáticas vía data-i18n), estos son textos armados en tiempo de
+// ejecución con datos variables (fechas, nombres, conteos). msg(key, vars) arma el string final.
+const MESSAGES = {
+  staffReadOnlyPrefix: { es:'Staff (médico y técnico) — solo lectura — ', en:'Staff (medical & technical) — read only — ', ar:'الطاقم (طبي وفني) — للقراءة فقط — ' },
+  individualMetricsPrefix: { es:'Tus métricas individuales — ', en:'Your individual metrics — ', ar:'مقاييسك الفردية — ' },
+  chartLoadError: { es:'No se pudo cargar Chart.js (sin conexión).', en:"Couldn't load Chart.js (no connection).", ar:'تعذر تحميل Chart.js (لا يوجد اتصال).' },
+  chartLoadErrorFull: { es:'No se pudo cargar Chart.js (sin conexión). El resto del dashboard funciona con normalidad.', en:"Couldn't load Chart.js (no connection). The rest of the dashboard works normally.", ar:'تعذر تحميل Chart.js (لا يوجد اتصال). باقي اللوحة تعمل بشكل طبيعي.' },
+  noPlayerSignupsYet: { es:'Todavía no se registró ningún jugador.', en:'No player has registered yet.', ar:'لم يسجّل أي لاعب بعد.' },
+  waitingApproval: { es:'{n} esperando aprobación', en:'{n} waiting for approval', ar:'{n} في انتظار الموافقة' },
+  nameAlreadyTaken: { es:'Ese nombre ya está en la lista.', en:'That name is already on the list.', ar:'هذا الاسم موجود بالفعل في القائمة.' },
+  couldNotAddPrefix: { es:'No se pudo agregar: ', en:"Couldn't add: ", ar:'تعذّرت الإضافة: ' },
+  nextMatchLabelPrefix: { es:'próximo partido: ', en:'next match: ', ar:'المباراة القادمة: ' },
+  pickADate: { es:'Elige una fecha.', en:'Pick a date.', ar:'اختر تاريخًا.' },
+  clubRequestCreated: { es:'La solicitud del club fue creada correctamente. Necesita la aprobación del OWNER (Matías González) antes de activar el club y asignarte como administrador.', en:"The club request was created successfully. It needs approval from the OWNER (Matías González) before the club is activated and you're assigned as administrator.", ar:'تم إنشاء طلب النادي بنجاح. يحتاج إلى موافقة المالك (Matías González) قبل تفعيل النادي وتعيينك كمسؤول.' },
+  clubRequestRejected: { es:'La solicitud para crear este club fue rechazada. Si crees que es un error, contacta al OWNER (Matías González).', en:'The request to create this club was rejected. If you think this is a mistake, contact the OWNER (Matías González).', ar:'تم رفض طلب إنشاء هذا النادي. إذا كنت تعتقد أن هذا خطأ، تواصل مع المالك (Matías González).' },
+  accountCreatedAs: { es:'Tu cuenta fue creada correctamente como "{role}". Necesita la aprobación de {approver} antes de poder acceder al panel.', en:'Your account was created successfully as "{role}". It needs approval from {approver} before you can access the panel.', ar:'تم إنشاء حسابك بنجاح كـ"{role}". يحتاج إلى موافقة {approver} قبل أن تتمكن من الوصول إلى اللوحة.' },
+  approverOwner: { es:'OWNER (Matías González)', en:'OWNER (Matías González)', ar:'المالك (Matías González)' },
+  approverClubAdmin: { es:'el administrador de tu club', en:"your club's administrator", ar:'مسؤول ناديك' },
+  selectValidName: { es:'Selecciona un nombre válido.', en:'Select a valid name.', ar:'اختر اسمًا صالحًا.' },
+  rpeAlreadySentToday: { es:'✅ Ya enviaste tu RPE de hoy ({rpe}/10). Podrás reportar de nuevo mañana.', en:"✅ You already submitted today's RPE ({rpe}/10). You can report again tomorrow.", ar:'✅ لقد أرسلت مؤشر الجهد المدرك لهذا اليوم بالفعل ({rpe}/10). يمكنك إعادة الإرسال غدًا.' },
+  fillBothTimes: { es:'Completa las dos horas.', en:'Fill in both times.', ar:'أدخل الوقتين.' },
+  bulkFillTitle: { es:'Escribe un valor y aplícalo a todas las filas', en:'Enter a value and apply it to all rows', ar:'أدخل قيمة وطبّقها على كل الصفوف' },
+  rpeSaveResultAlert: { es:'Se guardaron {saved} de {total} jugadores. Hubo {failed} error(es), revisa la consola.', en:'Saved {saved} of {total} players. There were {failed} error(s); check the console.', ar:'تم حفظ {saved} من {total} لاعبًا. حدثت {failed} من الأخطاء، تحقّق من الكونسول.' },
+  noClubsRegistered: { es:'Todavía no hay clubes registrados.', en:'No clubs registered yet.', ar:'لا توجد أندية مسجّلة بعد.' },
+  noRecordReference: { es:'sin récord de referencia', en:'no reference record', ar:'لا يوجد رقم قياسي مرجعي' },
+  pctOfRecord: { es:'{pct}% del récord · tope {recVal}', en:'{pct}% of record · cap {recVal}', ar:'{pct}% من الرقم القياسي · الحد {recVal}' },
+  recordBrokenBanner: { es:'🔥 ¡Récord superado en {metric}! {names} {verb} un nuevo máximo personal en la última sesión.', en:'🔥 Record broken in {metric}! {names} reached a new personal best in the last session.', ar:'🔥 تم تحطيم الرقم القياسي في {metric}! حقق {names} رقمًا شخصيًا جديدًا في آخر حصة.' },
+  fatigueDropSevere: { es:'Caída marcada — riesgo alto', en:'Sharp drop — high risk', ar:'انخفاض حاد — خطر مرتفع' },
+  fatigueDropModerate: { es:'Caída moderada — atención', en:'Moderate drop — caution', ar:'انخفاض معتدل — تنبيه' },
+  daysRangeLabel: { es:'Días <b>{from}–{to}</b> de <b>{total}</b>', en:'Days <b>{from}–{to}</b> of <b>{total}</b>', ar:'الأيام <b>{from}–{to}</b> من <b>{total}</b>' },
+  metricAvgLast5Header: { es:'Métrica (prom. últ. 5)', en:'Metric (last 5 avg.)', ar:'المقياس (متوسط آخر 5)' },
+  excelLibLoadError: { es:'No se pudo cargar la librería de lectura de Excel (sin conexión).', en:"Couldn't load the Excel reading library (no connection).", ar:'تعذر تحميل مكتبة قراءة Excel (لا يوجد اتصال).' },
+  dataUpdatedStatus: { es:'Datos actualizados ✓ {n} registros · {players} jugadores · última fecha {date}{gk}', en:'Data updated ✓ {n} records · {players} players · last date {date}{gk}', ar:'تم تحديث البيانات ✓ {n} سجل · {players} لاعب · آخر تاريخ {date}{gk}' },
+  passwordUpdated: { es:'¡Listo! Tu contraseña se actualizó. Inicia sesión de nuevo.', en:'Done! Your password was updated. Please log in again.', ar:'تم! تم تحديث كلمة المرور الخاصة بك. سجّل الدخول مرة أخرى.' },
+  checkingAccess: { es:'Comprobando acceso…', en:'Checking access…', ar:'جارٍ التحقق من الوصول…' },
+  checkYourEmail: { es:'Revisa tu correo y confirma el acceso antes de iniciar sesión.', en:'Check your email and confirm access before logging in.', ar:'تحقّق من بريدك الإلكتروني وأكّد الوصول قبل تسجيل الدخول.' },
+  ownerAccessVerified: { es:'Acceso de propietario verificado ✓', en:'Owner access verified ✓', ar:'تم التحقق من وصول المالك ✓' },
+  approvingEllipsis: { es:'Aprobando…', en:'Approving…', ar:'جارٍ الموافقة…' },
+  rejectingEllipsis: { es:'Rechazando…', en:'Rejecting…', ar:'جارٍ الرفض…' },
+  retryWarning: { es:'⚠️ Reintentar', en:'⚠️ Retry', ar:'⚠️ إعادة المحاولة' },
+  clubNoName: { es:'Club sin nombre', en:'Unnamed club', ar:'نادٍ بدون اسم' },
+  noEmail: { es:'Sin email', en:'No email', ar:'لا يوجد بريد إلكتروني' },
+  approveAndMakeAdmin: { es:'✓ Aprobar y hacer Admin', en:'✓ Approve and make Admin', ar:'✓ الموافقة وتعيين كمسؤول' },
+  requestDatePrefix: { es:'· Solicitud {fecha}', en:'· Request {fecha}', ar:'· طلب {fecha}' },
+  csvNotRecognized: { es:'No reconocemos este CSV como un export de Catapult (le faltan columnas clave).', en:"We don't recognize this CSV as a Catapult export (it's missing key columns).", ar:'لا نتعرّف على هذا الملف كملف تصدير من Catapult (تنقصه أعمدة أساسية).' },
+  csvReadErrorPrefix: { es:'No se pudo leer el CSV: ', en:"Couldn't read the CSV: ", ar:'تعذّرت قراءة ملف CSV: ' },
+  catapultDataLoaded: { es:'Datos de Catapult cargados ✓ {n} jugadores · {date}', en:'Catapult data loaded ✓ {n} players · {date}', ar:'تم تحميل بيانات Catapult ✓ {n} لاعب · {date}' },
+  couldNotSavePrefix: { es:'No se pudo guardar: ', en:"Couldn't save: ", ar:'تعذّر الحفظ: ' },
+  savingEllipsis: { es:'Guardando…', en:'Saving…', ar:'جارٍ الحفظ…' },
+  scheduleSaved: { es:'✅ Horario guardado.', en:'✅ Schedule saved.', ar:'✅ تم حفظ الجدول الزمني.' },
+  rpeEnabledLabel: { es:'RPE habilitado: {start}–{end}', en:'RPE enabled: {start}–{end}', ar:'مؤشر الجهد المدرك مفعّل: {start}–{end}' },
+  restDayLabel: { es:'Día libre', en:'Day off', ar:'يوم راحة' },
+  matchVsLabel: { es:'Partido vs {rival}', en:'Match vs {rival}', ar:'مباراة ضد {rival}' },
+  cycleNextMatchLabel: { es:'Ciclo → próximo partido ({date})', en:'Cycle → next match ({date})', ar:'الدورة → المباراة القادمة ({date})' },
+  rpeLoadNotAvailable: { es:'No se pudo cargar el RPE del plantel.', en:"Couldn't load the squad's RPE.", ar:'تعذر تحميل مؤشر الجهد المدرك للفريق.' },
+  ratioBaja: { es:'Baja', en:'Low', ar:'منخفض' },
+  ratioCargaBaja: { es:'Carga baja', en:'Low load', ar:'حمل منخفض' },
+  ratioOptima: { es:'Óptima', en:'Optimal', ar:'مثالي' },
+  ratioPrecaucion: { es:'Precaución', en:'Caution', ar:'تنبيه' },
+  ratioRiesgoAlto: { es:'Riesgo alto', en:'High risk', ar:'خطر مرتفع' },
+  ratioDatosInsuf: { es:'Datos insuf.', en:'Insuf. data', ar:'بيانات غير كافية' },
+  csvMissingDate: { es:'Falta la fecha.', en:'Date is missing.', ar:'التاريخ مفقود.' },
+  csvMissingRival: { es:'Falta el nombre del rival.', en:"The opponent's name is missing.", ar:'اسم الخصم مفقود.' },
+  colJugador: { es:'Jugador', en:'Player', ar:'اللاعب' },
+  colHora: { es:'Hora', en:'Time', ar:'الوقت' },
+  colMin: { es:'Min', en:'Min', ar:'دقيقة' },
+  colCDiaria: { es:'C. Diaria', en:'Daily L.', ar:'الحمل اليومي' },
+  colCAguda: { es:'C. Aguda', en:'Acute L.', ar:'الحمل الحاد' },
+  colCCronica: { es:'C. Crónica', en:'Chronic L.', ar:'الحمل المزمن' },
+  colRatioAC: { es:'Ratio A:C', en:'A:C Ratio', ar:'نسبة A:C' },
+  squadAveragePrefix: { es:'Promedio del plantel', en:'Squad average', ar:'متوسط الفريق' },
+  applyToAllTitle: { es:'Aplicar este valor a todos los jugadores', en:'Apply this value to all players', ar:'طبّق هذه القيمة على كل اللاعبين' },
+  applyToAllBtn: { es:'✏️ Aplicar a todos', en:'✏️ Apply to all', ar:'✏️ تطبيق على الكل' },
+  enterClubName: { es:'Ingresa el nombre de tu club para continuar.', en:'Enter your club name to continue.', ar:'أدخل اسم ناديك للمتابعة.' },
+  noOutliersDetected: { es:'Sin valores atípicos detectados — todos los datos están dentro de rangos esperados.', en:'No outliers detected — all data is within expected ranges.', ar:'لم يتم اكتشاف قيم شاذة — كل البيانات ضمن النطاقات المتوقعة.' },
+  squadAvgDaysLoadedOne: { es:'Promedio del plantel · {n} día cargado', en:'Squad average · {n} day logged', ar:'متوسط الفريق · يوم واحد مسجَّل' },
+  squadAvgDaysLoadedMany: { es:'Promedio del plantel · {n} días cargados', en:'Squad average · {n} days logged', ar:'متوسط الفريق · {n} أيام مسجَّلة' },
+  sendingRecoveryLink: { es:'Enviando enlace de recuperación…', en:'Sending recovery link…', ar:'جارٍ إرسال رابط الاسترداد…' },
+  recoveryLinkSent: { es:'Listo, revisa tu correo ({email}) para restablecer tu contraseña.', en:'Done — check your email ({email}) to reset your password.', ar:'تم! تحقّق من بريدك الإلكتروني ({email}) لإعادة تعيين كلمة المرور.' },
+  gkAvgLast5: { es:'Promedio arquero (últ. 5)', en:'GK average (last 5)', ar:'متوسط الحارس (آخر 5)' },
+  gkAvgSquad: { es:'Promedio de arqueros', en:'GK squad average', ar:'متوسط حراس المرمى' },
+  playerAvgLast5: { es:'Promedio jugador (últ. 5)', en:'Player average (last 5)', ar:'متوسط اللاعب (آخر 5)' },
+  playerLoadAvg: { es:'Player Load prom.', en:'Avg. Player Load', ar:'متوسط Player Load' },
+  distUnitSuffix: { es:'m dist.', en:'m dist.', ar:'م مسافة' },
+  ratioLabelOptimal: { es:'Óptima', en:'Optimal', ar:'مثالي' },
+  ratioLabelCaution: { es:'Precaución', en:'Caution', ar:'تنبيه' },
+  monotonyAttention: { es:'Atención', en:'Caution', ar:'تنبيه' },
+  microTblFecha: { es:'Fecha', en:'Date', ar:'التاريخ' },
+  microTblMD: { es:'MD', en:'MD', ar:'MD' },
+  microTblSesion: { es:'Sesión', en:'Session', ar:'الحصة' },
+  microTblDistProm: { es:'Dist. prom. (m)', en:'Avg. dist. (m)', ar:'متوسط المسافة (م)' },
+  microTblHsrProm: { es:'HSR prom. (m)', en:'Avg. HSR (m)', ar:'متوسط HSR (م)' },
+  microTblPlProm: { es:'PL prom.', en:'Avg. PL', ar:'متوسط PL' },
+  microTblIntensidad: { es:'Intensidad (%)', en:'Intensity (%)', ar:'الشدة (%)' },
+  recordTag: { es:'RÉCORD', en:'RECORD', ar:'رقم قياسي' },
+  recordLastSessionTitle: { es:'Récord en la última sesión', en:'Record in the last session', ar:'رقم قياسي في آخر حصة' },
+  kpiIntensitySessionLbl: { es:'Intensidad sesión actual', en:'Current session intensity', ar:'شدة الحصة الحالية' },
+  kpiSessionSub: { es:'sesión del {fecha} · vs prom. últ. 3 partidos', en:'session on {fecha} · vs avg. last 3 matches', ar:'حصة {fecha} · مقابل متوسط آخر 3 مباريات' },
+  noDataYet: { es:'sin datos', en:'no data', ar:'لا توجد بيانات' },
+  fatigueDropMild: { es:'Caída leve — normal', en:'Mild drop — normal', ar:'انخفاض طفيف — طبيعي' },
+  fatigueNoDrop: { es:'Sin caída — rendimiento sostenido', en:'No drop — sustained performance', ar:'بدون انخفاض — أداء ثابت' },
+  fatigueIndexLabel: { es:'Índice de fatiga (2T vs 1T)', en:'Fatigue index (2H vs 1H)', ar:'مؤشر التعب (الشوط 2 مقابل 1)' },
+  excelHeaderNotFound: { es:'No se encontró la fila de encabezado en "Comparativo GPS".', en:'The header row was not found in "Comparativo GPS".', ar:'لم يتم العثور على صف العناوين في "Comparativo GPS".' },
+  viewingNowTag: { es:'VIENDO AHORA', en:'VIEWING NOW', ar:'قيد العرض الآن' },
+  dailySquadAvg: { es:'promedio diario del plantel', en:'squad daily average', ar:'متوسط الفريق اليومي' },
+  kpiDistCycleLbl: { es:'Distancia microciclo actual', en:'Current microcycle distance', ar:'مسافة الدورة الحالية' },
+  kpiHsrCycleLbl: { es:'HSR microciclo actual', en:'Current microcycle HSR', ar:'HSR للدورة الحالية' },
+  kpiPlWeeklyLbl: { es:'Player Load semanal', en:'Weekly Player Load', ar:'Player Load الأسبوعي' },
+  kpiCycleSubTotal: { es:'total acumulado · {sub}', en:'accumulated total · {sub}', ar:'الإجمالي المتراكم · {sub}' },
+  cycleSubSince: { es:'desde vs {rival} ({fecha})', en:'since vs {rival} ({fecha})', ar:'منذ مباراة ضد {rival} ({fecha})' },
+  cycleSubNoMatch: { es:'sin partido de referencia', en:'no reference match', ar:'لا توجد مباراة مرجعية' },
+  weeklySubNoData: { es:'sin semana anterior para comparar', en:'no previous week to compare', ar:'لا يوجد أسبوع سابق للمقارنة' },
+  weeklyWithin20: { es:'✓ dentro del ±20%', en:'✓ within ±20%', ar:'✓ ضمن ±20%' },
+  weeklyOutside20: { es:'⚠ fuera del ±20%', en:'⚠ outside ±20%', ar:'⚠ خارج ±20%' },
+  vsLastWeek: { es:'vs sem. anterior', en:'vs last week', ar:'مقابل الأسبوع السابق' },
+  ownerOnlyAction: { es:'Solo el OWNER puede realizar esta acción.', en:'Only the OWNER can perform this action.', ar:'يمكن للمالك فقط تنفيذ هذا الإجراء.' },
+};
+function msg(key, vars){
+  const dict = MESSAGES[key];
+  let s = (dict && (dict[currentLang] || dict.es)) || key;
+  if(vars) Object.keys(vars).forEach(k=>{ s = s.split('{'+k+'}').join(vars[k]); });
+  return s;
+}
 function applyI18nStatic(){
   METRIC_ORDER.forEach(k=> METRICS[k].label = I18N[currentLang].metrics[k]);
   GK_METRIC_ORDER.forEach(k=> GK_METRICS[k].label = I18N[currentLang].gkMetrics[k]);
   document.querySelectorAll('[data-i18n]').forEach(el=>{ el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-html]').forEach(el=>{ el.innerHTML = t(el.dataset.i18nHtml); });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{ el.placeholder = t(el.dataset.i18nPlaceholder); });
   document.querySelectorAll('[data-i18n-title]').forEach(el=>{ el.title = t(el.dataset.i18nTitle); });
   const authTitle = document.getElementById('authTitle');
@@ -2584,7 +2740,7 @@ function computeMonotonyStrain(evs){
 function monotonyStatus(monotony){
   if(monotony===null) return {label:'Datos insuf.', varName:'--mist'};
   if(monotony<1.5) return {label:'Saludable', varName:'--good'};
-  if(monotony<2.0) return {label:'Atención', varName:'--warn'};
+  if(monotony<2.0) return {label:msg('monotonyAttention'), varName:'--warn'};
   return {label:'Riesgo alto', varName:'--bad'};
 }
 function buildMonotonyStrain(){
@@ -2770,7 +2926,7 @@ function buildMicrocycleTable(){
       if(intensityPct!==null) intensityValues.push(intensityPct);
       const intensityColor = intensityPct===null ? '' : (intensityPct>100 ? 'color:var(--bad);' : intensityPct>=70 ? 'color:var(--gold-bright);' : 'color:var(--mist);');
 
-      const nombre = isRest ? 'Día libre' : (match ? `Partido vs ${match.detalle}` : (dayEvents[0]?.detalle || dayEvents[0]?.tipo || '—'));
+      const nombre = isRest ? msg('restDayLabel') : (match ? msg('matchVsLabel',{rival:match.detalle}) : (dayEvents[0]?.detalle || dayEvents[0]?.tipo || '—'));
       const rowClass = isRest ? 'mc-rest' : (match ? 'mc-match' : '');
       const dateStr = d.split('-').reverse().join('/');
       let mdLabel = '—';
@@ -2792,7 +2948,7 @@ function buildMicrocycleTable(){
     if(matchDate && byDate[matchDate] && byDate[matchDate].some(e=>e.tipo==='Partido')){
       cycleLabel = `Ciclo vs ${byDate[matchDate].find(e=>e.tipo==='Partido').detalle} (${matchDate.split('-').reverse().join('/')})`;
     } else if(matchIsManual){
-      cycleLabel = `Ciclo → próximo partido (${matchDate.split('-').reverse().join('/')})`;
+      cycleLabel = msg('cycleNextMatchLabel',{date:matchDate.split('-').reverse().join('/')});
     } else {
       cycleLabel = 'Bloque sin partido';
     }
@@ -2800,7 +2956,7 @@ function buildMicrocycleTable(){
     return `${dayRows}<tr class="mc-total"><td colspan="3">${cycleLabel} · Total del microciclo</td><td class="mono">${cycleTotal>0 ? fmt(Math.round(cycleTotal))+' m' : '—'}</td><td class="mono">${hsrTotal>0 ? fmt(Math.round(hsrTotal))+' m' : '—'}</td><td class="mono">${plTotal>0 ? fmt(Math.round(plTotal)) : '—'}</td><td class="mono">${avgIntensity===null ? '—' : avgIntensity+'% prom.'}</td></tr>`;
   }).join('');
   box.innerHTML = `<table class="mc-table">
-    <thead><tr><th>Fecha</th><th>MD</th><th>Sesión</th><th>Dist. prom. (m)</th><th>HSR prom. (m)</th><th>PL prom.</th><th>Intensidad (%)</th></tr></thead>
+    <thead><tr><th>${msg('microTblFecha')}</th><th>${msg('microTblMD')}</th><th>${msg('microTblSesion')}</th><th>${msg('microTblDistProm')}</th><th>${msg('microTblHsrProm')}</th><th>${msg('microTblPlProm')}</th><th>${msg('microTblIntensidad')}</th></tr></thead>
     <tbody>${bodyHtml}</tbody>
   </table>`;
 }
@@ -2950,29 +3106,29 @@ async function buildPendingClubsPanel(){
   box.innerHTML=data.map(r=>{
     const fecha=new Date(r.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
     return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap;">
-      <div><div style="color:var(--bone);font-weight:600;font-size:13px;">${r.club||'Club sin nombre'}</div>
-      <div style="color:var(--mist);font-size:11.5px;margin-top:2px;">${r.email||'Sin email'} · Solicitud ${fecha}</div></div>
+      <div><div style="color:var(--bone);font-weight:600;font-size:13px;">${r.club||msg('clubNoName')}</div>
+      <div style="color:var(--mist);font-size:11.5px;margin-top:2px;">${r.email||msg('noEmail')} ${msg('requestDatePrefix',{fecha})}</div></div>
       <div style="display:flex;gap:8px;">
-        <button class="upload-btn" data-approve-club="${r.user_id}" style="padding:7px 14px;white-space:nowrap;">✓ Aprobar y hacer Admin</button>
+        <button class="upload-btn" data-approve-club="${r.user_id}" style="padding:7px 14px;white-space:nowrap;">${msg('approveAndMakeAdmin')}</button>
         <button class="upload-btn" data-reject-club="${r.user_id}" style="padding:7px 14px;white-space:nowrap;">✕ Rechazar</button>
       </div>
     </div>`;
   }).join('');
 
   box.querySelectorAll('[data-approve-club]').forEach(btn=>btn.onclick=async()=>{
-    btn.disabled=true; btn.textContent='Aprobando…';
+    btn.disabled=true; btn.textContent=msg('approvingEllipsis');
     try{ await approveNewClub(btn.dataset.approveClub); await buildPendingClubsPanel(); await buildClubesList(); }
-    catch(e){ console.error(e); btn.disabled=false; btn.textContent='⚠️ Reintentar'; }
+    catch(e){ console.error(e); btn.disabled=false; btn.textContent=msg('retryWarning'); }
   });
   box.querySelectorAll('[data-reject-club]').forEach(btn=>btn.onclick=async()=>{
-    btn.disabled=true; btn.textContent='Rechazando…';
+    btn.disabled=true; btn.textContent=msg('rejectingEllipsis');
     try{ await rejectNewClub(btn.dataset.rejectClub); await buildPendingClubsPanel(); }
-    catch(e){ console.error(e); btn.disabled=false; btn.textContent='⚠️ Reintentar'; }
+    catch(e){ console.error(e); btn.disabled=false; btn.textContent=msg('retryWarning'); }
   });
 }
 
 async function assertOwner(){
-  if(!(myProfile && myProfile.role==='owner')) throw new Error('Solo el OWNER puede realizar esta acción.');
+  if(!(myProfile && myProfile.role==='owner')) throw new Error(msg('ownerOnlyAction'));
 }
 async function approveNewClub(userId){
   await assertOwner();
@@ -3011,12 +3167,12 @@ async function buildClubesList(){
   const clubs = Object.keys(counts).sort((a,b)=>a.localeCompare(b));
   if(tag) tag.textContent = `${clubs.length} club${clubs.length===1?'':'es'} registrado${clubs.length===1?'':'s'}`;
   if(!clubs.length){
-    box.innerHTML = '<p style="padding:14px 18px;color:var(--mist);font-size:12.5px;">Todavía no hay clubes registrados.</p>';
+    box.innerHTML = `<p style="padding:14px 18px;color:var(--mist);font-size:12.5px;">${msg('noClubsRegistered')}</p>`;
     return;
   }
   box.innerHTML = clubs.map(c=>`
     <div class="club-row" data-club="${c}" style="cursor:pointer;">
-      <div class="nm">${c}${c===CURRENT_CLUB?' <span class="lb-record-tag">VIENDO AHORA</span>':''}</div>
+      <div class="nm">${c}${c===CURRENT_CLUB?` <span class="lb-record-tag">${msg('viewingNowTag')}</span>`:''}</div>
       <div class="num">${counts[c]} usuario${counts[c]===1?'':'s'}</div>
     </div>`).join('');
   box.querySelectorAll('.club-row').forEach(el=>{
@@ -3087,11 +3243,11 @@ function buildGkLeaderboard(){
 
   box.innerHTML = rows.map((r,i)=>{
     const barPct = r.pct===null ? 0 : Math.max(3, Math.min(100, r.pct));
-    const pctLabel = r.pct===null ? 'sin récord de referencia' : `${fmt(r.pct,0)}% del récord · tope ${fmt(r.recVal,GK_METRICS[m].dec)}`;
+    const pctLabel = r.pct===null ? msg('noRecordReference') : msg('pctOfRecord',{pct:fmt(r.pct,0), recVal:fmt(r.recVal,GK_METRICS[m].dec)});
     return `
     <div class="lb-row" data-p="${r.p}" style="cursor:pointer;">
       <div class="rk">${i+1<10?'0':''}${i+1}</div>
-      <div class="nm">${r.p}${r.isRecordNow?'<span class="lb-record-tag">RÉCORD</span>':''}</div>
+      <div class="nm">${r.p}${r.isRecordNow?`<span class="lb-record-tag">${msg('recordTag')}</span>`:''}</div>
       <div class="lb-bar-track"><div class="lb-bar-fill ${r.isRecordNow?'is-record':''}" style="width:${barPct}%"></div></div>
       <div class="num">${r.lastVal!==null&&r.lastVal!==undefined? fmt(r.lastVal, GK_METRICS[m].dec):'—'}<span class="pct ${r.isRecordNow?'is-record':''}">${pctLabel}</span></div>
     </div>`;
@@ -3179,7 +3335,7 @@ function buildGkTeamTimeline(resetToLatest){
   const canvas = document.getElementById('gkTeamTimelineChart');
   if(!canvas) return;
   if(typeof Chart === 'undefined'){
-    canvas.parentElement.innerHTML = '<div style="color:var(--mist);font-family:\'IBM Plex Mono\';font-size:12px;padding:20px;text-align:center;">No se pudo cargar Chart.js (sin conexión).</div>';
+    canvas.parentElement.innerHTML = `<div style="color:var(--mist);font-family:'IBM Plex Mono';font-size:12px;padding:20px;text-align:center;">${msg('chartLoadError')}</div>`;
     return;
   }
   const m = state.gkTtMetric;
@@ -3222,7 +3378,7 @@ function buildGkTeamTimeline(resetToLatest){
               const sub = e.detalle ? (e.tipo==='Partido' ? ('vs '+e.detalle) : e.detalle) : '';
               return sub ? `${dateStr} · ${sub}` : dateStr;
             },
-            label:(ctx)=> ctx.raw===null||ctx.raw===undefined ? 'Sin datos' : `${GK_METRICS[m].label}: ${fmt(ctx.raw, GK_METRICS[m].dec)}${GK_METRICS[m].unit?(' '+GK_METRICS[m].unit):''}`
+            label:(ctx)=> ctx.raw===null||ctx.raw===undefined ? msg('noDataYet') : `${GK_METRICS[m].label}: ${fmt(ctx.raw, GK_METRICS[m].dec)}${GK_METRICS[m].unit?(' '+GK_METRICS[m].unit):''}`
           }
         }
       },
@@ -3252,7 +3408,7 @@ function buildGkACWR(){
       <div class="nm">${r.p}</div>
       <div class="acwr-track">${pct!==null?`<div class="acwr-marker" style="left:${pct}%"></div>`:''}</div>
       <div class="acwr-ratio">${r.ratio!==null? r.ratio.toFixed(2) : '—'}</div>
-      <div><span class="acwr-badge" style="background:var(${ACWR_VAR[r.status]});color:#14143A;">${ACWR_LABEL[r.status]}</span></div>
+      <div><span class="acwr-badge" style="background:var(${ACWR_VAR[r.status]});color:#14143A;">${ACWR_LABEL()[r.status]}</span></div>
     </div>`;
   }).join('');
   box.querySelectorAll('.acwr-row').forEach(el=>{
@@ -3316,7 +3472,7 @@ function buildDataQuality(){
   });
   flagged.sort((a,b)=> b.z-a.z);
   if(!flagged.length){
-    box.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">Sin valores atípicos detectados — todos los datos están dentro de rangos esperados.</div>`;
+    box.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">${msg('noOutliersDetected')}</div>`;
     return;
   }
   box.innerHTML = flagged.slice(0,15).map((r,i)=>{
@@ -3382,26 +3538,26 @@ function buildKPIs(){
   const weeklyPL = getWeeklyPLComparison();
   const sessionIntensity = getCurrentSessionIntensity();
 
-  const cycleSub = lastMatch ? `desde vs ${lastMatch.rival} (${lastMatch.fecha.split('-').reverse().join('/')})` : 'sin partido de referencia';
+  const cycleSub = lastMatch ? msg('cycleSubSince',{rival:lastMatch.rival, fecha:lastMatch.fecha.split('-').reverse().join('/')}) : msg('cycleSubNoMatch');
 
-  let weeklySub = 'sin semana anterior para comparar';
+  let weeklySub = msg('weeklySubNoData');
   if(weeklyPL && weeklyPL.pctChange!==null){
     const signo = weeklyPL.pctChange>=0 ? '+' : '';
     weeklySub = weeklyPL.within20
-      ? `<b style="color:var(--good);">✓ dentro del ±20%</b> · ${signo}${weeklyPL.pctChange}% vs sem. anterior`
-      : `<b style="color:var(--bad);">⚠ fuera del ±20%</b> · ${signo}${weeklyPL.pctChange}% vs sem. anterior`;
+      ? `<b style="color:var(--good);">${msg('weeklyWithin20')}</b> · ${signo}${weeklyPL.pctChange}% ${msg('vsLastWeek')}`
+      : `<b style="color:var(--bad);">${msg('weeklyOutside20')}</b> · ${signo}${weeklyPL.pctChange}% ${msg('vsLastWeek')}`;
   }
 
   const kpis = [
-    {lbl:'Distancia microciclo actual', val: cycleDistTotal!==null ? fmt(cycleDistTotal) : '—', unit:'m',
-      sub: `total acumulado · ${cycleSub}`},
-    {lbl:'HSR microciclo actual', val: cycleHsrTotal!==null ? fmt(cycleHsrTotal) : '—', unit:'m',
-      sub: `total acumulado · ${cycleSub}`},
-    {lbl:'Player Load semanal', val: weeklyPL ? fmt(weeklyPL.current) : '—', unit:'',
+    {lbl:msg('kpiDistCycleLbl'), val: cycleDistTotal!==null ? fmt(cycleDistTotal) : '—', unit:'m',
+      sub: msg('kpiCycleSubTotal',{sub:cycleSub})},
+    {lbl:msg('kpiHsrCycleLbl'), val: cycleHsrTotal!==null ? fmt(cycleHsrTotal) : '—', unit:'m',
+      sub: msg('kpiCycleSubTotal',{sub:cycleSub})},
+    {lbl:msg('kpiPlWeeklyLbl'), val: weeklyPL ? fmt(weeklyPL.current) : '—', unit:'',
       sub: weeklySub},
     {lbl:t('kpiRecords'), val:todays.length, unit:'', sub: todays.length? `<b>${todays.map(x=>x.jugador.split(' ')[0]).slice(0,3).join(', ')}${todays.length>3?'…':''}</b>` : t('sinNuevos')},
-    {lbl:'Intensidad sesión actual', val: sessionIntensity && sessionIntensity.pct!==null ? sessionIntensity.pct : '—', unit: sessionIntensity && sessionIntensity.pct!==null ? '%' : '',
-      sub: sessionIntensity ? `sesión del ${sessionIntensity.fecha.split('-').reverse().join('/')} · vs prom. últ. 3 partidos` : 'sin datos'},
+    {lbl:msg('kpiIntensitySessionLbl'), val: sessionIntensity && sessionIntensity.pct!==null ? sessionIntensity.pct : '—', unit: sessionIntensity && sessionIntensity.pct!==null ? '%' : '',
+      sub: sessionIntensity ? msg('kpiSessionSub',{fecha:sessionIntensity.fecha.split('-').reverse().join('/')}) : msg('noDataYet')},
   ];
   document.getElementById('kpiStrip').innerHTML = kpis.map(k=>`
     <div class="kpi">
@@ -3424,7 +3580,7 @@ function buildPlayerList(filter=''){
     return `<div class="p-item ${p===state.player?'active':''}" data-p="${p}">
       <div class="ini">${initials(p)}</div>
       <div class="nm"><b>${p}</b><small>${byPlayer[p].length} sesiones</small></div>
-      ${isNew?'<span class="fire" title="Récord en la última sesión">🔥</span>':''}
+      ${isNew?`<span class="fire" title="${msg('recordLastSessionTitle')}">🔥</span>`:''}
     </div>`;
   }).join('');
   list.querySelectorAll('.p-item').forEach(el=>{
@@ -3497,9 +3653,9 @@ function drawRadar(player){
   // side stats
   const side = document.getElementById('radarSide');
   side.innerHTML = `
-    <div class="rs-item gold"><div class="k">Promedio jugador (últ. 5)</div><div class="v">${fmt(pAvg.dist||0)}<span>m dist.</span></div></div>
-    <div class="rs-item gold"><div class="k">Player Load prom.</div><div class="v">${fmt(Math.round(pAvg.pl||0))}</div></div>
-    <div class="rs-item mist"><div class="k">Promedio del plantel</div><div class="v">${fmt(Math.round(squadAvg.dist))}<span>m dist.</span></div></div>
+    <div class="rs-item gold"><div class="k">${msg('playerAvgLast5')}</div><div class="v">${fmt(pAvg.dist||0)}<span>${msg('distUnitSuffix')}</span></div></div>
+    <div class="rs-item gold"><div class="k">${msg('playerLoadAvg')}</div><div class="v">${fmt(Math.round(pAvg.pl||0))}</div></div>
+    <div class="rs-item mist"><div class="k">${msg('squadAveragePrefix')}</div><div class="v">${fmt(Math.round(squadAvg.dist))}<span>${msg('distUnitSuffix')}</span></div></div>
   `;
 }
 
@@ -3544,7 +3700,7 @@ function buildTimeline(player, metric, resetToLatest){
   if(typeof Chart === 'undefined'){
     document.getElementById('timelinePlayerTag').textContent = player;
     const box = document.querySelector('.chart-box');
-    if(box) box.innerHTML = '<div style="color:var(--mist);font-family:\'IBM Plex Mono\';font-size:12px;padding:20px;text-align:center;">No se pudo cargar Chart.js (sin conexión). El resto del dashboard funciona con normalidad.</div>';
+    if(box) box.innerHTML = `<div style="color:var(--mist);font-family:'IBM Plex Mono';font-size:12px;padding:20px;text-align:center;">${msg('chartLoadErrorFull')}</div>`;
     return;
   }
   const labels = evs.map(e=>{
@@ -3627,7 +3783,7 @@ const LB_THRESHOLDS = { dist:10000, vel:30, hsr:900 };
 
 function buildLeaderboard(){
   const m = state.lbMetric;
-  document.getElementById('lbMetricTag').textContent = `${METRICS[m].label} · orden de mayor a menor · récord personal como tope`;
+  document.getElementById('lbMetricTag').textContent = `${METRICS[m].label} · ${t('gkOrdenMayorMenor')}`;
   const rows = players.map(p=>{
     const evs = byPlayer[p]||[];
     // buscamos la última sesión que SÍ tenga datos de esta métrica (así un día libre recién cargado no tapa todo)
@@ -3655,7 +3811,7 @@ function buildLeaderboard(){
     if(breakers.length){
       const names = breakers.map(r=>r.p.split(' ')[0]).join(', ');
       banner.style.display = 'block';
-      banner.innerHTML = `🔥 ¡Récord superado en ${METRICS[m].label}! ${names} alcanzó${breakers.length>1?'ron':''} un nuevo máximo personal en la última sesión.`;
+      banner.innerHTML = msg('recordBrokenBanner',{metric:METRICS[m].label, names, verb: currentLang==='es' ? (breakers.length>1?'alcanzaron':'alcanzó') : ''});
     } else {
       banner.style.display = 'none';
     }
@@ -3666,11 +3822,11 @@ function buildLeaderboard(){
   box.innerHTML = rows.map((r,i)=>{
     const barPct = r.pct===null ? 0 : Math.max(3, Math.min(100, r.pct));
     const overTh = threshold!==undefined && r.lastVal!==null && r.lastVal!==undefined && r.lastVal>threshold;
-    const pctLabel = r.pct===null ? 'sin récord de referencia' : `${fmt(r.pct,0)}% del récord · tope ${fmt(r.recVal,METRICS[m].dec)}`;
+    const pctLabel = r.pct===null ? msg('noRecordReference') : msg('pctOfRecord',{pct:fmt(r.pct,0), recVal:fmt(r.recVal,METRICS[m].dec)});
     return `
     <div class="lb-row ${r.p===state.player?'active':''}" data-p="${r.p}">
       <div class="rk">${i+1<10?'0':''}${i+1}</div>
-      <div class="nm">${r.p}${r.isRecordNow?'<span class="lb-record-tag">RÉCORD</span>':''}</div>
+      <div class="nm">${r.p}${r.isRecordNow?`<span class="lb-record-tag">${msg('recordTag')}</span>`:''}</div>
       <div class="lb-bar-track"><div class="lb-bar-fill ${r.isRecordNow?'is-record':''} ${overTh?'over-th':''}" style="width:${barPct}%"></div></div>
       <div class="num ${overTh?'over-th':''}">${r.lastVal!==null&&r.lastVal!==undefined? fmt(r.lastVal, METRICS[m].dec):'—'}<span class="pct ${r.isRecordNow?'is-record':''}">${pctLabel}</span></div>
     </div>`;
@@ -3709,10 +3865,10 @@ function buildRecordsTable(){
 
 // ---------- match comparison ----------
 function fatigaLabel(v){
-  if(v<=-8) return 'Caída marcada — riesgo alto';
-  if(v<=-4) return 'Caída moderada — atención';
-  if(v<0) return 'Caída leve — normal';
-  return 'Sin caída — rendimiento sostenido';
+  if(v<=-8) return msg('fatigueDropSevere');
+  if(v<=-4) return msg('fatigueDropModerate');
+  if(v<0) return msg('fatigueDropMild');
+  return msg('fatigueNoDrop');
 }
 function buildMatchGrid(){
   const box = document.getElementById('matchGrid');
@@ -3730,12 +3886,12 @@ function buildMatchGrid(){
       <div class="mm-row"><span class="k">Desa B2-3</span><span class="v">${t.desa}</span></div>
       <div class="mm-row"><span class="k">RHIE bouts</span><span class="v">${t.rhie}</span></div>
       <div class="mm-row"><span class="k">Player Load</span><span class="v">${fmt(t.pl)}</span></div>
-      ${t.fatiga!==undefined && t.fatiga!==null ? `<div class="mm-row"><span class="k">Índice de fatiga (2T vs 1T)</span><span class="v" style="color:${t.fatiga<=-8?'var(--bad)':t.fatiga<=-4?'var(--warn)':'var(--good)'};">${t.fatiga>0?'+':''}${fmt(t.fatiga,1)}% <span style="font-size:10.5px;font-weight:400;opacity:.85;">(${fatigaLabel(t.fatiga)})</span></span></div>` : ''}
+      ${t.fatiga!==undefined && t.fatiga!==null ? `<div class="mm-row"><span class="k">${msg('fatigueIndexLabel')}</span><span class="v" style="color:${t.fatiga<=-8?'var(--bad)':t.fatiga<=-4?'var(--warn)':'var(--good)'};">${t.fatiga>0?'+':''}${fmt(t.fatiga,1)}% <span style="font-size:10.5px;font-weight:400;opacity:.85;">(${fatigaLabel(t.fatiga)})</span></span></div>` : ''}
     </div>`).join('');
 }
 
 // ---------- ACWR panel ----------
-const ACWR_LABEL = {low:'Carga baja', optimal:'Óptima', caution:'Precaución', high:'Riesgo alto', insuf:'Datos insuf.'};
+function ACWR_LABEL(){ return {low:msg('ratioCargaBaja'), optimal:msg('ratioOptima'), caution:msg('ratioPrecaucion'), high:msg('ratioRiesgoAlto'), insuf:msg('ratioDatosInsuf')}; }
 const ACWR_VAR = {low:'--low', optimal:'--good', caution:'--warn', high:'--bad', insuf:'--mist'};
 function buildACWR(){
   const dates = [...new Set(ACTIVE_EVENTS.map(e=>e.fecha))].sort();
@@ -3752,7 +3908,7 @@ function buildACWR(){
       <div class="nm">${r.p}</div>
       <div class="acwr-track">${pct!==null?`<div class="acwr-marker" style="left:${pct}%"></div>`:''}</div>
       <div class="acwr-ratio">${r.ratio!==null? r.ratio.toFixed(2) : '—'}</div>
-      <div><span class="acwr-badge" style="background:var(${ACWR_VAR[r.status]});color:#14143A;">${ACWR_LABEL[r.status]}</span></div>
+      <div><span class="acwr-badge" style="background:var(${ACWR_VAR[r.status]});color:#14143A;">${ACWR_LABEL()[r.status]}</span></div>
     </div>`;
   }).join('');
   box.querySelectorAll('.acwr-row').forEach(el=> el.addEventListener('click',()=>selectPlayer(el.dataset.p)));
@@ -3807,11 +3963,11 @@ function buildWeeklyLoadChart(resetToLatest){
   const wlLabelEl = document.getElementById('wlLabel');
   if(wlLabelEl){
     const from = state.wlOffset+1, to = Math.min(allRatios.length, state.wlOffset+ACWR_WINDOW);
-    wlLabelEl.innerHTML = `Días <b>${from}–${to}</b> de <b>${allRatios.length}</b>`;
+    wlLabelEl.innerHTML = msg('daysRangeLabel',{from, to, total:allRatios.length});
   }
 
   if(typeof Chart === 'undefined'){
-    canvas.parentElement.innerHTML = '<div style="color:var(--mist);font-family:\'IBM Plex Mono\';font-size:12px;padding:14px;text-align:center;">No se pudo cargar Chart.js (sin conexión).</div>';
+    canvas.parentElement.innerHTML = `<div style="color:var(--mist);font-family:'IBM Plex Mono';font-size:12px;padding:14px;text-align:center;">${msg('chartLoadError')}</div>`;
     return;
   }
 
@@ -3883,7 +4039,7 @@ function buildWeeklyLoadChart(resetToLatest){
   weeklyLoadChart = new Chart(ctx, cfg);
   requestAnimationFrame(()=>{ if(weeklyLoadChart) weeklyLoadChart.resize(); });
   const tag = document.getElementById('weeklyLoadTag');
-  if(tag) tag.textContent = `Promedio del plantel · ${allRatios.length} día${allRatios.length===1?'':'s'} cargado${allRatios.length===1?'':'s'}`;
+  if(tag) tag.textContent = allRatios.length===1 ? msg('squadAvgDaysLoadedOne',{n:allRatios.length}) : msg('squadAvgDaysLoadedMany',{n:allRatios.length});
 }
 
 // ---------- team-wide daily evolution (dist / hsr / pl) ----------
@@ -3965,12 +4121,12 @@ function buildTeamTimeline(resetToLatest){
     }
   }
   const tag = document.getElementById('teamTimelineTag');
-  if(tag) tag.textContent = `${METRICS[state.ttMetric].label} · promedio diario del plantel`;
+  if(tag) tag.textContent = `${METRICS[state.ttMetric].label} · ${msg('dailySquadAvg')}`;
 
   const canvas = document.getElementById('teamTimelineChart');
   if(!canvas) return;
   if(typeof Chart === 'undefined'){
-    canvas.parentElement.innerHTML = '<div style="color:var(--mist);font-family:\'IBM Plex Mono\';font-size:12px;padding:20px;text-align:center;">No se pudo cargar Chart.js (sin conexión). El resto del dashboard funciona con normalidad.</div>';
+    canvas.parentElement.innerHTML = `<div style="color:var(--mist);font-family:'IBM Plex Mono';font-size:12px;padding:20px;text-align:center;">${msg('chartLoadErrorFull')}</div>`;
     return;
   }
   const m = state.ttMetric;
@@ -4013,7 +4169,7 @@ function buildTeamTimeline(resetToLatest){
               const sub = e.detalle ? (e.tipo==='Partido' ? ('vs '+e.detalle) : e.detalle) : '';
               return sub ? `${dateStr} · ${sub}` : dateStr;
             },
-            label:(ctx)=> ctx.raw===null||ctx.raw===undefined ? 'Sin datos' : `${METRICS[m].label}: ${fmt(ctx.raw, METRICS[m].dec)}${METRICS[m].unit?(' '+METRICS[m].unit):''}`
+            label:(ctx)=> ctx.raw===null||ctx.raw===undefined ? msg('noDataYet') : `${METRICS[m].label}: ${fmt(ctx.raw, METRICS[m].dec)}${METRICS[m].unit?(' '+METRICS[m].unit):''}`
           }
         }
       },
@@ -4078,7 +4234,7 @@ function buildCompare(){
       <td class="${vB>vA?'leadB':''}">${fmt(vB,METRICS[m].dec)}</td>
     </tr>`;
   }).join('');
-  table.innerHTML = `<thead><tr><th>Métrica (prom. últ. 5)</th><th>${pA}</th><th>${pB}</th></tr></thead><tbody>${rows}</tbody>`;
+  table.innerHTML = `<thead><tr><th>${msg('metricAvgLast5Header')}</th><th>${pA}</th><th>${pB}</th></tr></thead><tbody>${rows}</tbody>`;
 }
 function populateCompareSelects(){
   const a = document.getElementById('compareA');
@@ -4241,7 +4397,7 @@ function parseComparativoSheet(ws){
   const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null});
   let headerRow = -1;
   for(let i=0;i<rows.length;i++){ if(rows[i] && String(rows[i][0]||'').startsWith('Variable')){ headerRow=i; break; } }
-  if(headerRow<0) throw new Error('No se encontró la fila de encabezado en "Comparativo GPS".');
+  if(headerRow<0) throw new Error(msg('excelHeaderNotFound'));
   const cols = [];
   for(let c=1;c<rows[headerRow].length;c++){ if(rows[headerRow][c]) cols.push({idx:c, name:rows[headerRow][c]}); }
   const dateFor = {};
@@ -4352,7 +4508,7 @@ async function handleFile(file){
   }
   showStatus('Leyendo '+file.name+'…','');
   try{
-    if(typeof XLSX === 'undefined') throw new Error('No se pudo cargar la librería de lectura de Excel (sin conexión).');
+    if(typeof XLSX === 'undefined') throw new Error(msg('excelLibLoadError'));
     const buf = await file.arrayBuffer();
     const wb = XLSX.read(buf, {type:'array', cellDates:true});
     const events = [];
@@ -4403,7 +4559,7 @@ async function handleFile(file){
     renderAll(prevPlayer);
     const lastDate = [...new Set(events.map(e=>e.fecha))].sort().pop();
     const gkMsg = gkEvents.length ? ` · ${gkEvents.length} registros de arqueros` : '';
-    showStatus(`Datos actualizados ✓ ${events.length} registros · ${players.length} jugadores · última fecha ${lastDate.split('-').reverse().join('/')}${gkMsg}`, 'ok');
+    showStatus(msg('dataUpdatedStatus',{n:events.length, players:players.length, date:lastDate.split('-').reverse().join('/'), gk:gkMsg}), 'ok');
   }catch(err){
     console.error(err);
     showStatus('No se pudo leer el archivo: '+err.message, 'error');
@@ -4415,7 +4571,7 @@ async function handleCatapultCSV(file){
   try{
     const text = await file.text();
     const parsed = parseCatapultCSV(text);
-    if(!parsed) throw new Error('No reconocemos este CSV como un export de Catapult (le faltan columnas clave).');
+    if(!parsed) throw new Error(msg('csvNotRecognized'));
     pendingCatapultData = parsed;
     document.getElementById('csvImportCount').textContent = parsed.bySession.length;
     document.getElementById('csvImportFecha').value = parsed.fecha || '';
@@ -4426,7 +4582,7 @@ async function handleCatapultCSV(file){
     showStatus('', '');
   }catch(err){
     console.error(err);
-    showStatus('No se pudo leer el CSV: '+err.message, 'error');
+    showStatus(msg('csvReadErrorPrefix')+err.message, 'error');
   }
 }
 
@@ -4457,10 +4613,10 @@ async function confirmCatapultImport(){
   const rival = document.getElementById('csvImportRival').value.trim();
   const detalle = document.getElementById('csvImportDetalle').value.trim();
   const fecha = document.getElementById('csvImportFecha').value;
-  if(!fecha){ status.textContent = 'Falta la fecha.'; return; }
-  if(tipo==='Partido' && !rival){ status.textContent = 'Falta el nombre del rival.'; return; }
+  if(!fecha){ status.textContent = msg('csvMissingDate'); return; }
+  if(tipo==='Partido' && !rival){ status.textContent = msg('csvMissingRival'); return; }
 
-  status.textContent = 'Guardando…';
+  status.textContent = msg('savingEllipsis');
   try{
     const detalleFinal = tipo==='Partido' ? rival : (detalle || 'Entreno');
     const nuevosEventos = pendingCatapultData.bySession.map(r=>({
@@ -4492,7 +4648,7 @@ async function confirmCatapultImport(){
 
     document.getElementById('csvImportModal').style.display = 'none';
     pendingCatapultData = null;
-    showStatus(`Datos de Catapult cargados ✓ ${nuevosEventos.length} jugadores · ${fecha.split('-').reverse().join('/')}`, 'ok');
+    showStatus(msg('catapultDataLoaded',{n:nuevosEventos.length, date:fecha.split('-').reverse().join('/')}), 'ok');
   }catch(err){
     console.error(err);
     status.textContent = 'No se pudo guardar: ' + err.message;
@@ -4521,12 +4677,12 @@ async function init(){
     event.preventDefault();
     const recoveryMessage = document.getElementById('recoveryMessage');
     const newPassword = document.getElementById('recoveryPassword').value;
-    recoveryMessage.textContent = 'Guardando…'; recoveryMessage.className='auth-message';
+    recoveryMessage.textContent = msg('savingEllipsis'); recoveryMessage.className='auth-message';
     const {error} = await supabaseClient.auth.updateUser({password:newPassword});
     if(error){ recoveryMessage.textContent = error.message; recoveryMessage.className='auth-message error'; return; }
     await supabaseClient.auth.signOut();
     history.replaceState(null,'',window.location.pathname);
-    recoveryMessage.textContent = '¡Listo! Tu contraseña se actualizó. Inicia sesión de nuevo.';
+    recoveryMessage.textContent = msg('passwordUpdated');
     recoveryMessage.className='auth-message ok';
     setTimeout(()=>{
       document.getElementById('recoveryScreen').style.display='none';
@@ -4554,10 +4710,10 @@ async function init(){
   document.getElementById('forgotPassword').addEventListener('click', async ()=>{
     const email=document.getElementById('authEmail').value.trim();
     if(!email){ authMessage('Escribe tu email arriba primero, luego haz click en este enlace.','error'); return; }
-    authMessage('Enviando enlace de recuperación…');
+    authMessage(msg('sendingRecoveryLink'));
     const {error}=await supabaseClient.auth.resetPasswordForEmail(email, {redirectTo:window.location.origin});
     if(error){ authMessage(error.message,'error'); return; }
-    authMessage('Listo, revisa tu correo (' + email + ') para restablecer tu contraseña.','ok');
+    authMessage(msg('recoveryLinkSent',{email}),'ok');
   });
   const fileInput = document.getElementById('fileInput');
   const uploadBtn = document.getElementById('uploadBtn');
