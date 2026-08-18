@@ -555,10 +555,10 @@
       <input id="authClubName" type="text" autocomplete="organization" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Sans';outline:none;margin-bottom:10px;box-sizing:border-box;" placeholder="Ej: Al Saqer FC">
       <label for="authRoleSelect" data-i18n="quienSos" class="i18n-text">¿Quién sos?</label>
       <select id="authRoleSelect" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Sans';outline:none;margin-bottom:10px;">
-        <option value="club_admin">Administrador del club</option>
         <option value="player" data-i18n="rolJugador">Jugador o arquero</option>
         <option value="pending_staff" data-i18n="rolStaff">Staff (médico y técnico)</option>
         <option value="pending_gk_coach" data-i18n="rolGkCoach">Entrenador de arqueros</option>
+        <option value="club_admin" data-i18n="rolClubAdmin">Administrador de un club nuevo</option>
       </select>
     </div>
     <button id="authSubmit" class="auth-submit" type="submit" data-i18n="ingresar">Ingresar</button>
@@ -1455,8 +1455,10 @@ function buildGkPlayerView(playerName){
   const last = [...mySessions].reverse().find(e=>e.dist!==null && e.dist!==undefined && !isNaN(e.dist)) || mySessions[mySessions.length-1];
   const kpis = [
     {lbl:t('gkDistUltimaSesion'), val:last.dist!==null?fmt(Math.round(last.dist)):'—', unit:'m'},
-    {lbl:GK_METRICS.impact.label, val:last.impact!==null?fmt(last.impact):'—', unit:''},
-    {lbl:GK_METRICS.dives.label, val:last.dives!==null?fmt(last.dives):'—', unit:''},
+    {lbl:GK_METRICS.impact_left.label, val:last.impact_left!==null?fmt(last.impact_left):'—', unit:''},
+    {lbl:GK_METRICS.impact_right.label, val:last.impact_right!==null?fmt(last.impact_right):'—', unit:''},
+    {lbl:GK_METRICS.dives_left.label, val:last.dives_left!==null?fmt(last.dives_left):'—', unit:''},
+    {lbl:GK_METRICS.dives_right.label, val:last.dives_right!==null?fmt(last.dives_right):'—', unit:''},
     {lbl:GK_METRICS.pl.label, val:last.pl!==null?fmt(Math.round(last.pl)):'—', unit:''},
     {lbl:GK_METRICS.vel.label, val:last.vel!==null?last.vel.toFixed(1):'—', unit:'km/h'},
     {lbl:GK_METRICS.acc.label, val:last.acc!==null?fmt(last.acc):'—', unit:''},
@@ -1475,8 +1477,10 @@ function buildGkPlayerView(playerName){
       <td class="mono">${e.fecha.split('-').reverse().join('/')}</td>
       <td>${e.detalle||e.tipo}</td>
       <td class="mono">${e.dist!==null?fmt(Math.round(e.dist)):'—'}</td>
-      <td class="mono">${e.impact!==null?fmt(e.impact):'—'}</td>
-      <td class="mono">${e.dives!==null?fmt(e.dives):'—'}</td>
+      <td class="mono">${e.impact_left!==null?fmt(e.impact_left):'—'}</td>
+      <td class="mono">${e.impact_right!==null?fmt(e.impact_right):'—'}</td>
+      <td class="mono">${e.dives_left!==null?fmt(e.dives_left):'—'}</td>
+      <td class="mono">${e.dives_right!==null?fmt(e.dives_right):'—'}</td>
       <td class="mono">${e.pl!==null?fmt(Math.round(e.pl)):'—'}</td>
       <td class="mono">${e.vel!==null?e.vel.toFixed(1):'—'}</td>
       <td class="mono">${e.acc!==null?e.acc:'—'}</td>
@@ -1484,7 +1488,7 @@ function buildGkPlayerView(playerName){
     </tr>`;
   }).join('');
   tableBox.innerHTML = `<table class="mc-table">
-    <thead><tr><th>${t('gkColFecha')}</th><th>${t('gkColSesion')}</th><th>${t('gkColDist')}</th><th>${GK_METRICS.impact.label}</th><th>${GK_METRICS.dives.label}</th><th>PL</th><th>${t('gkColVelMax2')}</th><th>${GK_METRICS.acc.label}</th><th>${GK_METRICS.dece.label}</th></tr></thead>
+    <thead><tr><th>${t('gkColFecha')}</th><th>${t('gkColSesion')}</th><th>${t('gkColDist')}</th><th>${GK_METRICS.impact_left.label}</th><th>${GK_METRICS.impact_right.label}</th><th>${GK_METRICS.dives_left.label}</th><th>${GK_METRICS.dives_right.label}</th><th>PL</th><th>${t('gkColVelMax2')}</th><th>${GK_METRICS.acc.label}</th><th>${GK_METRICS.dece.label}</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
 }
@@ -1793,6 +1797,10 @@ if(myProfile.role==='pending_club' || myProfile.role==='pending_staff' || myProf
     showPendingScreen(myProfile.role);
     return;
   }
+  if(myProfile.role==='rejected_club'){
+    showPendingScreen(myProfile.role);
+    return;
+  }
   if(myProfile.role==='player' && !myProfile.player_name){
     await loadGkData(); // para que los arqueros también aparezcan en el picker de nombre
     const taken = await getTakenPlayerNames();
@@ -1812,9 +1820,13 @@ function showPendingScreen(role){
   const msg = document.getElementById('pendingMessage');
   const roleLabel = role==='pending_club' ? 'Administrador de un nuevo club' : (role==='pending_gk_coach' ? 'Entrenador de arqueros' : 'Staff (médico y técnico)');
   const approver = role==='pending_club' ? 'OWNER (Matías González)' : 'el administrador de tu club';
-  msg.textContent = role==='pending_club'
-    ? `La solicitud del club fue creada correctamente. Necesita la aprobación del OWNER (Matías González) antes de activar el club y asignarte como administrador.`
-    : `Tu cuenta fue creada correctamente como "${roleLabel}". Necesita la aprobación de ${approver} antes de poder acceder al panel.`;
+  if(role==='rejected_club'){
+    msg.textContent = 'La solicitud para crear este club fue rechazada. Si pensás que es un error, contactá al OWNER (Matías González).';
+  } else {
+    msg.textContent = role==='pending_club'
+      ? `La solicitud del club fue creada correctamente. Necesita la aprobación del OWNER (Matías González) antes de activar el club y asignarte como administrador.`
+      : `Tu cuenta fue creada correctamente como "${roleLabel}". Necesita la aprobación de ${approver} antes de poder acceder al panel.`;
+  }
   screen.style.display='flex';
   document.getElementById('pendingLogoutBtn').onclick = async ()=>{
     await supabaseClient.auth.signOut();
@@ -2235,7 +2247,7 @@ const I18N = {
     enviarRpe:'Enviar RPE', rpeMinutosLabel:'¿Cuántos minutos entrenaste hoy?',
     cargaInterna:'Carga interna (RPE)', cargaInternaTag:'carga aguda : crónica basada en RPE × minutos', fecha2:'Fecha',
     footer:'Por Matías González Galindo — Head of Physical Performance',
-    gkMetrics:{dist:'Distancia Total', impact:'Impacto', dives:'Buzos', pl:'Player Load', vel:'Vel. Máxima', acc:'Acc', dece:'Dece'},
+    gkMetrics:{dist:'Distancia Total', impact_left:'Impacto Izq.', impact_right:'Impacto Der.', dives_left:'Buzos Izq.', dives_right:'Buzos Der.', pl:'Player Load', vel:'Vel. Máxima', acc:'Acc', dece:'Dece'},
     tabJugadoresCampo:'⚽ Jugadores de Campo', tabArqueros:'🧤 Arqueros', tabControlCarga:'📊 Control de Carga', tabPartidos:'🆚 Partidos', tabClubes:'🏢 Clubes', nombreClub:'Nombre del club', clubesRegistrados:'🏢 Clubes en la plataforma',
     gkVistaPrevia:'🧤 Vista previa como arquero', gkVistaPreviaTag:'ver el dashboard como lo ve un arquero puntual', gkVerComo:'Ver como este arquero',
     gkEvolucion:'🧤 Evolución de arqueros', gkEvolucionTag:'promedio diario de arqueros',
@@ -2245,7 +2257,7 @@ const I18N = {
     gkPromedioArquero:'Promedio del arquero', gkPromedioArqueros:'Promedio de arqueros',
     gkSinDatos:'Todavía no hay datos de arqueros cargados.', gkSinSesiones:'Todavía no hay sesiones cargadas.', gkSinArqueros:'Todavía no hay arqueros cargados.',
     gkColJugador:'Jugador', gkColFecha:'Fecha', gkColSesion:'Sesión', gkColDist:'Dist. (m)', gkColVelMax:'Vel. máx (km/h)', gkColVelMax2:'Vel. máx',
-    gkDistUltimaSesion:'Distancia última sesión', quienSos:'¿Quién sos?', rolJugador:'Jugador o arquero', rolStaff:'Staff (médico y técnico)', rolGkCoach:'Entrenador de arqueros',
+    gkDistUltimaSesion:'Distancia última sesión', quienSos:'¿Quién sos?', rolJugador:'Jugador o arquero', rolStaff:'Staff (médico y técnico)', rolGkCoach:'Entrenador de arqueros', rolClubAdmin:'Administrador de un club nuevo',
   },
   en: {
     metrics:{dist:'Total Distance',hsr:'HSR',vel:'Max Speed',acc:'Acc',desa:'Dec',pl:'Player Load',sprint:'Sprint'},
@@ -2278,7 +2290,7 @@ const I18N = {
     enviarRpe:'Submit RPE', rpeMinutosLabel:'How many minutes did you train today?',
     cargaInterna:'Internal load (RPE)', cargaInternaTag:'acute : chronic load based on RPE × minutes', fecha2:'Date',
     footer:'By Matías González Galindo — Head of Physical Performance',
-    gkMetrics:{dist:'Total Distance', impact:'Impact', dives:'Dives', pl:'Player Load', vel:'Max Speed', acc:'Acc', dece:'Dec'},
+    gkMetrics:{dist:'Total Distance', impact_left:'Impact L', impact_right:'Impact R', dives_left:'Dives L', dives_right:'Dives R', pl:'Player Load', vel:'Max Speed', acc:'Acc', dece:'Dec'},
     tabJugadoresCampo:'⚽ Field Players', tabArqueros:'🧤 Goalkeepers', tabControlCarga:'📊 Load Control', tabPartidos:'🆚 Matches', tabClubes:'🏢 Clubs', nombreClub:'Club name', clubesRegistrados:'🏢 Clubs on the platform',
     gkVistaPrevia:'🧤 Preview as goalkeeper', gkVistaPreviaTag:'see the dashboard as a given goalkeeper sees it', gkVerComo:'View as this goalkeeper',
     gkEvolucion:'🧤 Goalkeeper evolution', gkEvolucionTag:'daily average of goalkeepers',
@@ -2288,7 +2300,7 @@ const I18N = {
     gkPromedioArquero:'Goalkeeper average', gkPromedioArqueros:'Goalkeepers average',
     gkSinDatos:'No goalkeeper data loaded yet.', gkSinSesiones:'No sessions loaded yet.', gkSinArqueros:'No goalkeepers loaded yet.',
     gkColJugador:'Player', gkColFecha:'Date', gkColSesion:'Session', gkColDist:'Dist. (m)', gkColVelMax:'Max speed (km/h)', gkColVelMax2:'Max speed',
-    gkDistUltimaSesion:'Distance last session', quienSos:'Who are you?', rolJugador:'Player or goalkeeper', rolStaff:'Staff (medical & technical)', rolGkCoach:'Goalkeeper coach',
+    gkDistUltimaSesion:'Distance last session', quienSos:'Who are you?', rolJugador:'Player or goalkeeper', rolStaff:'Staff (medical & technical)', rolGkCoach:'Goalkeeper coach', rolClubAdmin:'New club administrator',
   },
   ar: {
     metrics:{dist:'المسافة الإجمالية',hsr:'الجري عالي السرعة',vel:'السرعة القصوى',acc:'تسارع',desa:'تباطؤ',pl:'حمل اللاعب',sprint:'عدد السرعات القصوى'},
@@ -2321,7 +2333,7 @@ const I18N = {
     enviarRpe:'إرسال مؤشر الجهد', rpeMinutosLabel:'كم دقيقة تدربت اليوم؟',
     cargaInterna:'الحمل الداخلي (RPE)', cargaInternaTag:'الحمل الحاد : المزمن استنادًا إلى RPE × الدقائق', fecha2:'التاريخ',
     footer:'بواسطة ماتياس غونزاليس غاليندو — مسؤول الأداء البدني',
-    gkMetrics:{dist:'المسافة الإجمالية', impact:'الارتطام', dives:'الغطسات', pl:'حمل اللاعب', vel:'السرعة القصوى', acc:'تسارع', dece:'تباطؤ'},
+    gkMetrics:{dist:'المسافة الإجمالية', impact_left:'ارتطام يسار', impact_right:'ارتطام يمين', dives_left:'غطسة يسار', dives_right:'غطسة يمين', pl:'حمل اللاعب', vel:'السرعة القصوى', acc:'تسارع', dece:'تباطؤ'},
     tabJugadoresCampo:'⚽ لاعبو الميدان', tabArqueros:'🧤 حراس المرمى', tabControlCarga:'📊 التحكم بالحمل', tabPartidos:'🆚 المباريات', tabClubes:'🏢 الأندية', nombreClub:'اسم النادي', clubesRegistrados:'🏢 الأندية على المنصة',
     gkVistaPrevia:'🧤 معاينة كحارس مرمى', gkVistaPreviaTag:'شاهد لوحة التحكم كما يراها حارس مرمى محدد', gkVerComo:'عرض كهذا الحارس',
     gkEvolucion:'🧤 تطور حراس المرمى', gkEvolucionTag:'المتوسط اليومي لحراس المرمى',
@@ -2331,7 +2343,7 @@ const I18N = {
     gkPromedioArquero:'متوسط الحارس', gkPromedioArqueros:'متوسط حراس المرمى',
     gkSinDatos:'لا توجد بيانات حراس مرمى محمّلة بعد.', gkSinSesiones:'لا توجد حصص محمّلة بعد.', gkSinArqueros:'لا يوجد حراس مرمى محمّلون بعد.',
     gkColJugador:'اللاعب', gkColFecha:'التاريخ', gkColSesion:'الحصة', gkColDist:'المسافة (م)', gkColVelMax:'السرعة القصوى (كم/س)', gkColVelMax2:'السرعة القصوى',
-    gkDistUltimaSesion:'مسافة آخر حصة', quienSos:'من أنت؟', rolJugador:'لاعب أو حارس مرمى', rolStaff:'الطاقم (طبي وفني)', rolGkCoach:'مدرب حراس المرمى',
+    gkDistUltimaSesion:'مسافة آخر حصة', quienSos:'من أنت؟', rolJugador:'لاعب أو حارس مرمى', rolStaff:'الطاقم (طبي وفني)', rolGkCoach:'مدرب حراس المرمى', rolClubAdmin:'مسؤول نادٍ جديد',
   }
 };
 let currentLang = localStorage.getItem('dashboard_lang') || 'es';
@@ -2901,13 +2913,17 @@ async function buildClubesList(){
   const tag = document.getElementById('clubesCountTag');
   if(!box) return;
   box.innerHTML = '<p style="padding:14px 18px;color:var(--mist);font-size:12.5px;">Cargando clubes…</p>';
-  const {data, error} = await supabaseClient.from('player_profiles').select('club');
+  const {data, error} = await supabaseClient.from('player_profiles').select('club,role');
   if(error){
     box.innerHTML = '<p style="padding:14px 18px;color:var(--mist);font-size:12.5px;">No se pudieron cargar los clubes.</p>';
     return;
   }
   const counts = {};
-  (data||[]).forEach(r=>{ if(r.club) counts[r.club] = (counts[r.club]||0)+1; });
+  (data||[]).forEach(r=>{
+    if(!r.club) return;
+    if(r.role==='pending_club' || r.role==='rejected_club') return; // no son clubes activos todavía
+    counts[r.club] = (counts[r.club]||0)+1;
+  });
   const clubs = Object.keys(counts).sort((a,b)=>a.localeCompare(b));
   if(tag) tag.textContent = `${clubs.length} club${clubs.length===1?'':'es'} registrado${clubs.length===1?'':'s'}`;
   if(!clubs.length){
@@ -3007,7 +3023,7 @@ let gkTeamDailySeries = [];
 function computeGkTeamDailySeries(){
   const map = {};
   GK_EVENTS.forEach(e=>{
-    if(!map[e.fecha]) map[e.fecha] = { fecha:e.fecha, tipos:new Set(), dist:[], impact:[], dives:[], pl:[], vel:[], acc:[], dece:[], detalles:{} };
+    if(!map[e.fecha]) map[e.fecha] = { fecha:e.fecha, tipos:new Set(), dist:[], impact_left:[], impact_right:[], dives_left:[], dives_right:[], pl:[], vel:[], acc:[], dece:[], detalles:{} };
     const rec = map[e.fecha];
     rec.tipos.add(e.tipo);
     GK_METRIC_ORDER.forEach(k=>{
@@ -3173,8 +3189,10 @@ function buildGkTable(){
       <td class="mono">${dateStr}</td>
       <td>${e.detalle||e.tipo}</td>
       <td class="mono">${e.dist!==null?fmt(Math.round(e.dist)):'—'}</td>
-      <td class="mono">${e.impact!==null?fmt(e.impact):'—'}</td>
-      <td class="mono">${e.dives!==null?fmt(e.dives):'—'}</td>
+      <td class="mono">${e.impact_left!==null?fmt(e.impact_left):'—'}</td>
+      <td class="mono">${e.impact_right!==null?fmt(e.impact_right):'—'}</td>
+      <td class="mono">${e.dives_left!==null?fmt(e.dives_left):'—'}</td>
+      <td class="mono">${e.dives_right!==null?fmt(e.dives_right):'—'}</td>
       <td class="mono">${e.pl!==null?fmt(Math.round(e.pl)):'—'}</td>
       <td class="mono">${e.vel!==null?e.vel.toFixed(1):'—'}</td>
       <td class="mono">${e.acc!==null?e.acc:'—'}</td>
@@ -3182,7 +3200,7 @@ function buildGkTable(){
     </tr>`;
   }).join('');
   box.innerHTML = `<table class="mc-table">
-    <thead><tr><th>${t('gkColJugador')}</th><th>${t('gkColFecha')}</th><th>${t('gkColSesion')}</th><th>${t('gkColDist')}</th><th>${GK_METRICS.impact.label}</th><th>${GK_METRICS.dives.label}</th><th>PL</th><th>${t('gkColVelMax')}</th><th>${GK_METRICS.acc.label}</th><th>${GK_METRICS.dece.label}</th></tr></thead>
+    <thead><tr><th>${t('gkColJugador')}</th><th>${t('gkColFecha')}</th><th>${t('gkColSesion')}</th><th>${t('gkColDist')}</th><th>${GK_METRICS.impact_left.label}</th><th>${GK_METRICS.impact_right.label}</th><th>${GK_METRICS.dives_left.label}</th><th>${GK_METRICS.dives_right.label}</th><th>PL</th><th>${t('gkColVelMax')}</th><th>${GK_METRICS.acc.label}</th><th>${GK_METRICS.dece.label}</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
 }
@@ -4173,14 +4191,16 @@ function showStatus(msg, kind){
 // ---------- Arqueros: datos separados de los jugadores de campo (tabla gk_data en Supabase) ----------
 const GK_METRICS = {
   dist: {label:'Distancia Total', unit:'m', dec:0},
-  impact: {label:'Impacto', unit:'', dec:0},
-  dives: {label:'Buzos', unit:'', dec:0},
+  impact_left: {label:'Impacto Izq.', unit:'', dec:0},
+  impact_right: {label:'Impacto Der.', unit:'', dec:0},
+  dives_left: {label:'Buzos Izq.', unit:'', dec:0},
+  dives_right: {label:'Buzos Der.', unit:'', dec:0},
   pl: {label:'Player Load', unit:'', dec:0},
   vel: {label:'Vel. Máxima', unit:'km/h', dec:1},
   acc: {label:'Acc', unit:'', dec:0},
   dece: {label:'Dece', unit:'', dec:0},
 };
-const GK_METRIC_ORDER = ['dist','impact','dives','pl','vel','acc','dece'];
+const GK_METRIC_ORDER = ['dist','impact_left','impact_right','dives_left','dives_right','pl','vel','acc','dece'];
 
 function withGkDerivedFields(e){
   return {...e};
@@ -4214,7 +4234,8 @@ function deriveGkData(){
 async function saveGkData(gkEvents){
   const rows = gkEvents.map(e=>({
     club: CURRENT_CLUB, fecha:e.fecha, jugador:e.jugador, tipo:e.tipo, detalle:e.detalle,
-    dist:e.dist, impact:e.impact, dives:e.dives, pl:e.pl, min:e.min, vel:e.vel, acc:e.acc, dece:e.dece,
+    dist:e.dist, impact_left:e.impact_left, impact_right:e.impact_right, dives_left:e.dives_left, dives_right:e.dives_right,
+    pl:e.pl, min:e.min, vel:e.vel, acc:e.acc, dece:e.dece,
     updated_at: new Date().toISOString()
   }));
   const {error} = await supabaseClient.from('gk_data').upsert(rows, {onConflict:'club,fecha,jugador,tipo'});
@@ -4227,7 +4248,8 @@ async function loadGkData(){
     const {data, error} = await supabaseClient.from('gk_data').select('*').eq('club', CURRENT_CLUB);
     if(error) throw error;
     GK_EVENTS = (data||[]).map(r=> withGkDerivedFields({fecha:r.fecha, jugador:r.jugador, tipo:r.tipo, detalle:r.detalle,
-      dist:r.dist, impact:r.impact, dives:r.dives, pl:r.pl, min:r.min, vel:r.vel, acc:r.acc, dece:r.dece}));
+      dist:r.dist, impact_left:r.impact_left, impact_right:r.impact_right, dives_left:r.dives_left, dives_right:r.dives_right,
+      pl:r.pl, min:r.min, vel:r.vel, acc:r.acc, dece:r.dece}));
   }catch(e){ console.warn('No se pudieron cargar los datos de arqueros:', e); GK_EVENTS = []; }
   deriveGkData();
 }
@@ -4280,7 +4302,8 @@ async function handleFile(file){
       for(let i=1;i<rows.length;i++){
         const r = rows[i]; if(!r || !r[1] || !r[0]) continue;
         gkEvents.push({ fecha:toISO(r[0]), jugador:String(r[1]).trim(), tipo:r[2]||'Entreno', detalle:r[3]||'',
-          dist:num(r[4]), impact:num(r[5]), dives:num(r[6]), pl:num(r[7]), min:num(r[8]), vel:num(r[9]), acc:num(r[10]), dece:num(r[11]) });
+          dist:num(r[4]), impact_left:num(r[5]), impact_right:num(r[6]), dives_left:num(r[7]), dives_right:num(r[8]),
+          pl:num(r[9]), min:num(r[10]), vel:num(r[11]), acc:num(r[12]), dece:num(r[13]) });
       }
       if(gkEvents.length) await saveGkData(gkEvents);
     }
