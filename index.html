@@ -1461,7 +1461,7 @@ function markAllSignupsSeen(ids){
   localStorage.setItem(SEEN_SIGNUPS_KEY, JSON.stringify(ids));
 }
 async function checkNewPlayerSignups(){
-  if(!(myProfile && myProfile.role==='admin')) return;
+  if(!(myProfile && (myProfile.role==='admin' || myProfile.role==='owner'))) return;
   const {data,error} = await supabaseClient.from('player_profiles')
     .select('user_id,player_name,created_at')
     .eq('club',CURRENT_CLUB).eq('role','player').not('player_name','is',null)
@@ -1504,7 +1504,7 @@ async function getRosterExtraNames(){
   return error ? [] : (data||[]).map(r=>r.player_name);
 }
 function setupAddPlayerBar(){
-  if(!(myProfile && myProfile.role==='admin')) return;
+  if(!(myProfile && (myProfile.role==='admin' || myProfile.role==='owner'))) return;
   const wrap = document.getElementById('addPlayerWrap');
   wrap.style.display = 'inline-block';
   const btn = document.getElementById('addPlayerBtn');
@@ -1529,7 +1529,7 @@ function setupAddPlayerBar(){
 
 // ---------- Admin: fijar manualmente la fecha del próximo partido (para el conteo MD del microciclo) ----------
 function setupNextMatchBar(){
-  if(!(myProfile && myProfile.role==='admin')) return;
+  if(!(myProfile && (myProfile.role==='admin' || myProfile.role==='owner'))) return;
   const wrap = document.getElementById('nextMatchWrap');
   wrap.style.display = 'block';
   const btn = document.getElementById('nextMatchBtn');
@@ -1562,7 +1562,7 @@ let previewingAsPlayer = null;
 let ORIGINAL_BRAND_SUB = null;
 let currentAdminTab = 'jugadores'; // recuerda en qué pestaña estaba el admin, para volver ahí al salir de una vista previa
 function setupPreviewBar(){
-  if(!(myProfile && myProfile.role==='admin')) return;
+  if(!(myProfile && (myProfile.role==='admin' || myProfile.role==='owner'))) return;
   const bar = document.getElementById('previewBar');
   bar.style.display = 'block';
   const select = document.getElementById('previewPlayerSelect');
@@ -1571,7 +1571,7 @@ function setupPreviewBar(){
   document.getElementById('previewExitBtn').onclick = exitPlayerPreview;
 }
 function setupGkPreviewBar(){
-  if(!(myProfile && myProfile.role==='admin')) return;
+  if(!(myProfile && (myProfile.role==='admin' || myProfile.role==='owner'))) return;
   const select = document.getElementById('gkPreviewSelect');
   if(!select) return;
   const gkNames = [...new Set(GK_EVENTS.map(e=>e.jugador))].sort();
@@ -1892,7 +1892,7 @@ function buildRpeLoadTable(dateStr){
   if(!table) return;
   const saveAllBtn = document.getElementById('rpeSaveAllBtn');
   if(saveAllBtn){
-    saveAllBtn.disabled = !(myProfile && myProfile.role==='admin');
+    saveAllBtn.disabled = !(myProfile && (myProfile.role==='admin' || myProfile.role==='owner'));
     saveAllBtn.style.opacity = saveAllBtn.disabled ? '.45' : '1';
     saveAllBtn.style.cursor = saveAllBtn.disabled ? 'default' : 'pointer';
   }
@@ -1916,7 +1916,7 @@ function buildRpeLoadTable(dateStr){
       else if(r.ratio<1.5){ ratioColor='var(--warn)'; ratioLabel='Precaución'; }
       else { ratioColor='var(--bad)'; ratioLabel='Riesgo alto'; }
     }
-    const isAdmin = myProfile && myProfile.role==='admin';
+    const isAdmin = myProfile && (myProfile.role==='admin' || myProfile.role==='owner');
     const minCell = r.todayReport
       ? (isAdmin
           ? `<input type="number" min="0" max="240" class="rpe-min-input" data-player="${r.p}" data-fecha="${dateStr}" value="${r.minVal!==null?r.minVal:''}" placeholder="—" style="width:56px;padding:5px 6px;border-radius:6px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:12px 'IBM Plex Mono';outline:none;">`
@@ -1950,7 +1950,7 @@ function buildRpeLoadTable(dateStr){
     <td>${chronicAvg!==null? chronicAvg.toFixed(1) : '—'}</td>
     <td>${ratioAvg!==null? ratioAvg.toFixed(2) : '—'}</td>
   </tr>`;
-  const isAdminGlobal = myProfile && myProfile.role==='admin';
+  const isAdminGlobal = myProfile && (myProfile.role==='admin' || myProfile.role==='owner');
   const minHeaderCell = isAdminGlobal
     ? `<th>Min <span style="display:inline-flex;align-items:center;gap:4px;margin-left:4px;white-space:nowrap;">
          <input id="rpeMinBulkFill" type="number" min="0" max="240" placeholder="min" title="Escribí un valor y aplicalo a todas las filas" style="width:46px;padding:3px 5px;border-radius:5px;border:1px solid var(--gold);background:var(--pitch-950);color:var(--gold-bright);font:11px 'IBM Plex Mono';outline:none;">
