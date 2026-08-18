@@ -2523,6 +2523,22 @@ function computeCurrentCycleAvg(field='dist'){
   });
   return count ? Math.round(total/count) : null;
 }
+// Igual que computeCurrentCycleAvg, pero sumando el promedio diario de cada sesión del ciclo
+// (el total acumulado del microciclo), en vez de promediar todo junto.
+function computeCurrentCycleTotal(field='dist'){
+  const {cycles, byDate} = computeMicrocycles(ACTIVE_EVENTS);
+  if(!cycles.length) return null;
+  const lastCycle = cycles[cycles.length-1];
+  let total = 0, count = 0;
+  lastCycle.forEach(d=>{
+    const withVal = (byDate[d]||[]).filter(e=> e[field]!==null && e[field]!==undefined && !isNaN(e[field]));
+    if(withVal.length){
+      total += withVal.reduce((a,e)=>a+e[field],0)/withVal.length;
+      count++;
+    }
+  });
+  return count ? Math.round(total) : null;
+}
 const REST_DAY_KEYWORDS = ['day off','descanso','día libre','dia libre','rest day','libre'];
 function isRestDayEvent(e){
   if(!e || !e.detalle) return false;
@@ -3138,8 +3154,8 @@ function buildKPIs(){
   document.getElementById('lastDate').textContent = lastDate.split('-').reverse().join('/');
   const todays = RECORDS.filter(r=>['dist','hsr','vel','acc','desa','pl'].some(m=>r[m].fecha===lastDate));
   const lastMatch = getLastMatchInfo(ACTIVE_EVENTS);
-  const cycleDistAvg = computeCurrentCycleAvg('dist');
-  const cycleHsrAvg = computeCurrentCycleAvg('hsr');
+  const cycleDistTotal = computeCurrentCycleTotal('dist');
+  const cycleHsrTotal = computeCurrentCycleTotal('hsr');
   const weeklyPL = getWeeklyPLComparison();
   const sessionIntensity = getCurrentSessionIntensity();
 
@@ -3154,10 +3170,10 @@ function buildKPIs(){
   }
 
   const kpis = [
-    {lbl:'Distancia microciclo actual', val: cycleDistAvg!==null ? fmt(cycleDistAvg) : '—', unit:'m',
-      sub: `promedio diario · ${cycleSub}`},
-    {lbl:'HSR microciclo actual', val: cycleHsrAvg!==null ? fmt(cycleHsrAvg) : '—', unit:'m',
-      sub: `promedio diario · ${cycleSub}`},
+    {lbl:'Distancia microciclo actual', val: cycleDistTotal!==null ? fmt(cycleDistTotal) : '—', unit:'m',
+      sub: `total acumulado · ${cycleSub}`},
+    {lbl:'HSR microciclo actual', val: cycleHsrTotal!==null ? fmt(cycleHsrTotal) : '—', unit:'m',
+      sub: `total acumulado · ${cycleSub}`},
     {lbl:'Player Load semanal', val: weeklyPL ? fmt(weeklyPL.current) : '—', unit:'',
       sub: weeklySub},
     {lbl:t('kpiRecords'), val:todays.length, unit:'', sub: todays.length? `<b>${todays.map(x=>x.jugador.split(' ')[0]).slice(0,3).join(', ')}${todays.length>3?'…':''}</b>` : t('sinNuevos')},
