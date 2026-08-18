@@ -1063,7 +1063,10 @@ async function loadRemoteData(){
   if(data?.payload?.events?.length){ ACTIVE_EVENTS=data.payload.events; ACTIVE_TEAMTOTALS=data.payload.teamTotals||EMBEDDED_TEAMTOTALS; deriveAll(ACTIVE_EVENTS); }
 }
 async function saveRemoteData(events,teamTotals){
-  const {error}=await supabaseClient.from('dashboard_data').update({payload:{events,teamTotals},updated_at:new Date().toISOString()}).eq('club',CURRENT_CLUB);
+  const {error}=await supabaseClient.from('dashboard_data').upsert(
+    {club:CURRENT_CLUB, payload:{events,teamTotals}, updated_at:new Date().toISOString()},
+    {onConflict:'club'}
+  );
   if(error) throw error;
 }
 
