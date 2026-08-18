@@ -630,10 +630,41 @@
         </div>
       </span>
       <button id="logoutBtn" class="upload-btn" style="border-color:var(--mist);color:var(--mist);margin-left:6px;" data-i18n="cerrarSesion">Cerrar sesión</button>
-      <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none;">
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none;">
       <div id="uploadStatus" class="upload-status"></div>
     </div>
   </header>
+
+  <div id="csvImportModal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(20,20,58,.85);align-items:center;justify-content:center;padding:16px;">
+    <div style="background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:14px;padding:22px;max-width:380px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.5);">
+      <h3 style="margin:0 0 6px;font-size:15px;color:var(--bone);">📊 Archivo de Catapult detectado</h3>
+      <p style="color:var(--mist);font-size:12px;margin:0 0 16px;line-height:1.5;">Encontramos <b id="csvImportCount" style="color:var(--gold-bright);">0</b> jugadores en este archivo. Completá estos datos para cargarlo:</p>
+
+      <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:4px;">Tipo de sesión</label>
+      <select id="csvImportTipo" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:10px;box-sizing:border-box;">
+        <option value="Partido">Partido</option>
+        <option value="Entreno">Entreno</option>
+      </select>
+
+      <div id="csvImportRivalWrap">
+        <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:4px;">Rival</label>
+        <input id="csvImportRival" type="text" placeholder="Ej: Dibba FC" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Sans';outline:none;margin-bottom:10px;box-sizing:border-box;">
+      </div>
+      <div id="csvImportDetalleWrap" style="display:none;">
+        <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:4px;">Nombre de la sesión</label>
+        <input id="csvImportDetalle" type="text" placeholder="Ej: Ball Possession-Transitions" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Sans';outline:none;margin-bottom:10px;box-sizing:border-box;">
+      </div>
+
+      <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:4px;">Fecha</label>
+      <input id="csvImportFecha" type="date" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:14px;box-sizing:border-box;">
+
+      <div style="display:flex;gap:8px;">
+        <button id="csvImportCancel" class="upload-btn" style="flex:1;background:transparent;border-color:var(--mist);color:var(--mist);">Cancelar</button>
+        <button id="csvImportConfirm" class="upload-btn" style="flex:1;">Cargar datos</button>
+      </div>
+      <div id="csvImportStatus" style="font-size:11px;color:var(--mist);margin-top:8px;"></div>
+    </div>
+  </div>
 
   <div class="team-only" id="adminTabBar" style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;">
     <button class="tab-btn active" id="tabBtnJugadores" onclick="switchAdminTab('jugadores')" style="padding:9px 18px;border-radius:10px;border:1px solid var(--gold);background:var(--gold);color:var(--pitch-950);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabJugadoresCampo">⚽ Jugadores de Campo</button>
@@ -2011,6 +2042,7 @@ async function startDashboard(){
   setupGkPreviewBar();
   setupAddPlayerBar();
   setupNextMatchBar();
+  setupCsvImportModal();
   checkNewPlayerSignups();
 }
 
@@ -3813,6 +3845,99 @@ function toISO(v){
   if(typeof v === 'string') return v.slice(0,10);
   return String(v);
 }
+// ---------- Importación de CSV crudo de Catapult (sin pasar por nuestro Excel) ----------
+function hhmmssToMinutes(str){
+  if(!str) return null;
+  const parts = String(str).trim().split(':').map(Number);
+  if(parts.length!==3 || parts.some(isNaN)) return null;
+  const [h,m,s] = parts;
+  return h*60 + m + s/60;
+}
+function parseCsvLine(line){
+  // parseo simple respetando comillas, sin dependencias externas
+  const result = [];
+  let cur = '', inQuotes = false;
+  for(let i=0;i<line.length;i++){
+    const c = line[i];
+    if(c === '"'){ inQuotes = !inQuotes; }
+    else if(c === ',' && !inQuotes){ result.push(cur); cur=''; }
+    else { cur += c; }
+  }
+  result.push(cur);
+  return result.map(s=>s.trim());
+}
+// Reconoce el export crudo de Catapult buscando sus columnas por NOMBRE (no por posición),
+// así funciona tanto con el reporte resumido (44 columnas) como con el completo (1600+).
+function parseCatapultCSV(text){
+  const lines = text.split(/\r?\n/);
+
+  let fecha = null;
+  for(const line of lines.slice(0,10)){
+    const clean = line.replace(/"/g,'');
+    if(clean.startsWith('Date:')){
+      const m = clean.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+      if(m) fecha = `${m[3]}-${m[2]}-${m[1]}`;
+      break;
+    }
+  }
+
+  let headerIdx = -1;
+  for(let i=0;i<lines.length;i++){
+    if(lines[i].replace(/"/g,'').trim().startsWith('Player Name')){ headerIdx = i; break; }
+  }
+  if(headerIdx<0) return null; // no es un CSV de Catapult reconocible
+
+  const headers = parseCsvLine(lines[headerIdx]);
+  const idx = (name) => headers.indexOf(name);
+
+  const cols = {
+    name: idx('Player Name'), periodName: idx('Period Name'),
+    dist: idx('Average Distance (Session)'), hsr: idx('HS Distance'), vel: idx('Maximum Velocity'),
+    acc: idx('Acceleration B1-3 Average Efforts (Session) (Gen 2)'),
+    desa: idx('Deceleration B1-3 Average Efforts (Session) (Gen 2)'),
+    pl: idx('Average Player Load (Session)'), dur: idx('Average Duration (Session)'),
+    sprintPerMin: idx('Sprint Dist Per Min'), sprintEfforts: idx('Sprint Efforts'),
+  };
+  const requeridas = ['name','periodName','dist','hsr','vel','acc','desa','pl','dur'];
+  if(requeridas.some(k => cols[k]<0)) return null; // le faltan columnas clave, no lo reconocemos como Catapult
+
+  const bySession = [], byHalf1 = [], byHalf2 = [];
+  for(let i=headerIdx+1;i<lines.length;i++){
+    if(!lines[i] || !lines[i].trim()) continue;
+    const c = parseCsvLine(lines[i]);
+    if(c.length < headers.length) continue;
+    const jugador = c[cols.name].trim();
+    if(!jugador) continue;
+    const periodName = c[cols.periodName].trim();
+    const minutos = hhmmssToMinutes(c[cols.dur]);
+    const row = {
+      jugador,
+      dist: num(c[cols.dist]), hsr: num(c[cols.hsr]), vel: num(c[cols.vel]),
+      acc: num(c[cols.acc]), desa: num(c[cols.desa]), pl: num(c[cols.pl]), min: minutos,
+      sprint: (cols.sprintPerMin>=0 && num(c[cols.sprintPerMin])!==null && minutos) ? num(c[cols.sprintPerMin])*minutos : null,
+      sprint_count: cols.sprintEfforts>=0 ? num(c[cols.sprintEfforts]) : null,
+    };
+    if(periodName === 'Session') bySession.push(row);
+    else if(periodName === '1ST HALF') byHalf1.push(row);
+    else if(periodName === '2ND HALF') byHalf2.push(row);
+  }
+  if(!bySession.length) return null;
+  return { fecha, bySession, byHalf1, byHalf2 };
+}
+// Arma la fila de "Comparativo GPS" (promedio del plantel) a partir de los datos crudos de Catapult,
+// calculando el índice de fatiga (2T vs 1T) automáticamente si el archivo trae las dos mitades.
+function computeCatapultTeamTotals(bySession, byHalf1, byHalf2){
+  const avg = (arr, key) => { const v = arr.map(r=>r[key]).filter(x=>x!==null && x!==undefined && !isNaN(x)); return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null; };
+  const dist1 = avg(byHalf1,'dist'), dist2 = avg(byHalf2,'dist');
+  const fatiga = (dist1!==null && dist2!==null && dist1>0) ? ((dist2-dist1)/dist1*100) : null;
+  return {
+    dist: avg(bySession,'dist'), hsr: avg(bySession,'hsr'),
+    sprint_dist: avg(bySession,'sprint'), sprint_count: avg(bySession,'sprint_count'),
+    acc: avg(bySession,'acc'), desa: avg(bySession,'desa'), rhie: null, pl: avg(bySession,'pl'),
+    fatiga,
+  };
+}
+
 function parseComparativoSheet(ws){
   const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null});
   let headerRow = -1;
@@ -3915,8 +4040,13 @@ function isGoalkeeper(playerName){
   return GK_EVENTS.some(e=>e.jugador===playerName);
 }
 
+let pendingCatapultData = null; // datos parseados del CSV, en espera de que confirmes rival/fecha/tipo en el modal
+
 async function handleFile(file){
   if(!file) return;
+  if(file.name.toLowerCase().endsWith('.csv')){
+    return handleCatapultCSV(file);
+  }
   showStatus('Leyendo '+file.name+'…','');
   try{
     if(typeof XLSX === 'undefined') throw new Error('No se pudo cargar la librería de lectura de Excel (sin conexión).');
@@ -3973,6 +4103,92 @@ async function handleFile(file){
   }catch(err){
     console.error(err);
     showStatus('No se pudo leer el archivo: '+err.message, 'error');
+  }
+}
+
+async function handleCatapultCSV(file){
+  showStatus('Leyendo '+file.name+'…','');
+  try{
+    const text = await file.text();
+    const parsed = parseCatapultCSV(text);
+    if(!parsed) throw new Error('No reconocemos este CSV como un export de Catapult (le faltan columnas clave).');
+    pendingCatapultData = parsed;
+    document.getElementById('csvImportCount').textContent = parsed.bySession.length;
+    document.getElementById('csvImportFecha').value = parsed.fecha || '';
+    document.getElementById('csvImportRival').value = '';
+    document.getElementById('csvImportDetalle').value = '';
+    document.getElementById('csvImportStatus').textContent = '';
+    document.getElementById('csvImportModal').style.display = 'flex';
+    showStatus('', '');
+  }catch(err){
+    console.error(err);
+    showStatus('No se pudo leer el CSV: '+err.message, 'error');
+  }
+}
+
+function setupCsvImportModal(){
+  const modal = document.getElementById('csvImportModal');
+  const tipoSelect = document.getElementById('csvImportTipo');
+  const rivalWrap = document.getElementById('csvImportRivalWrap');
+  const detalleWrap = document.getElementById('csvImportDetalleWrap');
+  tipoSelect.onchange = ()=>{
+    const esPartido = tipoSelect.value === 'Partido';
+    rivalWrap.style.display = esPartido ? '' : 'none';
+    detalleWrap.style.display = esPartido ? 'none' : '';
+  };
+  document.getElementById('csvImportCancel').onclick = ()=>{
+    modal.style.display = 'none';
+    pendingCatapultData = null;
+  };
+  document.getElementById('csvImportConfirm').onclick = confirmCatapultImport;
+}
+
+async function confirmCatapultImport(){
+  const status = document.getElementById('csvImportStatus');
+  if(!pendingCatapultData){ status.textContent = 'No hay datos para cargar.'; return; }
+  const tipo = document.getElementById('csvImportTipo').value;
+  const rival = document.getElementById('csvImportRival').value.trim();
+  const detalle = document.getElementById('csvImportDetalle').value.trim();
+  const fecha = document.getElementById('csvImportFecha').value;
+  if(!fecha){ status.textContent = 'Falta la fecha.'; return; }
+  if(tipo==='Partido' && !rival){ status.textContent = 'Falta el nombre del rival.'; return; }
+
+  status.textContent = 'Guardando…';
+  try{
+    const detalleFinal = tipo==='Partido' ? rival : (detalle || 'Entreno');
+    const nuevosEventos = pendingCatapultData.bySession.map(r=>({
+      fecha, jugador:r.jugador, tipo, detalle:detalleFinal,
+      dist:r.dist, hsr:r.hsr, vel:r.vel, acc:r.acc, desa:r.desa, pl:r.pl, min:r.min,
+      alta_int:r.hsr, sprint:r.sprint, sprint_count:r.sprint_count,
+    }));
+
+    // Merge: sacamos cualquier evento previo del mismo jugador+fecha+tipo (por si se sube el mismo partido 2 veces),
+    // y agregamos los nuevos — a diferencia del Excel completo, un CSV de Catapult es UNA sola sesión, no la temporada entera.
+    const key = (e)=> `${e.jugador}|${e.fecha}|${e.tipo}`;
+    const nuevasKeys = new Set(nuevosEventos.map(key));
+    const eventosRestantes = ACTIVE_EVENTS.filter(e => !nuevasKeys.has(key(e)));
+    const eventosFinales = [...eventosRestantes, ...nuevosEventos];
+
+    let teamTotalsFinal = ACTIVE_TEAMTOTALS;
+    if(tipo==='Partido'){
+      const totalsRow = computeCatapultTeamTotals(pendingCatapultData.bySession, pendingCatapultData.byHalf1, pendingCatapultData.byHalf2);
+      teamTotalsFinal = {...ACTIVE_TEAMTOTALS, [`vs ${rival}`]: {...totalsRow, fecha}};
+    }
+
+    const prevPlayer = state.player;
+    ACTIVE_EVENTS = eventosFinales;
+    ACTIVE_TEAMTOTALS = teamTotalsFinal;
+    await saveRemoteData(ACTIVE_EVENTS, ACTIVE_TEAMTOTALS);
+    saveData(ACTIVE_EVENTS, ACTIVE_TEAMTOTALS);
+    deriveAll(ACTIVE_EVENTS);
+    renderAll(prevPlayer);
+
+    document.getElementById('csvImportModal').style.display = 'none';
+    pendingCatapultData = null;
+    showStatus(`Datos de Catapult cargados ✓ ${nuevosEventos.length} jugadores · ${fecha.split('-').reverse().join('/')}`, 'ok');
+  }catch(err){
+    console.error(err);
+    status.textContent = 'No se pudo guardar: ' + err.message;
   }
 }
 
