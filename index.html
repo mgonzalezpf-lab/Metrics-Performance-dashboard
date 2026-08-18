@@ -4131,16 +4131,19 @@ function setupCsvImportModal(){
   const tipoSelect = document.getElementById('csvImportTipo');
   const rivalWrap = document.getElementById('csvImportRivalWrap');
   const detalleWrap = document.getElementById('csvImportDetalleWrap');
+  const cancelBtn = document.getElementById('csvImportCancel');
+  const confirmBtn = document.getElementById('csvImportConfirm');
+  if(!modal || !tipoSelect || !rivalWrap || !detalleWrap || !cancelBtn || !confirmBtn) return; // resguardo: si falta algo, no rompe el resto del arranque
   tipoSelect.onchange = ()=>{
     const esPartido = tipoSelect.value === 'Partido';
     rivalWrap.style.display = esPartido ? '' : 'none';
     detalleWrap.style.display = esPartido ? 'none' : '';
   };
-  document.getElementById('csvImportCancel').onclick = ()=>{
+  cancelBtn.onclick = ()=>{
     modal.style.display = 'none';
     pendingCatapultData = null;
   };
-  document.getElementById('csvImportConfirm').onclick = confirmCatapultImport;
+  confirmBtn.onclick = confirmCatapultImport;
 }
 
 async function confirmCatapultImport(){
