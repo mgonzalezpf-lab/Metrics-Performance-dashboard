@@ -3298,6 +3298,8 @@ function buildKPIs(){
   const dates = [...new Set(ACTIVE_EVENTS.map(e=>e.fecha))].sort();
   const lastDate = dates[dates.length-1];
   document.getElementById('lastDate').textContent = lastDate ? lastDate.split('-').reverse().join('/') : '—';
+  const rangeMetaCountEl = document.getElementById('rangeMetaCount');
+  if(rangeMetaCountEl) rangeMetaCountEl.textContent = players.length;
   const todays = lastDate ? RECORDS.filter(r=>['dist','hsr','vel','acc','desa','pl'].some(m=>r[m].fecha===lastDate)) : [];
   const lastMatch = getLastMatchInfo(ACTIVE_EVENTS);
   const cycleDistTotal = computeCurrentCycleTotal('dist');
@@ -4023,7 +4025,7 @@ function selectPlayer(p){
   document.querySelectorAll('.p-item').forEach(el=>el.classList.toggle('active', el.dataset.p===p));
   document.querySelectorAll('.lb-row').forEach(el=>el.classList.toggle('active', el.dataset.p===p));
   document.querySelectorAll('.acwr-row').forEach(el=>el.classList.toggle('active', el.dataset.p===p));
-  document.getElementById('radarTitle').textContent = `Radar de Vuelo · ${p}`;
+  document.getElementById('radarTitle').textContent = p ? `Radar de Vuelo · ${p}` : 'Radar de Vuelo · sin jugadores todavía';
   drawRadar(p);
   buildTimeline(p, state.metric, true);
 }
@@ -4052,8 +4054,7 @@ function renderAll(keepPlayer){
   if(!(myProfile && myProfile.role==='player')) buildRpeTeamList();
   populateCompareSelects();
   buildCompare();
-  const defaultPlayer = (keepPlayer && players.includes(keepPlayer)) ? keepPlayer
-    : (players.includes('Jasin Assehnoun') ? 'Jasin Assehnoun' : players[0]);
+  const defaultPlayer = (keepPlayer && players.includes(keepPlayer)) ? keepPlayer : players[0];
   if(!(keepPlayer && isGoalkeeper(keepPlayer))) selectPlayer(defaultPlayer);
 }
 
