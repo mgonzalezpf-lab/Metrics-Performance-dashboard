@@ -800,18 +800,6 @@
       <h3 data-i18n="rpePlantel">RPE del plantel</h3>
       <span class="tag" data-i18n="rpePlantelTag">percepción de esfuerzo reportada por cada jugador</span>
     </div>
-    <div id="rpeWindowWrap" style="position:relative;display:none;padding:0 0 12px;">
-      <button id="rpeWindowBtn" class="upload-btn" style="padding:7px 10px;">🕐 Horario de RPE</button>
-      <span id="rpeWindowLabel" style="margin-left:8px;font-size:11.5px;color:var(--mist);font-family:'IBM Plex Mono';"></span>
-      <div id="rpeWindowForm" style="display:none;position:absolute;top:38px;left:0;background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:10px;padding:12px;z-index:50;min-width:230px;box-shadow:0 8px 24px rgba(0,0,0,.4);">
-        <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:6px;">Desde qué hora se habilita el envío</label>
-        <input id="rpeWindowStartInput" type="time" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:8px;box-sizing:border-box;">
-        <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:6px;">Hasta qué hora (del mismo día)</label>
-        <input id="rpeWindowEndInput" type="time" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:8px;box-sizing:border-box;">
-        <button id="rpeWindowSubmit" class="upload-btn" style="width:100%;">Guardar horario</button>
-        <div id="rpeWindowStatus" style="font-size:11px;color:var(--mist);margin-top:6px;"></div>
-      </div>
-    </div>
     <div class="acwr-body" id="rpeTeamList"></div>
   </div>
 
@@ -824,6 +812,18 @@
       <label for="rpeDatePicker" data-i18n="fecha2" style="font-size:11px;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;">Fecha</label>
       <input id="rpeDatePicker" type="date" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;">
       <button id="rpeSaveAllBtn" type="button" style="padding:8px 14px;border-radius:8px;border:1px solid var(--gold);background:var(--gold);color:var(--pitch-950);font:700 12px 'IBM Plex Mono';cursor:pointer;">Guardar todos</button>
+      <div id="rpeWindowWrap" style="position:relative;display:none;">
+        <button id="rpeWindowBtn" class="upload-btn" style="padding:7px 10px;">🕐 Horario de RPE</button>
+        <span id="rpeWindowLabel" style="margin-left:8px;font-size:11.5px;color:var(--mist);font-family:'IBM Plex Mono';"></span>
+        <div id="rpeWindowForm" style="display:none;position:absolute;top:38px;left:0;background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:10px;padding:12px;z-index:50;min-width:230px;box-shadow:0 8px 24px rgba(0,0,0,.4);">
+          <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:6px;">Desde qué hora se habilita el envío</label>
+          <input id="rpeWindowStartInput" type="time" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:8px;box-sizing:border-box;">
+          <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:6px;">Hasta qué hora (del mismo día)</label>
+          <input id="rpeWindowEndInput" type="time" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:8px;box-sizing:border-box;">
+          <button id="rpeWindowSubmit" class="upload-btn" style="width:100%;">Guardar horario</button>
+          <div id="rpeWindowStatus" style="font-size:11px;color:var(--mist);margin-top:6px;"></div>
+        </div>
+      </div>
     </div>
     <div style="overflow-x:auto;">
       <table class="cmp-table" id="rpeLoadTable"></table>
