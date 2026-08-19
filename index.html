@@ -3297,8 +3297,8 @@ function buildKPIs(){
   const avgPL = avg(ACTIVE_EVENTS,'pl');
   const dates = [...new Set(ACTIVE_EVENTS.map(e=>e.fecha))].sort();
   const lastDate = dates[dates.length-1];
-  document.getElementById('lastDate').textContent = lastDate.split('-').reverse().join('/');
-  const todays = RECORDS.filter(r=>['dist','hsr','vel','acc','desa','pl'].some(m=>r[m].fecha===lastDate));
+  document.getElementById('lastDate').textContent = lastDate ? lastDate.split('-').reverse().join('/') : '—';
+  const todays = lastDate ? RECORDS.filter(r=>['dist','hsr','vel','acc','desa','pl'].some(m=>r[m].fecha===lastDate)) : [];
   const lastMatch = getLastMatchInfo(ACTIVE_EVENTS);
   const cycleDistTotal = computeCurrentCycleTotal('dist');
   const cycleHsrTotal = computeCurrentCycleTotal('hsr');
