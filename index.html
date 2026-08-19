@@ -3517,7 +3517,7 @@ function buildTimeline(player, metric, resetToLatest){
   };
   if(timelineChart){ timelineChart.data = cfg.data; timelineChart.options = cfg.options; timelineChart.update(); }
   else{ timelineChart = new Chart(ctx, cfg); requestAnimationFrame(()=>{ if(timelineChart) timelineChart.resize(); }); }
-  document.getElementById('timelinePlayerTag').textContent = player;
+  document.getElementById('timelinePlayerTag').textContent = player || '—';
 }
 
 function buildMetricTabs(){
@@ -3695,7 +3695,12 @@ function buildWeeklyLoadChart(resetToLatest){
   const canvas = document.getElementById('weeklyLoadChart');
   if(!canvas) return;
   const dates = [...new Set(ACTIVE_EVENTS.map(e=>e.fecha))].sort();
-  if(!dates.length) return;
+  if(!dates.length){
+    if(weeklyLoadChart){ weeklyLoadChart.destroy(); weeklyLoadChart=null; }
+    const tag = document.getElementById('weeklyLoadTag');
+    if(tag) tag.textContent = 'Sin datos cargados';
+    return;
+  }
 
   // ACWR promedio del plantel para cada día con datos cargados
   const allRatios = dates.map(d=>{
@@ -3990,11 +3995,16 @@ function buildCompare(){
   const pA = selA.value, pB = selB.value;
   drawCompareRadar(pA,pB);
   const legend = document.getElementById('compareLegend');
+  const table = document.getElementById('compareTable');
+  if(!pA || !pB || !playerAvg[pA] || !playerAvg[pB]){
+    if(legend) legend.innerHTML = '';
+    if(table) table.innerHTML = `<tbody><tr><td style="padding:14px 0;color:var(--mist);font-size:12.5px;" colspan="3">Sin jugadores todavía para comparar.</td></tr></tbody>`;
+    return;
+  }
   if(legend) legend.innerHTML = `
     <span><span class="dot" style="background:var(--gold);"></span>${pA}</span>
     <span><span class="dot" style="background:var(--teal);"></span>${pB}</span>`;
-  const table = document.getElementById('compareTable');
-  if(!table || !playerAvg[pA] || !playerAvg[pB]) return;
+  if(!table) return;
   const rows = METRIC_ORDER.map(m=>{
     const vA = playerAvg[pA][m]||0, vB = playerAvg[pB][m]||0;
     return `<tr>
