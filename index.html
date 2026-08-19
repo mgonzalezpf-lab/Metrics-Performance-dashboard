@@ -800,6 +800,18 @@
       <h3 data-i18n="rpePlantel">RPE del plantel</h3>
       <span class="tag" data-i18n="rpePlantelTag">percepción de esfuerzo reportada por cada jugador</span>
     </div>
+    <div id="rpeWindowWrap" style="position:relative;display:none;padding:0 0 12px;">
+      <button id="rpeWindowBtn" class="upload-btn" style="padding:7px 10px;">🕐 Horario de RPE</button>
+      <span id="rpeWindowLabel" style="margin-left:8px;font-size:11.5px;color:var(--mist);font-family:'IBM Plex Mono';"></span>
+      <div id="rpeWindowForm" style="display:none;position:absolute;top:38px;left:0;background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:10px;padding:12px;z-index:50;min-width:230px;box-shadow:0 8px 24px rgba(0,0,0,.4);">
+        <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:6px;">Desde qué hora se habilita el envío</label>
+        <input id="rpeWindowStartInput" type="time" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:8px;box-sizing:border-box;">
+        <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:6px;">Hasta qué hora (del mismo día)</label>
+        <input id="rpeWindowEndInput" type="time" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:8px;box-sizing:border-box;">
+        <button id="rpeWindowSubmit" class="upload-btn" style="width:100%;">Guardar horario</button>
+        <div id="rpeWindowStatus" style="font-size:11px;color:var(--mist);margin-top:6px;"></div>
+      </div>
+    </div>
     <div class="acwr-body" id="rpeTeamList"></div>
   </div>
 
@@ -1904,7 +1916,7 @@ function buildRpeWidget(existing){
     scale.innerHTML = '';
     submitBtn.style.display = 'none';
     status.className = 'rpe-status-msg locked';
-    status.textContent = RPE_LOCK_MSG[currentLang] || RPE_LOCK_MSG.es;
+    status.textContent = rpeLockMsg();
     return;
   }
   status.className = 'rpe-status-msg';
@@ -2013,17 +2025,71 @@ function computeRpeACWR(playerReports, refDateStr){
   if(!chronic) return {ratio:null, acute, chronic};
   return {ratio: acute/chronic, acute, chronic};
 }
-// Ventana de envío de RPE para jugadores: bloqueado 00:00–18:29, habilitado 18:30–23:59 (hora local del navegador).
+// Ventana de envío de RPE para jugadores: configurable por club (por defecto 18:30–23:59,
+// pensado para clubes que entrenan de tarde; un club que entrena de mañana puede cambiarla).
+let RPE_WINDOW_START = '18:30'; // "HH:MM", hora local del navegador
+let RPE_WINDOW_END = '23:59';
 function isRpeSubmitUnlocked(){
   const now = new Date();
-  const h = now.getHours(), m = now.getMinutes();
-  return (h > 18) || (h === 18 && m >= 30);
+  const nowMin = now.getHours()*60 + now.getMinutes();
+  const [sh,sm] = RPE_WINDOW_START.split(':').map(Number);
+  const [eh,em] = RPE_WINDOW_END.split(':').map(Number);
+  const startMin = sh*60+sm, endMin = eh*60+em;
+  if(startMin <= endMin){
+    return nowMin >= startMin && nowMin <= endMin; // ventana normal, dentro del mismo día
+  }
+  return nowMin >= startMin || nowMin <= endMin; // ventana que cruza medianoche (ej: 22:00 a 02:00)
 }
-const RPE_LOCK_MSG = {
-  es: '🔴 El envío de RPE está disponible de 18:30 a 24:00. Volvé a intentarlo dentro de ese horario.',
-  en: '🔴 RPE submission is available from 6:30 PM to midnight. Please try again within that window.',
-  ar: '🔴 إرسال مؤشر الجهد المدرك متاح من الساعة 18:30 حتى منتصف الليل. حاول مرة أخرى خلال هذا الوقت.'
-};
+function rpeLockMsg(){
+  const msgs = {
+    es: `🔴 El envío de RPE está disponible de ${RPE_WINDOW_START} a ${RPE_WINDOW_END}. Volvé a intentarlo dentro de ese horario.`,
+    en: `🔴 RPE submission is available from ${RPE_WINDOW_START} to ${RPE_WINDOW_END}. Please try again within that window.`,
+    ar: `🔴 إرسال مؤشر الجهد المدرك متاح من ${RPE_WINDOW_START} حتى ${RPE_WINDOW_END}. حاول مرة أخرى خلال هذا الوقت.`
+  };
+  return msgs[currentLang] || msgs.es;
+}
+async function loadRpeWindow(){
+  try{
+    const {data} = await supabaseClient.from('app_settings').select('value').eq('club',CURRENT_CLUB).eq('key','rpe_window').maybeSingle();
+    if(data && data.value){
+      const parsed = JSON.parse(data.value);
+      RPE_WINDOW_START = parsed.start || '18:30';
+      RPE_WINDOW_END = parsed.end || '23:59';
+    } else {
+      RPE_WINDOW_START = '18:30'; RPE_WINDOW_END = '23:59'; // valor por defecto para clubes que no lo configuraron todavía
+    }
+  }catch(e){ console.warn('No se pudo cargar el horario de RPE:', e); RPE_WINDOW_START='18:30'; RPE_WINDOW_END='23:59'; }
+}
+function setupRpeWindowBar(){
+  if(!(myProfile && (myProfile.role==='admin' || myProfile.role==='owner'))) return;
+  const wrap = document.getElementById('rpeWindowWrap');
+  if(!wrap) return;
+  wrap.style.display = 'block';
+  const btn = document.getElementById('rpeWindowBtn');
+  const form = document.getElementById('rpeWindowForm');
+  const startInput = document.getElementById('rpeWindowStartInput');
+  const endInput = document.getElementById('rpeWindowEndInput');
+  const status = document.getElementById('rpeWindowStatus');
+  const label = document.getElementById('rpeWindowLabel');
+  const refreshLabel = ()=>{ label.textContent = `habilitado ${RPE_WINDOW_START} a ${RPE_WINDOW_END}`; };
+  refreshLabel();
+  startInput.value = RPE_WINDOW_START;
+  endInput.value = RPE_WINDOW_END;
+  btn.onclick = ()=>{ form.style.display = form.style.display==='block' ? 'none' : 'block'; };
+  document.getElementById('rpeWindowSubmit').onclick = async ()=>{
+    const startVal = startInput.value, endVal = endInput.value;
+    if(!startVal || !endVal){ status.textContent = 'Completá las dos horas.'; return; }
+    status.textContent = 'Guardando…';
+    const {error} = await supabaseClient.from('app_settings')
+      .upsert({club:CURRENT_CLUB, key:'rpe_window', value:JSON.stringify({start:startVal, end:endVal}), updated_at:new Date().toISOString()}, {onConflict:'club,key'});
+    if(error){ status.textContent = 'No se pudo guardar: ' + error.message; return; }
+    RPE_WINDOW_START = startVal; RPE_WINDOW_END = endVal;
+    status.textContent = '✅ Horario guardado.';
+    refreshLabel();
+  };
+  document.addEventListener('click',(e)=>{ if(!wrap.contains(e.target)) form.style.display='none'; });
+}
+const RPE_LOCK_MSG = { es:'', en:'', ar:'' }; // se mantiene por compatibilidad; el mensaje real ahora sale de rpeLockMsg()
 function buildRpeLoadTable(dateStr){
   const table = document.getElementById('rpeLoadTable');
   if(!table) return;
@@ -2155,6 +2221,7 @@ async function loadNextMatchDate(){
 async function startDashboard(){
   try{ await loadRemoteData(); }catch(error){ console.warn(error); }
   await loadNextMatchDate();
+  await loadRpeWindow();
   await loadGkData();
   document.getElementById('authScreen').style.display='none';
   document.getElementById('nameScreen').style.display='none';
@@ -2180,6 +2247,7 @@ async function startDashboard(){
   setupGkPreviewBar();
   setupAddPlayerBar();
   setupNextMatchBar();
+  setupRpeWindowBar();
   setupCsvImportModal();
   checkNewPlayerSignups();
   buildPendingRequestsPanel();
@@ -2953,6 +3021,7 @@ async function switchToClub(clubName){
   CURRENT_CLUB = clubName;
   try{ await loadRemoteData(); }catch(error){ console.warn(error); }
   await loadNextMatchDate();
+  await loadRpeWindow();
   await loadGkData();
   deriveAll(ACTIVE_EVENTS);
   renderAll();
@@ -2960,6 +3029,7 @@ async function switchToClub(clubName){
   setupGkPreviewBar();
   setupAddPlayerBar();
   setupNextMatchBar();
+  setupRpeWindowBar();
   buildPendingRequestsPanel();
   const subEl = document.querySelector('.top .brand-sub');
   if(subEl) subEl.textContent = `Viendo: ${CURRENT_CLUB} (modo Owner)`;
