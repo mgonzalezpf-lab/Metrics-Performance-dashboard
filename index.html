@@ -616,7 +616,6 @@
         <button class="lang-btn upload-btn" data-lang="ar" style="padding:6px 9px;font-size:11px;">AR</button>
       </span>
       <button id="uploadBtn" class="upload-btn" style="display:none;" data-i18n="actualizarDatos">⟳ Actualizar datos (subir Excel)</button>
-      <button id="restoreBtn" class="upload-btn" style="display:none;border-color:var(--mist);color:var(--mist);margin-left:6px;" data-i18n="restablecerDatos">Restablecer datos iniciales</button>
       <span id="notifBellWrap" style="position:relative;display:none;margin-left:6px;">
         <button id="notifBell" class="upload-btn" style="padding:7px 10px;position:relative;">🔔<span id="notifBadge" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--bad);color:#fff;font-size:10px;font-weight:700;border-radius:10px;min-width:16px;height:16px;line-height:16px;text-align:center;padding:0 3px;">0</span></button>
         <div id="notifDropdown" style="display:none;position:absolute;top:42px;right:0;background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:10px;min-width:260px;max-height:320px;overflow-y:auto;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.4);"></div>
@@ -1615,14 +1614,12 @@ async function getRosterExtraNames(){
   const {data,error} = await supabaseClient.from('roster_players').select('player_name').eq('club',CURRENT_CLUB);
   return error ? [] : (data||[]).map(r=>r.player_name);
 }
-// Botones de "Actualizar datos" y "Restablecer" — visibles solo para admin/owner. Se decide acá,
+// Botón de "Actualizar datos" — visible solo para admin/owner. Se decide acá,
 // no en init(), porque init() corre al cargar la página, antes de saber quién inició sesión.
 function setupUploadButtons(){
   const uploadBtn = document.getElementById('uploadBtn');
-  const restoreBtn = document.getElementById('restoreBtn');
   const isAdminOrOwner = myProfile && (myProfile.role==='admin' || myProfile.role==='owner');
   if(uploadBtn) uploadBtn.style.display = isAdminOrOwner ? 'inline-block' : 'none';
-  if(restoreBtn) restoreBtn.style.display = (isAdminOrOwner && hasSavedData()) ? 'inline-block' : 'none';
 }
 function setupAddPlayerBar(){
   if(!(myProfile && (myProfile.role==='admin' || myProfile.role==='owner'))) return;
@@ -2281,14 +2278,6 @@ function loadSavedData(){
   }catch(err){ console.warn('Los datos guardados no son válidos.', err); }
   return false;
 }
-function restoreInitialData(){
-  try { localStorage.removeItem(storageKeyFor(CURRENT_CLUB)); } catch {}
-  ACTIVE_EVENTS = []; ACTIVE_TEAMTOTALS = {};
-  deriveAll(ACTIVE_EVENTS);
-  renderAll();
-  document.getElementById('restoreBtn').style.display = 'none';
-  showStatus('Se restauraron los datos iniciales del dashboard.', 'ok');
-}
 
 const METRICS = {
   dist: {label:'Distancia Total', unit:'m', dec:0, key:'dist'},
@@ -2314,7 +2303,7 @@ const I18N = {
     guardarContrasena:'Guardar nueva contraseña', quienEres:'¿Quién eres?',
     quienEresDesc:'Selecciona tu nombre en la lista del plantel. Una vez elegido, tu cuenta queda vinculada a ese jugador y solo verás tus propios datos.',
     jugador:'Jugador', confirmar:'Confirmar',
-    actualizarDatos:'⟳ Actualizar datos (subir Excel)', restablecerDatos:'Restablecer datos iniciales', cerrarSesion:'Cerrar sesión',
+    actualizarDatos:'⟳ Actualizar datos (subir Excel)', cerrarSesion:'Cerrar sesión',
     datosActualizados:'DATOS ACTUALIZADOS AL', jugadoresActivos:'jugadores activos',
     evolucionPlantel:'Evolución del plantel', sesionesAnteriores:'Sesiones anteriores', sesionesSiguientes:'Sesiones siguientes',
     plantel:'Plantel', buscarJugador:'Buscar jugador…', radarVuelo:'Radar de Vuelo', perfilNormalizado:'perfil normalizado vs. plantel',
@@ -2357,7 +2346,7 @@ const I18N = {
     guardarContrasena:'Save new password', quienEres:'Who are you?',
     quienEresDesc:'Select your name from the squad list. Once chosen, your account is linked to that player and you will only see your own data.',
     jugador:'Player', confirmar:'Confirm',
-    actualizarDatos:'⟳ Update data (upload Excel)', restablecerDatos:'Reset initial data', cerrarSesion:'Log out',
+    actualizarDatos:'⟳ Update data (upload Excel)', cerrarSesion:'Log out',
     datosActualizados:'DATA UPDATED ON', jugadoresActivos:'active players',
     evolucionPlantel:'Squad evolution', sesionesAnteriores:'Previous sessions', sesionesSiguientes:'Next sessions',
     plantel:'Squad', buscarJugador:'Search player…', radarVuelo:'Flight Radar', perfilNormalizado:'normalized profile vs. squad',
@@ -2400,7 +2389,7 @@ const I18N = {
     guardarContrasena:'حفظ كلمة المرور الجديدة', quienEres:'من أنت؟',
     quienEresDesc:'اختر اسمك من قائمة الفريق. بمجرد الاختيار، سيُربط حسابك بذلك اللاعب وستشاهد بياناتك فقط.',
     jugador:'اللاعب', confirmar:'تأكيد',
-    actualizarDatos:'⟳ تحديث البيانات (رفع ملف إكسل)', restablecerDatos:'استعادة البيانات الأولية', cerrarSesion:'تسجيل الخروج',
+    actualizarDatos:'⟳ تحديث البيانات (رفع ملف إكسل)', cerrarSesion:'تسجيل الخروج',
     datosActualizados:'البيانات محدّثة حتى', jugadoresActivos:'لاعبًا نشطًا',
     evolucionPlantel:'تطور الفريق', sesionesAnteriores:'الحصص السابقة', sesionesSiguientes:'الحصص التالية',
     plantel:'قائمة الفريق', buscarJugador:'ابحث عن لاعب…', radarVuelo:'رادار الأداء', perfilNormalizado:'ملف معياري مقابل الفريق',
@@ -4594,8 +4583,6 @@ async function init(){
   });
   const fileInput = document.getElementById('fileInput');
   const uploadBtn = document.getElementById('uploadBtn');
-  const restoreBtn = document.getElementById('restoreBtn');
-  restoreBtn.addEventListener('click', restoreInitialData);
   if(uploadBtn && fileInput){
     uploadBtn.addEventListener('click', ()=> fileInput.click());
     fileInput.addEventListener('change', (e)=>{ if(e.target.files[0]) handleFile(e.target.files[0]); e.target.value=''; });
