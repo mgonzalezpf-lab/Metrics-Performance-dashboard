@@ -1615,6 +1615,15 @@ async function getRosterExtraNames(){
   const {data,error} = await supabaseClient.from('roster_players').select('player_name').eq('club',CURRENT_CLUB);
   return error ? [] : (data||[]).map(r=>r.player_name);
 }
+// Botones de "Actualizar datos" y "Restablecer" — visibles solo para admin/owner. Se decide acá,
+// no en init(), porque init() corre al cargar la página, antes de saber quién inició sesión.
+function setupUploadButtons(){
+  const uploadBtn = document.getElementById('uploadBtn');
+  const restoreBtn = document.getElementById('restoreBtn');
+  const isAdminOrOwner = myProfile && (myProfile.role==='admin' || myProfile.role==='owner');
+  if(uploadBtn) uploadBtn.style.display = isAdminOrOwner ? 'inline-block' : 'none';
+  if(restoreBtn) restoreBtn.style.display = (isAdminOrOwner && hasSavedData()) ? 'inline-block' : 'none';
+}
 function setupAddPlayerBar(){
   if(!(myProfile && (myProfile.role==='admin' || myProfile.role==='owner'))) return;
   const wrap = document.getElementById('addPlayerWrap');
@@ -2246,6 +2255,7 @@ async function startDashboard(){
   setupPreviewBar();
   setupGkPreviewBar();
   setupAddPlayerBar();
+  setupUploadButtons();
   setupNextMatchBar();
   setupRpeWindowBar();
   setupCsvImportModal();
@@ -3028,6 +3038,7 @@ async function switchToClub(clubName){
   setupPreviewBar();
   setupGkPreviewBar();
   setupAddPlayerBar();
+  setupUploadButtons();
   setupNextMatchBar();
   setupRpeWindowBar();
   buildPendingRequestsPanel();
@@ -4566,7 +4577,6 @@ async function init(){
   const fileInput = document.getElementById('fileInput');
   const uploadBtn = document.getElementById('uploadBtn');
   const restoreBtn = document.getElementById('restoreBtn');
-  if(hasSavedData()) restoreBtn.style.display = 'inline-block';
   restoreBtn.addEventListener('click', restoreInitialData);
   if(uploadBtn && fileInput){
     uploadBtn.addEventListener('click', ()=> fileInput.click());
