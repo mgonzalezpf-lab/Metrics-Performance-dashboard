@@ -4478,7 +4478,13 @@ async function confirmCatapultImport(){
   status.textContent = 'Guardando…';
   try{
     const detalleFinal = tipo==='Partido' ? rival : (detalle || 'Entreno');
-    const nuevosEventos = pendingCatapultData.bySession.map(r=>({
+   const nuevosEventos = pendingCatapultData.bySession
+  .filter(r => !isGoalkeeper(r.jugador))   // los arqueros no van a Jugadores de Campo
+  .map(r=>({
+    fecha, jugador:r.jugador, tipo, detalle:detalleFinal,
+    dist:r.dist, hsr:r.hsr, vel:r.vel, acc:r.acc, desa:r.desa, pl:r.pl, min:r.min,
+    alta_int:r.hsr, sprint:r.sprint, sprint_count:r.sprint_count,
+  }));
       fecha, jugador:r.jugador, tipo, detalle:detalleFinal,
       dist:r.dist, hsr:r.hsr, vel:r.vel, acc:r.acc, desa:r.desa, pl:r.pl, min:r.min,
       alta_int:r.hsr, sprint:r.sprint, sprint_count:r.sprint_count,
