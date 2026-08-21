@@ -4478,17 +4478,28 @@ async function confirmCatapultImport(){
   status.textContent = 'Guardando…';
   try{
     const detalleFinal = tipo==='Partido' ? rival : (detalle || 'Entreno');
-   const nuevosEventos = pendingCatapultData.bySession
-  .filter(r => !isGoalkeeper(r.jugador))   // los arqueros no van a Jugadores de Campo
-  .map(r=>({
-    fecha, jugador:r.jugador, tipo, detalle:detalleFinal,
-    dist:r.dist, hsr:r.hsr, vel:r.vel, acc:r.acc, desa:r.desa, pl:r.pl, min:r.min,
-    alta_int:r.hsr, sprint:r.sprint, sprint_count:r.sprint_count,
-  }));
-      fecha, jugador:r.jugador, tipo, detalle:detalleFinal,
-      dist:r.dist, hsr:r.hsr, vel:r.vel, acc:r.acc, desa:r.desa, pl:r.pl, min:r.min,
-      alta_int:r.hsr, sprint:r.sprint, sprint_count:r.sprint_count,
-    }));
+    const nuevosEventos = pendingCatapultData.bySession
+      .filter(r => !isGoalkeeper(r.jugador))   // los arqueros no van a Jugadores de Campo, quedan en gk_data
+      .map(r=>({
+        fecha, jugador:r.jugador, tipo, detalle:detalleFinal,
+        dist:r.dist, hsr:r.hsr, vel:r.vel, acc:r.acc, desa:r.desa, pl:r.pl, min:r.min,
+        alta_int:r.hsr, sprint:r.sprint, sprint_count:r.sprint_count,
+      }));
+
+    // Arqueros del mismo CSV: se guardan aparte en gk_data (sin impactos/buzos, que el CSV crudo de Catapult no trae).
+    const nuevosGkEventos = pendingCatapultData.bySession
+      .filter(r => isGoalkeeper(r.jugador))
+      .map(r=>({
+        fecha, jugador:r.jugador, tipo, detalle:detalleFinal,
+        dist:r.dist, impact_left:null, impact_right:null, dives_left:null, dives_right:null,
+        pl:r.pl, min:r.min, vel:r.vel, acc:r.acc, dece:r.desa,
+      }));
+    if(nuevosGkEventos.length){
+      const gkKey = (e)=> `${e.jugador}|${e.fecha}|${e.tipo}`;
+      const gkNuevasKeys = new Set(nuevosGkEventos.map(gkKey));
+      const gkRestantes = GK_EVENTS.filter(e => !gkNuevasKeys.has(gkKey(e)));
+      await saveGkData([...gkRestantes, ...nuevosGkEventos]);
+    }
 
     // Merge: sacamos cualquier evento previo del mismo jugador+fecha+tipo (por si se sube el mismo partido 2 veces),
     // y agregamos los nuevos — a diferencia del Excel completo, un CSV de Catapult es UNA sola sesión, no la temporada entera.
@@ -4513,7 +4524,8 @@ async function confirmCatapultImport(){
 
     document.getElementById('csvImportModal').style.display = 'none';
     pendingCatapultData = null;
-    showStatus(`Datos de Catapult cargados ✓ ${nuevosEventos.length} jugadores · ${fecha.split('-').reverse().join('/')}`, 'ok');
+    const gkMsg = nuevosGkEventos.length ? ` · ${nuevosGkEventos.length} arquero(s) en su pestaña` : '';
+    showStatus(`Datos de Catapult cargados ✓ ${nuevosEventos.length} jugadores${gkMsg} · ${fecha.split('-').reverse().join('/')}`, 'ok');
   }catch(err){
     console.error(err);
     status.textContent = 'No se pudo guardar: ' + err.message;
