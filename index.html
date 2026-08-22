@@ -2286,14 +2286,15 @@ const METRICS = {
   acc:  {label:'Acc', unit:'n°', dec:0, key:'acc'},
   desa: {label:'Desa', unit:'n°', dec:0, key:'desa'},
   pl:   {label:'Player Load', unit:'', dec:0, key:'pl'},
-  sprint: {label:'Sprint', unit:'', dec:0, key:'sprint'},
+  sprint: {label:'Sprint Distancia', unit:'m', dec:0, key:'sprint'},
+  sprint_count: {label:'Sprint Conteo', unit:'', dec:0, key:'sprint_count'},
 };
-const METRIC_ORDER = ['dist','hsr','vel','acc','desa','pl','sprint'];
+const METRIC_ORDER = ['dist','hsr','vel','acc','desa','pl','sprint','sprint_count'];
 
 // ---------- i18n ----------
 const I18N = {
   es: {
-    metrics:{dist:'Distancia Total',hsr:'HSR',vel:'Vel. Máxima',acc:'Acc',desa:'Desa',pl:'Player Load',sprint:'Sprint'},
+    metrics:{dist:'Distancia Total',hsr:'HSR',vel:'Vel. Máxima',acc:'Acc',desa:'Desa',pl:'Player Load',sprint:'Sprint Distancia',sprint_count:'Sprint Conteo'},
     authTitleLogin:'Acceso al dashboard', authTitleSignup:'Crear acceso',
     authDescLogin:'Inicia sesión para consultar y actualizar los datos del equipo.',
     authDescSignup:'Registra tu email y contraseña. Te llegará un correo para confirmar el acceso.',
@@ -2336,7 +2337,7 @@ const I18N = {
     gkDistUltimaSesion:'Distancia última sesión', quienSos:'¿Quién sos?', rolJugador:'Jugador o arquero', rolStaff:'Staff (médico y técnico)', rolGkCoach:'Entrenador de arqueros', rolClubAdmin:'Administrador de un club nuevo',
   },
   en: {
-    metrics:{dist:'Total Distance',hsr:'HSR',vel:'Max Speed',acc:'Acc',desa:'Dec',pl:'Player Load',sprint:'Sprint'},
+    metrics:{dist:'Total Distance',hsr:'HSR',vel:'Max Speed',acc:'Acc',desa:'Dec',pl:'Player Load',sprint:'Sprint Distance',sprint_count:'Sprint Count'},
     authTitleLogin:'Dashboard access', authTitleSignup:'Create access',
     authDescLogin:'Log in to view and update the team data.',
     authDescSignup:'Register your email and password. You will receive a confirmation email.',
@@ -2379,7 +2380,7 @@ const I18N = {
     gkDistUltimaSesion:'Distance last session', quienSos:'Who are you?', rolJugador:'Player or goalkeeper', rolStaff:'Staff (medical & technical)', rolGkCoach:'Goalkeeper coach', rolClubAdmin:'New club administrator',
   },
   ar: {
-    metrics:{dist:'المسافة الإجمالية',hsr:'الجري عالي السرعة',vel:'السرعة القصوى',acc:'تسارع',desa:'تباطؤ',pl:'حمل اللاعب',sprint:'عدد السرعات القصوى'},
+    metrics:{dist:'المسافة الإجمالية',hsr:'الجري عالي السرعة',vel:'السرعة القصوى',acc:'تسارع',desa:'تباطؤ',pl:'حمل اللاعب',sprint:'مسافة السرعات القصوى',sprint_count:'عدد السرعات القصوى'},
     authTitleLogin:'الدخول إلى لوحة التحكم', authTitleSignup:'إنشاء حساب',
     authDescLogin:'سجّل الدخول للاطلاع على بيانات الفريق وتحديثها.',
     authDescSignup:'سجّل بريدك الإلكتروني وكلمة المرور. سيصلك بريد لتأكيد الدخول.',
