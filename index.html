@@ -2837,11 +2837,15 @@ function buildWeeklyMicrocycle(){
   const avgData = weeks.map((w,i)=> jugadoresPorSemana[i]>0 ? Math.round(weekMap[w].pl/jugadoresPorSemana[i]) : null);
 
   const tag = document.getElementById('weeklyTag');
-  if(tag && weeks.length>=2){
-    const last = weekMap[weeks[weeks.length-1]].pl, prev = weekMap[weeks[weeks.length-2]].pl;
-    const pctChange = prev>0 ? Math.round(((last-prev)/prev)*100) : null;
+  if(tag){
     const base = state.weeklyMicroTab==='promedio' ? 'Player Load promedio por jugador' : 'Player Load total por semana';
-    tag.textContent = pctChange!==null ? `${base} · ${pctChange>=0?'+':''}${pctChange}% vs semana anterior` : base;
+    if(weeks.length>=2){
+      const last = weekMap[weeks[weeks.length-1]].pl, prev = weekMap[weeks[weeks.length-2]].pl;
+      const pctChange = prev>0 ? Math.round(((last-prev)/prev)*100) : null;
+      tag.textContent = pctChange!==null ? `${base} · ${pctChange>=0?'+':''}${pctChange}% vs semana anterior` : base;
+    } else {
+      tag.textContent = base;
+    }
   }
 
   const isTotal = state.weeklyMicroTab!=='promedio';
