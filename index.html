@@ -671,6 +671,7 @@
     <button class="tab-btn" id="tabBtnArqueros" onclick="switchAdminTab('arqueros')" style="padding:9px 18px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--mist);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabArqueros">🧤 Arqueros</button>
     <button class="tab-btn" id="tabBtnCarga" onclick="switchAdminTab('carga')" style="padding:9px 18px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--mist);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabControlCarga">📊 Control de Carga</button>
     <button class="tab-btn" id="tabBtnPartidos" onclick="switchAdminTab('partidos')" style="padding:9px 18px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--mist);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabPartidos">🆚 Partidos</button>
+    <button class="tab-btn" id="tabBtnWellness" onclick="switchAdminTab('wellness')" style="padding:9px 18px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--mist);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabWellness">💚 Wellness</button>
     <button class="tab-btn" id="tabBtnClubes" onclick="switchAdminTab('clubes')" style="display:none;padding:9px 18px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--mist);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabClubes">🏢 Clubes</button>
   </div>
 
@@ -840,6 +841,32 @@
   </div>
   </div>
 
+  <div id="wellnessView" style="display:none;">
+    <div class="panel team-only" style="margin-bottom:18px;">
+      <div class="panel-head">
+        <h3>💚 Wellness del plantel</h3>
+        <span class="tag">reporte diario · antes de entrenar</span>
+      </div>
+      <div id="wellnessWindowWrap" style="position:relative;display:none;padding:0 18px 12px;">
+        <button id="wellnessWindowBtn" class="upload-btn" style="padding:7px 10px;">🕐 Horario de Wellness</button>
+        <span id="wellnessWindowLabel" style="margin-left:8px;font-size:11.5px;color:var(--mist);font-family:'IBM Plex Mono';"></span>
+        <div id="wellnessWindowForm" style="display:none;position:absolute;top:38px;left:18px;background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:10px;padding:12px;z-index:50;min-width:230px;box-shadow:0 8px 24px rgba(0,0,0,.4);">
+          <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:6px;">Desde qué hora se habilita el envío</label>
+          <input id="wellnessWindowStartInput" type="time" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:8px;box-sizing:border-box;">
+          <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:6px;">Hasta qué hora (del mismo día)</label>
+          <input id="wellnessWindowEndInput" type="time" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:8px;box-sizing:border-box;">
+          <button id="wellnessWindowSubmit" class="upload-btn" style="width:100%;">Guardar horario</button>
+          <div id="wellnessWindowStatus" style="font-size:11px;color:var(--mist);margin-top:6px;"></div>
+        </div>
+      </div>
+      <div id="wellnessKpi" style="padding:16px 18px;"></div>
+    </div>
+    <div class="panel team-only">
+      <div id="wellnessAlerts"></div>
+      <div style="overflow-x:auto;"><div id="wellnessTable"></div></div>
+    </div>
+  </div>
+
   <div id="clubesView" style="display:none;">
     <div class="panel">
       <div class="panel-head">
@@ -915,6 +942,16 @@
       <button id="previewStartBtn" class="upload-btn">Ver como jugador</button>
       <button id="previewExitBtn" class="upload-btn" style="display:none;border-color:var(--bad);color:var(--bad);">✕ Volver a vista admin</button>
     </div>
+  </div>
+
+  <div class="panel" id="wellnessPanel" style="display:none;margin-bottom:18px;">
+    <div class="panel-head">
+      <h3>💚 ¿Cómo llegaste hoy?</h3>
+      <span class="tag">Wellness diario · antes de entrenar</span>
+    </div>
+    <div id="wellnessForm" style="margin:10px 0;"></div>
+    <button id="wellnessSubmit" class="upload-btn" style="margin-top:4px;" disabled>Enviar Wellness</button>
+    <div id="wellnessStatus" class="rpe-status-msg" style="margin-top:8px;"></div>
   </div>
 
   <div class="panel" id="rpePanel" style="display:none;margin-bottom:18px;">
@@ -1894,6 +1931,22 @@ async function submitRpe(value){
   }, {onConflict:'user_id,fecha'});
   if(error) throw error;
 }
+async function getMyTodayWellness(){
+  const {data:{user}}=await supabaseClient.auth.getUser();
+  if(!user) return null;
+  const {data,error}=await supabaseClient.from('wellness_reports').select('*').eq('user_id',user.id).eq('fecha',todayISO()).maybeSingle();
+  if(error){ console.warn(error); return null; }
+  return data || null;
+}
+async function submitWellness(payload){
+  const {data:{user}}=await supabaseClient.auth.getUser();
+  const {error}=await supabaseClient.from('wellness_reports').upsert({
+    user_id:user.id, club:CURRENT_CLUB, player_name:myProfile.player_name, fecha:todayISO(),
+    sueno:payload.sueno, fatiga:payload.fatiga, dolor_muscular:payload.dolor_muscular, estres:payload.estres, animo:payload.animo,
+    observacion:payload.observacion||null, zonas_dolor:payload.zonas_dolor||[], updated_at:new Date().toISOString()
+  }, {onConflict:'user_id,fecha'});
+  if(error) throw error;
+}
 const RPE_SCALE = [
   {n:0,  color:'#D9D9D9', emoji:'😎', es:'En reposo, sentado',           en:'At rest, sitting',       ar:'في حالة الراحة، جالسًا'},
   {n:1,  color:'#8BC34A', emoji:'👍', es:'Esfuerzo muy leve',            en:'Very light effort',      ar:'جهد خفيف جدًا'},
@@ -1979,6 +2032,195 @@ function buildRpeWidget(existing){
     }
   };
 }
+// ---------- Wellness: formulario diario del jugador (sueño, fatiga, dolor muscular, estrés, ánimo + mapa de dolor) ----------
+const WELLNESS_CATEGORIES = [
+  {key:'sueno', label:{es:'Calidad del sueño', en:'Sleep quality', ar:'جودة النوم'},
+    opts:{es:['Muy mal, no pude dormir','Mal, sueño muy inquieto','Más o menos, me costó dormirme / me desperté','Bien','Muy bien']}},
+  {key:'fatiga', label:{es:'Nivel de fatiga', en:'Fatigue level', ar:'مستوى التعب'},
+    opts:{es:['Muy fatigado','Algo cansado','Normal','Bien','Al 100%']}},
+  {key:'dolor_muscular', label:{es:'Dolor muscular', en:'Muscle soreness', ar:'ألم عضلي'},
+    opts:{es:['Mucho dolor','Bastante dolor','Algunas molestias','Leve o casi nada','Nada de dolor']}},
+  {key:'estres', label:{es:'Estrés', en:'Stress', ar:'التوتر'},
+    opts:{es:['Muy estresado','Estresado','Normal','Relajado','Muy relajado']}},
+  {key:'animo', label:{es:'Ánimo / motivación', en:'Mood / motivation', ar:'الحالة المزاجية / الدافع'},
+    opts:{es:['Muy enojado e irritable','Mal genio','Menos interesado de lo normal en mis actividades','Buen ánimo y humor','Muy positivo']}},
+];
+let wellnessState = { values:{}, zonas:[], view:'front' };
+function renderBodyMapSvg(){
+  const zones = wellnessState.view==='front' ? BODY_ZONES_FRONT : BODY_ZONES_BACK;
+  const circles = zones.map(z=>{
+    const marcada = wellnessState.zonas.some(zd=>zd.zona===z.id);
+    return `<circle data-zona="${z.id}" cx="${z.cx}" cy="${z.cy}" r="${z.r}" fill="${marcada?'rgba(251,113,133,.55)':'rgba(103,232,249,.12)'}" stroke="${marcada?'#FB7185':'rgba(103,232,249,.4)'}" stroke-width="1.5" style="cursor:pointer;" class="body-zone"/>`;
+  }).join('');
+  return `<svg viewBox="0 0 220 340" style="width:100%;max-width:200px;display:block;margin:0 auto;">
+    <ellipse cx="110" cy="26" rx="16" ry="18" fill="rgba(231,231,251,.06)" stroke="rgba(231,231,251,.18)"/>
+    <path d="M 78 50 Q 110 40 142 50 L 150 160 Q 110 175 70 160 Z" fill="rgba(231,231,251,.06)" stroke="rgba(231,231,251,.18)"/>
+    <path d="M 92 158 L 88 316 L 106 316 L 108 220 L 112 220 L 114 316 L 132 316 L 128 158 Z" fill="rgba(231,231,251,.06)" stroke="rgba(231,231,251,.18)"/>
+    <path d="M 72 55 L 45 130 L 55 134 L 82 62 Z" fill="rgba(231,231,251,.06)" stroke="rgba(231,231,251,.18)"/>
+    <path d="M 148 55 L 175 130 L 165 134 L 138 62 Z" fill="rgba(231,231,251,.06)" stroke="rgba(231,231,251,.18)"/>
+    ${circles}
+  </svg>`;
+}
+function buildWellnessWidget(existing){
+  const panel = document.getElementById('wellnessPanel');
+  if(!panel) return;
+  panel.style.display='block';
+  const box = document.getElementById('wellnessForm');
+  const submitBtn = document.getElementById('wellnessSubmit');
+  const status = document.getElementById('wellnessStatus');
+  if(!box || !submitBtn || !status) return;
+
+  if(!existing && !isWellnessSubmitUnlocked()){
+    box.innerHTML = '';
+    submitBtn.style.display = 'none';
+    status.className = 'rpe-status-msg locked';
+    status.textContent = wellnessLockMsg();
+    return;
+  }
+  status.className = 'rpe-status-msg';
+
+  if(existing){
+    const zonas = existing.zonas_dolor || [];
+    box.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+      ${WELLNESS_CATEGORIES.map(c=>{
+        const val = existing[c.key];
+        const opts = c.opts[currentLang] || c.opts.es;
+        const desc = (val && opts[val-1]) ? opts[val-1] : '';
+        return `<div style="flex:1;min-width:130px;padding:10px 12px;border-radius:8px;border:2px solid var(--gold);background:rgba(255,255,255,.03);">
+        <div style="font-size:11px;color:var(--mist);margin-bottom:4px;">${c.label[currentLang]||c.label.es}</div>
+        <div style="font-size:20px;font-weight:800;color:var(--bone);">${val??'—'}<span style="font-size:12px;color:var(--mist);">/5</span></div>
+        ${desc ? `<div style="font-size:10.5px;color:var(--gold);margin-top:2px;font-style:italic;">${desc}</div>` : ''}
+      </div>`;
+      }).join('')}
+    </div>
+    ${zonas.length ? `<div style="font-size:12px;color:var(--warn);margin-bottom:6px;">🩹 Zonas reportadas: ${zonas.map(z=>`${BODY_ZONE_LABELS[z.zona]||z.zona} (${z.tipo})`).join(', ')}</div>` : ''}
+    ${existing.observacion ? `<div style="font-size:12px;color:var(--mist);font-style:italic;">"${existing.observacion}"</div>` : ''}`;
+    submitBtn.style.display = 'none';
+    status.textContent = `✅ Ya enviaste tu Wellness de hoy. Podrás reportar de nuevo mañana.`;
+    return;
+  }
+
+  submitBtn.style.display = 'inline-block';
+  submitBtn.disabled = false;
+  wellnessState = { values:{}, zonas:[], view:'front' };
+  status.textContent = '';
+
+  const catRows = WELLNESS_CATEGORIES.map(c=>`
+    <div style="margin-bottom:14px;">
+      <div style="font-size:12px;color:var(--mist);margin-bottom:5px;">${c.label[currentLang]||c.label.es} <span style="opacity:.6;">(1 mal · 5 bien)</span></div>
+      <div style="display:flex;gap:6px;" data-cat="${c.key}">
+        ${[1,2,3,4,5].map(n=>`<button type="button" class="wcat-btn" data-cat="${c.key}" data-n="${n}" style="flex:1;padding:9px 0;border-radius:8px;border:2px solid transparent;background:rgba(255,255,255,.03);color:var(--bone);font:700 13px 'IBM Plex Mono';cursor:pointer;">${n}</button>`).join('')}
+      </div>
+      <div id="wcap-${c.key}" style="font-size:11px;color:var(--gold);margin-top:5px;min-height:14px;font-style:italic;"></div>
+    </div>`).join('');
+
+  box.innerHTML = `
+    ${catRows}
+    <div style="margin-top:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-size:12px;color:var(--mist);">🩹 ¿Tenés alguna molestia? Marcá la zona en el cuerpo</span>
+        <span style="display:flex;gap:4px;">
+          <button type="button" id="bodyViewFront" class="upload-btn" style="padding:5px 10px;font-size:11px;">Frente</button>
+          <button type="button" id="bodyViewBack" class="upload-btn" style="padding:5px 10px;font-size:11px;">Espalda</button>
+        </span>
+      </div>
+      <div id="bodyMapWrap">${renderBodyMapSvg()}</div>
+      <div id="zonasSeleccionadas" style="margin-top:8px;display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+    <div style="margin-top:14px;">
+      <div style="font-size:12px;color:var(--mist);margin-bottom:5px;">Observaciones (opcional)</div>
+      <textarea id="wellnessObs" rows="2" style="width:100%;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:8px;color:var(--bone);font:400 12.5px 'IBM Plex Mono';padding:8px;resize:vertical;" placeholder="Ej: molestia leve, dormí poco, etc."></textarea>
+    </div>`;
+
+  function wireCatButtons(){
+    box.querySelectorAll('.wcat-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const cat = btn.dataset.cat, n = Number(btn.dataset.n);
+        wellnessState.values[cat] = n;
+        box.querySelectorAll(`.wcat-btn[data-cat="${cat}"]`).forEach(b=>{
+          const active = Number(b.dataset.n)===n;
+          b.style.borderColor = active ? 'var(--gold)' : 'transparent';
+          b.style.background = active ? 'rgba(212,175,55,.15)' : 'rgba(255,255,255,.03)';
+        });
+        const catDef = WELLNESS_CATEGORIES.find(c=>c.key===cat);
+        const capEl = document.getElementById(`wcap-${cat}`);
+        if(catDef && capEl){
+          const opts = catDef.opts[currentLang] || catDef.opts.es;
+          capEl.textContent = opts[n-1] || '';
+        }
+        checkReady();
+      });
+    });
+  }
+  function renderZonasList(){
+    const wrap = document.getElementById('zonasSeleccionadas');
+    if(!wrap) return;
+    if(!wellnessState.zonas.length){ wrap.innerHTML=''; return; }
+    wrap.innerHTML = wellnessState.zonas.map((z,i)=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(251,113,133,.08);border:1px solid rgba(251,113,133,.3);border-radius:6px;font-size:11.5px;">
+        <span style="flex:1;color:var(--bone);">${BODY_ZONE_LABELS[z.zona]||z.zona}</span>
+        <select data-zi="${i}" class="zona-tipo-select" style="background:var(--pitch-800);color:var(--bone);border:1px solid var(--line);border-radius:5px;font:400 11px 'IBM Plex Mono';padding:2px 4px;">
+          ${PAIN_TYPES.map(t=>`<option value="${t}" ${z.tipo===t?'selected':''}>${t}</option>`).join('')}
+        </select>
+        <button type="button" data-zi="${i}" class="zona-quitar" style="background:none;border:none;color:var(--bad);cursor:pointer;font-size:14px;">✕</button>
+      </div>`).join('');
+    wrap.querySelectorAll('.zona-tipo-select').forEach(sel=>{
+      sel.addEventListener('change', ()=>{ wellnessState.zonas[Number(sel.dataset.zi)].tipo = sel.value; });
+    });
+    wrap.querySelectorAll('.zona-quitar').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        wellnessState.zonas.splice(Number(btn.dataset.zi),1);
+        redrawBodyMap(); renderZonasList();
+      });
+    });
+  }
+  function redrawBodyMap(){
+    const wrap = document.getElementById('bodyMapWrap');
+    if(wrap) wrap.innerHTML = renderBodyMapSvg();
+    wireBodyZones();
+  }
+  function wireBodyZones(){
+    box.querySelectorAll('.body-zone').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        const zonaId = el.dataset.zona;
+        const existente = wellnessState.zonas.find(z=>z.zona===zonaId);
+        if(existente){ wellnessState.zonas = wellnessState.zonas.filter(z=>z.zona!==zonaId); }
+        else{ wellnessState.zonas.push({zona:zonaId, tipo:PAIN_TYPES[0]}); }
+        redrawBodyMap(); renderZonasList();
+      });
+    });
+  }
+  function checkReady(){
+    const allSet = WELLNESS_CATEGORIES.every(c=> wellnessState.values[c.key]!==undefined);
+    submitBtn.disabled = !allSet;
+  }
+
+  wireCatButtons();
+  wireBodyZones();
+  submitBtn.disabled = true;
+
+  const btnFront = document.getElementById('bodyViewFront');
+  const btnBack = document.getElementById('bodyViewBack');
+  if(btnFront) btnFront.addEventListener('click', ()=>{ wellnessState.view='front'; redrawBodyMap(); });
+  if(btnBack) btnBack.addEventListener('click', ()=>{ wellnessState.view='back'; redrawBodyMap(); });
+
+  submitBtn.onclick = async ()=>{
+    submitBtn.disabled = true; status.textContent = 'Guardando…';
+    try{
+      const obsEl = document.getElementById('wellnessObs');
+      await submitWellness({
+        sueno: wellnessState.values.sueno, fatiga: wellnessState.values.fatiga,
+        dolor_muscular: wellnessState.values.dolor_muscular, estres: wellnessState.values.estres, animo: wellnessState.values.animo,
+        observacion: obsEl ? obsEl.value.trim() : '', zonas_dolor: wellnessState.zonas,
+      });
+      const nuevo = await getMyTodayWellness();
+      buildWellnessWidget(nuevo);
+    }catch(error){
+      status.textContent = 'No se pudo guardar: ' + error.message;
+      submitBtn.disabled = false;
+    }
+  };
+}
 function rpeAcwrStatus(ratio){
   if(ratio===null) return {status:'insuf', label:'Datos insuf.', varName:'--mist'};
   if(ratio<0.8) return {status:'low', label:'Carga baja', varName:'--low'};
@@ -2015,6 +2257,68 @@ async function buildRpeTeamList(){
   box.querySelectorAll('.acwr-row').forEach(el=> el.addEventListener('click',()=>selectPlayer(el.dataset.p)));
   buildRpeLoadTable(document.getElementById('rpeDatePicker').value || today);
 }
+// ---------- Wellness: vista de staff (promedio del plantel, tabla y alertas de dolor) ----------
+async function buildWellnessTeamList(){
+  const kpiBox = document.getElementById('wellnessKpi');
+  const tableBox = document.getElementById('wellnessTable');
+  const alertBox = document.getElementById('wellnessAlerts');
+  if(!tableBox) return;
+  const today = todayISO();
+  const {data,error} = await supabaseClient.from('wellness_reports').select('*').eq('club',CURRENT_CLUB).eq('fecha',today);
+  if(error){
+    tableBox.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">No se pudo cargar el Wellness del plantel.</div>`;
+    return;
+  }
+  const reports = data || [];
+  const byPlayer = {};
+  reports.forEach(r=> byPlayer[r.player_name] = r);
+
+  const scoreOf = r => {
+    const vals = ['sueno','fatiga','dolor_muscular','estres','animo'].map(k=>r[k]).filter(v=>v!==null && v!==undefined);
+    return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+  };
+  const scores = reports.map(scoreOf).filter(s=>s!==null);
+  const teamAvg = scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length) : null;
+
+  if(kpiBox){
+    kpiBox.innerHTML = `<div class="kpi-card">
+      <div class="kpi-label">Wellness promedio del plantel hoy</div>
+      <div class="kpi-value">${teamAvg!==null ? teamAvg.toFixed(1) : '—'}<span style="font-size:14px;color:var(--mist);">/5</span></div>
+      <div class="kpi-sub">${reports.length} de ${players.length} jugadores reportaron hoy</div>
+    </div>`;
+  }
+
+  const conDolor = reports.filter(r=> (r.zonas_dolor||[]).length>0);
+  if(alertBox){
+    alertBox.innerHTML = !conDolor.length ? '' : `<div style="padding:12px 14px;background:rgba(251,113,133,.08);border:1px solid rgba(251,113,133,.3);border-radius:10px;margin-bottom:14px;">
+      <div style="font-size:12.5px;color:var(--bad);font-weight:700;margin-bottom:6px;">⚠️ ${conDolor.length} jugador${conDolor.length===1?'':'es'} reportó dolor hoy</div>
+      ${conDolor.map(r=>`<div style="font-size:12px;color:var(--bone);margin-bottom:3px;">
+        <b>${r.player_name}</b>: ${(r.zonas_dolor||[]).map(z=>`${BODY_ZONE_LABELS[z.zona]||z.zona} (${z.tipo})`).join(', ')}
+      </div>`).join('')}
+    </div>`;
+  }
+
+  tableBox.innerHTML = `<table class="mc-table">
+    <thead><tr><th>Jugador</th><th>Sueño</th><th>Fatiga</th><th>Dolor Musc.</th><th>Estrés</th><th>Ánimo</th><th>Score</th><th>Zona de dolor</th><th>Observación</th></tr></thead>
+    <tbody>${players.map(p=>{
+      const r = byPlayer[p];
+      if(!r) return `<tr><td><b>${p}</b></td><td colspan="8" style="color:var(--mist);">Sin reportar hoy</td></tr>`;
+      const sc = scoreOf(r);
+      const zonas = (r.zonas_dolor||[]).map(z=> BODY_ZONE_LABELS[z.zona]||z.zona).join(', ');
+      return `<tr>
+        <td><b>${p}</b></td>
+        <td class="mono">${r.sueno??'—'}</td>
+        <td class="mono">${r.fatiga??'—'}</td>
+        <td class="mono">${r.dolor_muscular??'—'}</td>
+        <td class="mono">${r.estres??'—'}</td>
+        <td class="mono">${r.animo??'—'}</td>
+        <td class="mono" style="font-weight:700;">${sc!==null?sc.toFixed(1):'—'}</td>
+        <td style="color:${zonas?'var(--bad)':'var(--mist)'};font-size:11.5px;">${zonas||'—'}</td>
+        <td style="color:var(--mist);font-size:11.5px;">${r.observacion||''}</td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
 
 // ---------- Carga interna (RPE × minutos), aguda:crónica ----------
 let RPE_REPORTS_CACHE = [];
@@ -2035,6 +2339,71 @@ function computeRpeACWR(playerReports, refDateStr){
 // pensado para clubes que entrenan de tarde; un club que entrena de mañana puede cambiarla).
 let RPE_WINDOW_START = '18:30'; // "HH:MM", hora local del navegador
 let RPE_WINDOW_END = '23:59';
+let WELLNESS_WINDOW_START = '05:00';
+let WELLNESS_WINDOW_END = '11:00';
+const PAIN_TYPES = ['Muscular','Articular','Tendinoso','Óseo/Golpe','Otro'];
+// Zonas compartidas: aparecen igual en la vista de frente y de espalda (misma articulación, se ve desde ambos lados)
+const BODY_ZONES_SHARED = {
+  hombro_izq:'Hombro Izq.', hombro_der:'Hombro Der.',
+  codo_izq:'Codo Izq.', codo_der:'Codo Der.',
+  cadera_izq:'Cadera Izq.', cadera_der:'Cadera Der.',
+  rodilla_izq:'Rodilla Izq.', rodilla_der:'Rodilla Der.',
+  tobillo_izq:'Tobillo Izq.', tobillo_der:'Tobillo Der.',
+};
+const BODY_ZONE_LABELS = {
+  ...BODY_ZONES_SHARED,
+  cabeza_cuello:'Cabeza/Cuello', pecho:'Pecho', abdomen:'Abdomen',
+  biceps_izq:'Bíceps Izq.', biceps_der:'Bíceps Der.',
+  cuadriceps_izq:'Cuádriceps Izq.', cuadriceps_der:'Cuádriceps Der.',
+  espinilla_izq:'Espinilla Izq.', espinilla_der:'Espinilla Der.',
+  cervical:'Cervical (nuca)', espalda_alta:'Espalda Alta', espalda_baja:'Espalda Baja/Lumbar',
+  gluteo_izq:'Glúteo Izq.', gluteo_der:'Glúteo Der.',
+  isquios_izq:'Isquiotibiales Izq.', isquios_der:'Isquiotibiales Der.',
+  gemelo_izq:'Gemelo Izq.', gemelo_der:'Gemelo Der.',
+};
+// Posiciones (cx,cy,r) sobre un viewBox de 220x400, para cada vista
+const BODY_ZONES_FRONT = [
+  {id:'cabeza_cuello', cx:110, cy:26, r:15},
+  {id:'hombro_izq', cx:72, cy:62, r:12},
+  {id:'hombro_der', cx:148, cy:62, r:12},
+  {id:'pecho', cx:110, cy:82, r:17},
+  {id:'biceps_izq', cx:58, cy:100, r:10},
+  {id:'biceps_der', cx:162, cy:100, r:10},
+  {id:'abdomen', cx:110, cy:122, r:16},
+  {id:'codo_izq', cx:52, cy:132, r:9},
+  {id:'codo_der', cx:168, cy:132, r:9},
+  {id:'cadera_izq', cx:92, cy:158, r:11},
+  {id:'cadera_der', cx:128, cy:158, r:11},
+  {id:'cuadriceps_izq', cx:92, cy:200, r:14},
+  {id:'cuadriceps_der', cx:128, cy:200, r:14},
+  {id:'rodilla_izq', cx:92, cy:242, r:10},
+  {id:'rodilla_der', cx:128, cy:242, r:10},
+  {id:'espinilla_izq', cx:92, cy:280, r:10},
+  {id:'espinilla_der', cx:128, cy:280, r:10},
+  {id:'tobillo_izq', cx:92, cy:316, r:8},
+  {id:'tobillo_der', cx:128, cy:316, r:8},
+];
+const BODY_ZONES_BACK = [
+  {id:'cervical', cx:110, cy:28, r:13},
+  {id:'hombro_izq', cx:148, cy:62, r:12}, // vista de espalda: el hombro izq del jugador queda a la derecha de la imagen
+  {id:'hombro_der', cx:72, cy:62, r:12},
+  {id:'espalda_alta', cx:110, cy:88, r:18},
+  {id:'codo_izq', cx:168, cy:132, r:9},
+  {id:'codo_der', cx:52, cy:132, r:9},
+  {id:'espalda_baja', cx:110, cy:130, r:15},
+  {id:'cadera_izq', cx:128, cy:158, r:11},
+  {id:'cadera_der', cx:92, cy:158, r:11},
+  {id:'gluteo_izq', cx:128, cy:180, r:13},
+  {id:'gluteo_der', cx:92, cy:180, r:13},
+  {id:'isquios_izq', cx:128, cy:214, r:13},
+  {id:'isquios_der', cx:92, cy:214, r:13},
+  {id:'rodilla_izq', cx:128, cy:242, r:10},
+  {id:'rodilla_der', cx:92, cy:242, r:10},
+  {id:'gemelo_izq', cx:128, cy:278, r:11},
+  {id:'gemelo_der', cx:92, cy:278, r:11},
+  {id:'tobillo_izq', cx:128, cy:316, r:8},
+  {id:'tobillo_der', cx:92, cy:316, r:8},
+];
 function isRpeSubmitUnlocked(){
   const now = new Date();
   const nowMin = now.getHours()*60 + now.getMinutes();
@@ -2051,6 +2420,25 @@ function rpeLockMsg(){
     es: `🔴 El envío de RPE está disponible de ${RPE_WINDOW_START} a ${RPE_WINDOW_END}. Volvé a intentarlo dentro de ese horario.`,
     en: `🔴 RPE submission is available from ${RPE_WINDOW_START} to ${RPE_WINDOW_END}. Please try again within that window.`,
     ar: `🔴 إرسال مؤشر الجهد المدرك متاح من ${RPE_WINDOW_START} حتى ${RPE_WINDOW_END}. حاول مرة أخرى خلال هذا الوقت.`
+  };
+  return msgs[currentLang] || msgs.es;
+}
+function isWellnessSubmitUnlocked(){
+  const now = new Date();
+  const nowMin = now.getHours()*60 + now.getMinutes();
+  const [sh,sm] = WELLNESS_WINDOW_START.split(':').map(Number);
+  const [eh,em] = WELLNESS_WINDOW_END.split(':').map(Number);
+  const startMin = sh*60+sm, endMin = eh*60+em;
+  if(startMin <= endMin){
+    return nowMin >= startMin && nowMin <= endMin;
+  }
+  return nowMin >= startMin || nowMin <= endMin;
+}
+function wellnessLockMsg(){
+  const msgs = {
+    es: `🔴 El envío de Wellness está disponible de ${WELLNESS_WINDOW_START} a ${WELLNESS_WINDOW_END}. Volvé a intentarlo mañana dentro de ese horario.`,
+    en: `🔴 Wellness submission is available from ${WELLNESS_WINDOW_START} to ${WELLNESS_WINDOW_END}. Please try again tomorrow within that window.`,
+    ar: `🔴 إرسال بيانات Wellness متاح من ${WELLNESS_WINDOW_START} حتى ${WELLNESS_WINDOW_END}. حاول مرة أخرى غدًا خلال هذا الوقت.`
   };
   return msgs[currentLang] || msgs.es;
 }
@@ -2090,6 +2478,47 @@ function setupRpeWindowBar(){
       .upsert({club:CURRENT_CLUB, key:'rpe_window', value:JSON.stringify({start:startVal, end:endVal}), updated_at:new Date().toISOString()}, {onConflict:'club,key'});
     if(error){ status.textContent = 'No se pudo guardar: ' + error.message; return; }
     RPE_WINDOW_START = startVal; RPE_WINDOW_END = endVal;
+    status.textContent = '✅ Horario guardado.';
+    refreshLabel();
+  };
+  document.addEventListener('click',(e)=>{ if(!wrap.contains(e.target)) form.style.display='none'; });
+}
+async function loadWellnessWindow(){
+  try{
+    const {data} = await supabaseClient.from('app_settings').select('value').eq('club',CURRENT_CLUB).eq('key','wellness_window').maybeSingle();
+    if(data && data.value){
+      const parsed = JSON.parse(data.value);
+      WELLNESS_WINDOW_START = parsed.start || '05:00';
+      WELLNESS_WINDOW_END = parsed.end || '11:00';
+    } else {
+      WELLNESS_WINDOW_START = '05:00'; WELLNESS_WINDOW_END = '11:00'; // valor por defecto para clubes que no lo configuraron todavía
+    }
+  }catch(e){ console.warn('No se pudo cargar el horario de Wellness:', e); WELLNESS_WINDOW_START='05:00'; WELLNESS_WINDOW_END='11:00'; }
+}
+function setupWellnessWindowBar(){
+  if(!(myProfile && (myProfile.role==='admin' || myProfile.role==='owner'))) return;
+  const wrap = document.getElementById('wellnessWindowWrap');
+  if(!wrap) return;
+  wrap.style.display = 'block';
+  const btn = document.getElementById('wellnessWindowBtn');
+  const form = document.getElementById('wellnessWindowForm');
+  const startInput = document.getElementById('wellnessWindowStartInput');
+  const endInput = document.getElementById('wellnessWindowEndInput');
+  const status = document.getElementById('wellnessWindowStatus');
+  const label = document.getElementById('wellnessWindowLabel');
+  const refreshLabel = ()=>{ label.textContent = `habilitado ${WELLNESS_WINDOW_START} a ${WELLNESS_WINDOW_END}`; };
+  refreshLabel();
+  startInput.value = WELLNESS_WINDOW_START;
+  endInput.value = WELLNESS_WINDOW_END;
+  btn.onclick = ()=>{ form.style.display = form.style.display==='block' ? 'none' : 'block'; };
+  document.getElementById('wellnessWindowSubmit').onclick = async ()=>{
+    const startVal = startInput.value, endVal = endInput.value;
+    if(!startVal || !endVal){ status.textContent = 'Completá las dos horas.'; return; }
+    status.textContent = 'Guardando…';
+    const {error} = await supabaseClient.from('app_settings')
+      .upsert({club:CURRENT_CLUB, key:'wellness_window', value:JSON.stringify({start:startVal, end:endVal}), updated_at:new Date().toISOString()}, {onConflict:'club,key'});
+    if(error){ status.textContent = 'No se pudo guardar: ' + error.message; return; }
+    WELLNESS_WINDOW_START = startVal; WELLNESS_WINDOW_END = endVal;
     status.textContent = '✅ Horario guardado.';
     refreshLabel();
   };
@@ -2228,6 +2657,7 @@ async function startDashboard(){
   try{ await loadRemoteData(); }catch(error){ console.warn(error); }
   await loadNextMatchDate();
   await loadRpeWindow();
+  await loadWellnessWindow();
   await loadGkData();
   document.getElementById('authScreen').style.display='none';
   document.getElementById('nameScreen').style.display='none';
@@ -2238,6 +2668,8 @@ async function startDashboard(){
     applyPlayerModeUI();
     const existingRpe = await getMyTodayRpe();
     buildRpeWidget(existingRpe);
+    const existingWellness = await getMyTodayWellness();
+    buildWellnessWidget(existingWellness);
   }
   deriveAll(ACTIVE_EVENTS);
   if(TEAM_SQUAD_MAX){ squadMax = TEAM_SQUAD_MAX; squadAvg = TEAM_SQUAD_AVG; } // restaura la escala real para el radar
@@ -2255,6 +2687,7 @@ async function startDashboard(){
   setupUploadButtons();
   setupNextMatchBar();
   setupRpeWindowBar();
+  setupWellnessWindowBar();
   setupCsvImportModal();
   checkNewPlayerSignups();
   buildPendingRequestsPanel();
@@ -2325,7 +2758,7 @@ const I18N = {
     cargaInterna:'Carga interna (RPE)', cargaInternaTag:'carga aguda : crónica basada en RPE × minutos', fecha2:'Fecha',
     footer:'Por Matías González Galindo — Head of Physical Performance',
     gkMetrics:{dist:'Distancia Total', impact_left:'Impacto Izq.', impact_right:'Impacto Der.', impact_total:'Impactos Total', dives_left:'Buzos Izq.', dives_right:'Buzos Der.', pl:'Player Load', vel:'Vel. Máxima', acc:'Acc', dece:'Dece'},
-    tabJugadoresCampo:'⚽ Jugadores de Campo', tabArqueros:'🧤 Arqueros', tabControlCarga:'📊 Control de Carga', tabPartidos:'🆚 Partidos', tabClubes:'🏢 Clubes', nombreClub:'Nombre del club', clubesRegistrados:'🏢 Clubes en la plataforma',
+    tabJugadoresCampo:'⚽ Jugadores de Campo', tabArqueros:'🧤 Arqueros', tabControlCarga:'📊 Control de Carga', tabPartidos:'🆚 Partidos', tabWellness:'💚 Wellness', tabClubes:'🏢 Clubes', nombreClub:'Nombre del club', clubesRegistrados:'🏢 Clubes en la plataforma',
     gkVistaPrevia:'🧤 Vista previa como arquero', gkVistaPreviaTag:'ver el dashboard como lo ve un arquero puntual', gkVerComo:'Ver como este arquero',
     gkEvolucion:'🧤 Evolución de arqueros', gkEvolucionTag:'promedio diario de arqueros',
     gkRanking:'🧤 Ranking de arqueros', gkOrdenMayorMenor:'orden de mayor a menor · récord personal como tope',
@@ -2368,7 +2801,7 @@ const I18N = {
     cargaInterna:'Internal load (RPE)', cargaInternaTag:'acute : chronic load based on RPE × minutes', fecha2:'Date',
     footer:'By Matías González Galindo — Head of Physical Performance',
     gkMetrics:{dist:'Total Distance', impact_left:'Impact L', impact_right:'Impact R', impact_total:'Total Impacts', dives_left:'Dives L', dives_right:'Dives R', pl:'Player Load', vel:'Max Speed', acc:'Acc', dece:'Dec'},
-    tabJugadoresCampo:'⚽ Field Players', tabArqueros:'🧤 Goalkeepers', tabControlCarga:'📊 Load Control', tabPartidos:'🆚 Matches', tabClubes:'🏢 Clubs', nombreClub:'Club name', clubesRegistrados:'🏢 Clubs on the platform',
+    tabJugadoresCampo:'⚽ Field Players', tabArqueros:'🧤 Goalkeepers', tabControlCarga:'📊 Load Control', tabPartidos:'🆚 Matches', tabWellness:'💚 Wellness', tabClubes:'🏢 Clubs', nombreClub:'Club name', clubesRegistrados:'🏢 Clubs on the platform',
     gkVistaPrevia:'🧤 Preview as goalkeeper', gkVistaPreviaTag:'see the dashboard as a given goalkeeper sees it', gkVerComo:'View as this goalkeeper',
     gkEvolucion:'🧤 Goalkeeper evolution', gkEvolucionTag:'daily average of goalkeepers',
     gkRanking:'🧤 Goalkeeper ranking', gkOrdenMayorMenor:'highest to lowest · personal record as ceiling',
@@ -2411,7 +2844,7 @@ const I18N = {
     cargaInterna:'الحمل الداخلي (RPE)', cargaInternaTag:'الحمل الحاد : المزمن استنادًا إلى RPE × الدقائق', fecha2:'التاريخ',
     footer:'بواسطة ماتياس غونزاليس غاليندو — مسؤول الأداء البدني',
     gkMetrics:{dist:'المسافة الإجمالية', impact_left:'ارتطام يسار', impact_right:'ارتطام يمين', impact_total:'إجمالي الارتطامات', dives_left:'غطسة يسار', dives_right:'غطسة يمين', pl:'حمل اللاعب', vel:'السرعة القصوى', acc:'تسارع', dece:'تباطؤ'},
-    tabJugadoresCampo:'⚽ لاعبو الميدان', tabArqueros:'🧤 حراس المرمى', tabControlCarga:'📊 التحكم بالحمل', tabPartidos:'🆚 المباريات', tabClubes:'🏢 الأندية', nombreClub:'اسم النادي', clubesRegistrados:'🏢 الأندية على المنصة',
+    tabJugadoresCampo:'⚽ لاعبو الميدان', tabArqueros:'🧤 حراس المرمى', tabControlCarga:'📊 التحكم بالحمل', tabPartidos:'🆚 المباريات', tabWellness:'💚 Wellness', tabClubes:'🏢 الأندية', nombreClub:'اسم النادي', clubesRegistrados:'🏢 الأندية على المنصة',
     gkVistaPrevia:'🧤 معاينة كحارس مرمى', gkVistaPreviaTag:'شاهد لوحة التحكم كما يراها حارس مرمى محدد', gkVerComo:'عرض كهذا الحارس',
     gkEvolucion:'🧤 تطور حراس المرمى', gkEvolucionTag:'المتوسط اليومي لحراس المرمى',
     gkRanking:'🧤 تصنيف حراس المرمى', gkOrdenMayorMenor:'من الأعلى إلى الأدنى · الرقم القياسي الشخصي كحد أقصى',
@@ -2445,6 +2878,9 @@ function setLang(lang){
   buildMetricTabs(); buildTeamMetricTabs(); buildLbMetricTabs();
   if(myProfile && myProfile.role==='player' && document.getElementById('rpePanel').style.display!=='none'){
     getMyTodayRpe().then(existing=> buildRpeWidget(existing));
+  }
+  if(myProfile && myProfile.role==='player' && document.getElementById('wellnessPanel').style.display!=='none'){
+    getMyTodayWellness().then(existing=> buildWellnessWidget(existing));
   }
   if(ACTIVE_EVENTS && ACTIVE_EVENTS.length){ renderAll(state.player); }
   // Arqueros: refrescar sus propias pestañas y vistas, independiente del flujo de jugadores de campo.
@@ -2907,17 +3343,19 @@ function switchAdminTab(tab){
   const gkView = document.getElementById('goalkeepersView');
   const cargaView = document.getElementById('controlCargaView');
   const partidosView = document.getElementById('partidosView');
+  const wellnessView = document.getElementById('wellnessView');
   const clubesView = document.getElementById('clubesView');
   const btnJ = document.getElementById('tabBtnJugadores');
   const btnA = document.getElementById('tabBtnArqueros');
   const btnC = document.getElementById('tabBtnCarga');
   const btnP = document.getElementById('tabBtnPartidos');
+  const btnW = document.getElementById('tabBtnWellness');
   const btnCl = document.getElementById('tabBtnClubes');
   const activeStyle = 'border-color:var(--gold);background:var(--gold);color:var(--pitch-950);';
   const inactiveStyle = 'border-color:var(--line-strong);background:transparent;color:var(--mist);';
 
-  const views = {jugadores:fieldWrap, arqueros:gkView, carga:cargaView, partidos:partidosView, clubes:clubesView};
-  const btns = {jugadores:btnJ, arqueros:btnA, carga:btnC, partidos:btnP, clubes:btnCl};
+  const views = {jugadores:fieldWrap, arqueros:gkView, carga:cargaView, partidos:partidosView, wellness:wellnessView, clubes:clubesView};
+  const btns = {jugadores:btnJ, arqueros:btnA, carga:btnC, partidos:btnP, wellness:btnW, clubes:btnCl};
   const selected = views[tab] ? tab : 'jugadores';
   currentAdminTab = selected;
   Object.keys(views).forEach(key=>{
@@ -2925,6 +3363,7 @@ function switchAdminTab(tab){
     if(btns[key]) btns[key].style.cssText += (key===selected) ? activeStyle : inactiveStyle;
   });
   if(selected==='clubes' && myProfile && myProfile.role==='owner'){ buildPendingClubsPanel(); buildClubesList(); }
+  if(selected==='wellness' && !(myProfile && myProfile.role==='player')){ buildWellnessTeamList(); }
 }
 
 // ---------- Owner: solicitudes de nuevos clubes ----------
@@ -3026,6 +3465,7 @@ async function switchToClub(clubName){
   try{ await loadRemoteData(); }catch(error){ console.warn(error); }
   await loadNextMatchDate();
   await loadRpeWindow();
+  await loadWellnessWindow();
   await loadGkData();
   deriveAll(ACTIVE_EVENTS);
   renderAll();
@@ -3035,6 +3475,7 @@ async function switchToClub(clubName){
   setupUploadButtons();
   setupNextMatchBar();
   setupRpeWindowBar();
+  setupWellnessWindowBar();
   buildPendingRequestsPanel();
   const subEl = document.querySelector('.top .brand-sub');
   if(subEl) subEl.textContent = `Viendo: ${CURRENT_CLUB} (modo Owner)`;
