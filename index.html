@@ -1955,31 +1955,51 @@ async function handleNameSubmit(event){
 }
 // ---------- RPE de sesión ----------
 function todayISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function dateToISO(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+// Si la ventana cruza medianoche (ej. 19:00 a 00:59) y estamos en el tramo de madrugada,
+// la sesión "pertenece" al día anterior (el del partido/entreno), no al calendario de hoy.
+function sessionDateForWindow(startStr, endStr){
+  const now = new Date();
+  const nowMin = now.getHours()*60 + now.getMinutes();
+  const [sh,sm] = startStr.split(':').map(Number);
+  const [eh,em] = endStr.split(':').map(Number);
+  const startMin = sh*60+sm, endMin = eh*60+em;
+  if(startMin > endMin && nowMin <= endMin){
+    const y = new Date(now);
+    y.setDate(y.getDate()-1);
+    return dateToISO(y);
+  }
+  return todayISO();
+}
 async function getMyTodayRpe(){
   const {data:{user}}=await supabaseClient.auth.getUser();
   if(!user) return null;
-  const {data,error}=await supabaseClient.from('rpe_reports').select('rpe,minutos').eq('user_id',user.id).eq('fecha',todayISO()).maybeSingle();
+  const fecha = sessionDateForWindow(RPE_WINDOW_START, RPE_WINDOW_END);
+  const {data,error}=await supabaseClient.from('rpe_reports').select('rpe,minutos').eq('user_id',user.id).eq('fecha',fecha).maybeSingle();
   if(error){ console.warn(error); return null; }
   return data || null;
 }
 async function submitRpe(value){
   const {data:{user}}=await supabaseClient.auth.getUser();
+  const fecha = sessionDateForWindow(RPE_WINDOW_START, RPE_WINDOW_END);
   const {error}=await supabaseClient.from('rpe_reports').upsert({
-    user_id:user.id, club:CURRENT_CLUB, player_name:myProfile.player_name, fecha:todayISO(), rpe:value, updated_at:new Date().toISOString()
+    user_id:user.id, club:CURRENT_CLUB, player_name:myProfile.player_name, fecha, rpe:value, updated_at:new Date().toISOString()
   }, {onConflict:'user_id,fecha'});
   if(error) throw error;
 }
 async function getMyTodayWellness(){
   const {data:{user}}=await supabaseClient.auth.getUser();
   if(!user) return null;
-  const {data,error}=await supabaseClient.from('wellness_reports').select('*').eq('user_id',user.id).eq('fecha',todayISO()).maybeSingle();
+  const fecha = sessionDateForWindow(WELLNESS_WINDOW_START, WELLNESS_WINDOW_END);
+  const {data,error}=await supabaseClient.from('wellness_reports').select('*').eq('user_id',user.id).eq('fecha',fecha).maybeSingle();
   if(error){ console.warn(error); return null; }
   return data || null;
 }
 async function submitWellness(payload){
   const {data:{user}}=await supabaseClient.auth.getUser();
+  const fecha = sessionDateForWindow(WELLNESS_WINDOW_START, WELLNESS_WINDOW_END);
   const {error}=await supabaseClient.from('wellness_reports').upsert({
-    user_id:user.id, club:CURRENT_CLUB, player_name:myProfile.player_name, fecha:todayISO(),
+    user_id:user.id, club:CURRENT_CLUB, player_name:myProfile.player_name, fecha,
     sueno:payload.sueno, fatiga:payload.fatiga, dolor_muscular:payload.dolor_muscular, estres:payload.estres, animo:payload.animo,
     observacion:payload.observacion||null, zonas_dolor:payload.zonas_dolor||[], updated_at:new Date().toISOString()
   }, {onConflict:'user_id,fecha'});
