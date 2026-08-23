@@ -672,6 +672,7 @@
     <button class="tab-btn" id="tabBtnCarga" onclick="switchAdminTab('carga')" style="padding:9px 18px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--mist);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabControlCarga">📊 Control de Carga</button>
     <button class="tab-btn" id="tabBtnPartidos" onclick="switchAdminTab('partidos')" style="padding:9px 18px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--mist);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabPartidos">🆚 Partidos</button>
     <button class="tab-btn" id="tabBtnWellness" onclick="switchAdminTab('wellness')" style="padding:9px 18px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--mist);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabWellness">💚 Wellness</button>
+    <button class="tab-btn" id="tabBtnRpe" onclick="switchAdminTab('rpe')" style="padding:9px 18px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--mist);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabRpe">📋 RPE</button>
     <button class="tab-btn" id="tabBtnClubes" onclick="switchAdminTab('clubes')" style="display:none;padding:9px 18px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--mist);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabClubes">🏢 Clubes</button>
   </div>
 
@@ -794,41 +795,7 @@
     </div>
     <div class="acwr-body" id="dataQualityList"></div>
   </div>
-
-<div class="panel team-only" style="margin-top:18px;">
-    <div class="panel-head">
-      <h3 data-i18n="rpePlantel">RPE del plantel</h3>
-      <span class="tag" data-i18n="rpePlantelTag">percepción de esfuerzo reportada por cada jugador</span>
-    </div>
-    <div class="acwr-body" id="rpeTeamList"></div>
-  </div>
-
-<div class="panel team-only" style="margin-top:18px;">
-    <div class="panel-head">
-      <h3 data-i18n="cargaInterna">Carga interna (RPE)</h3>
-      <span class="tag" data-i18n="cargaInternaTag">carga aguda : crónica basada en RPE × minutos</span>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;margin:8px 0 14px;flex-wrap:wrap;">
-      <label for="rpeDatePicker" data-i18n="fecha2" style="font-size:11px;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;">Fecha</label>
-      <input id="rpeDatePicker" type="date" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;">
-      <button id="rpeSaveAllBtn" type="button" style="padding:8px 14px;border-radius:8px;border:1px solid var(--gold);background:var(--gold);color:var(--pitch-950);font:700 12px 'IBM Plex Mono';cursor:pointer;">Guardar todos</button>
-      <div id="rpeWindowWrap" style="position:relative;display:none;">
-        <button id="rpeWindowBtn" class="upload-btn" style="padding:7px 10px;">🕐 Horario de RPE</button>
-        <span id="rpeWindowLabel" style="margin-left:8px;font-size:11.5px;color:var(--mist);font-family:'IBM Plex Mono';"></span>
-        <div id="rpeWindowForm" style="display:none;position:absolute;top:38px;left:0;background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:10px;padding:12px;z-index:50;min-width:230px;box-shadow:0 8px 24px rgba(0,0,0,.4);">
-          <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:6px;">Desde qué hora se habilita el envío</label>
-          <input id="rpeWindowStartInput" type="time" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:8px;box-sizing:border-box;">
-          <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:6px;">Hasta qué hora (del mismo día)</label>
-          <input id="rpeWindowEndInput" type="time" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:8px;box-sizing:border-box;">
-          <button id="rpeWindowSubmit" class="upload-btn" style="width:100%;">Guardar horario</button>
-          <div id="rpeWindowStatus" style="font-size:11px;color:var(--mist);margin-top:6px;"></div>
-        </div>
-      </div>
-    </div>
-    <div style="overflow-x:auto;">
-      <table class="cmp-table" id="rpeLoadTable"></table>
-    </div>
-  </div>
+  <div id="rpeGroupAnchorInCarga" style="margin-top:18px;"></div>
   </div>
 
   <div id="partidosView" style="display:none;">
@@ -863,10 +830,50 @@
       </div>
       <div id="wellnessKpi" style="padding:16px 18px;"></div>
     </div>
+
     <div class="panel team-only">
       <div id="wellnessAlerts"></div>
       <div style="overflow-x:auto;"><div id="wellnessTable"></div></div>
     </div>
+  </div>
+
+  <div id="rpeView" style="display:none;">
+  <div id="rpePanelsGroup">
+    <div class="panel team-only" style="margin-bottom:18px;">
+      <div class="panel-head">
+        <h3 data-i18n="rpePlantel">RPE del plantel</h3>
+        <span class="tag" data-i18n="rpePlantelTag">percepción de esfuerzo reportada por cada jugador</span>
+      </div>
+      <div class="acwr-body" id="rpeTeamList"></div>
+    </div>
+
+    <div class="panel team-only">
+      <div class="panel-head">
+        <h3 data-i18n="cargaInterna">Carga interna (RPE)</h3>
+        <span class="tag" data-i18n="cargaInternaTag">carga aguda : crónica basada en RPE × minutos</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin:8px 0 14px;flex-wrap:wrap;">
+        <label for="rpeDatePicker" data-i18n="fecha2" style="font-size:11px;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;">Fecha</label>
+        <input id="rpeDatePicker" type="date" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;">
+        <button id="rpeSaveAllBtn" type="button" style="padding:8px 14px;border-radius:8px;border:1px solid var(--gold);background:var(--gold);color:var(--pitch-950);font:700 12px 'IBM Plex Mono';cursor:pointer;">Guardar todos</button>
+        <div id="rpeWindowWrap" style="position:relative;display:none;">
+          <button id="rpeWindowBtn" class="upload-btn" style="padding:7px 10px;">🕐 Horario de RPE</button>
+          <span id="rpeWindowLabel" style="margin-left:8px;font-size:11.5px;color:var(--mist);font-family:'IBM Plex Mono';"></span>
+          <div id="rpeWindowForm" style="display:none;position:absolute;top:38px;left:0;background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:10px;padding:12px;z-index:50;min-width:230px;box-shadow:0 8px 24px rgba(0,0,0,.4);">
+            <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:6px;">Desde qué hora se habilita el envío</label>
+            <input id="rpeWindowStartInput" type="time" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:8px;box-sizing:border-box;">
+            <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:6px;">Hasta qué hora (del mismo día)</label>
+            <input id="rpeWindowEndInput" type="time" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:8px;box-sizing:border-box;">
+            <button id="rpeWindowSubmit" class="upload-btn" style="width:100%;">Guardar horario</button>
+            <div id="rpeWindowStatus" style="font-size:11px;color:var(--mist);margin-top:6px;"></div>
+          </div>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="cmp-table" id="rpeLoadTable"></table>
+      </div>
+    </div>
+  </div>
   </div>
 
   <div id="clubesView" style="display:none;">
@@ -1317,13 +1324,22 @@ function applyPlayerModeUI(){
   const mainGrid=document.getElementById('mainGrid');
   const gkView=document.getElementById('gkPlayerView');
   const activePlayer = previewingAsPlayer || (myProfile && myProfile.player_name);
-  if(activePlayer && isGoalkeeper(activePlayer)){
+  if(!CLUB_FEATURES.gps){
+    if(mainGrid) mainGrid.style.display='none';
+    if(gkView) gkView.style.display='none';
+  } else if(activePlayer && isGoalkeeper(activePlayer)){
     if(mainGrid) mainGrid.style.display='none';
     if(gkView) gkView.style.display='block';
     buildGkPlayerView(activePlayer);
   } else {
     if(mainGrid){ mainGrid.style.display=''; mainGrid.style.gridTemplateColumns='1fr'; }
     if(gkView) gkView.style.display='none';
+  }
+  const rpePanelEl = document.getElementById('rpePanel');
+  const wellnessPanelEl = document.getElementById('wellnessPanel');
+  if(!CLUB_FEATURES.rpe_wellness){
+    if(rpePanelEl) rpePanelEl.style.display='none';
+    if(wellnessPanelEl) wellnessPanelEl.style.display='none';
   }
   document.querySelector('.top .brand-sub').textContent = 'Tus métricas individuales — ' + CURRENT_CLUB;
 }
@@ -1965,6 +1981,7 @@ const RPE_SCALE = [
 function buildRpeWidget(existing){
   const panel = document.getElementById('rpePanel');
   if(!panel) return;
+  if(!CLUB_FEATURES.rpe_wellness){ panel.style.display='none'; return; }
   panel.style.display='block';
   const scale = document.getElementById('rpeScale');
   const submitBtn = document.getElementById('rpeSubmit');
@@ -2066,6 +2083,7 @@ function renderBodyMapSvg(){
 function buildWellnessWidget(existing){
   const panel = document.getElementById('wellnessPanel');
   if(!panel) return;
+  if(!CLUB_FEATURES.rpe_wellness){ panel.style.display='none'; return; }
   panel.style.display='block';
   const box = document.getElementById('wellnessForm');
   const submitBtn = document.getElementById('wellnessSubmit');
@@ -2366,6 +2384,7 @@ function computeRpeACWR(playerReports, refDateStr){
 // pensado para clubes que entrenan de tarde; un club que entrena de mañana puede cambiarla).
 let RPE_WINDOW_START = '18:30'; // "HH:MM", hora local del navegador
 let RPE_WINDOW_END = '23:59';
+let CLUB_FEATURES = {gps:true, rpe_wellness:true}; // por defecto, todo activo (compatibilidad con clubes ya existentes)
 let WELLNESS_WINDOW_START = '05:00';
 let WELLNESS_WINDOW_END = '11:00';
 const PAIN_TYPES = ['Muscular','Articular','Tendinoso','Óseo/Golpe','Otro'];
@@ -2521,6 +2540,54 @@ async function loadWellnessWindow(){
       WELLNESS_WINDOW_START = '05:00'; WELLNESS_WINDOW_END = '11:00'; // valor por defecto para clubes que no lo configuraron todavía
     }
   }catch(e){ console.warn('No se pudo cargar el horario de Wellness:', e); WELLNESS_WINDOW_START='05:00'; WELLNESS_WINDOW_END='11:00'; }
+}
+async function loadClubFeatures(clubName){
+  try{
+    const {data} = await supabaseClient.from('app_settings').select('value').eq('club',clubName).eq('key','club_features').maybeSingle();
+    if(data && data.value){
+      const parsed = JSON.parse(data.value);
+      return {gps: parsed.gps!==false, rpe_wellness: parsed.rpe_wellness!==false};
+    }
+  }catch(e){ console.warn('No se pudieron cargar las features del club:', e); }
+  return {gps:true, rpe_wellness:true}; // clubes sin configurar todavía: todo activo (compatibilidad)
+}
+async function saveClubFeature(clubName, key, value){
+  const current = await loadClubFeatures(clubName);
+  current[key] = value;
+  const {error} = await supabaseClient.from('app_settings')
+    .upsert({club:clubName, key:'club_features', value:JSON.stringify(current), updated_at:new Date().toISOString()}, {onConflict:'club,key'});
+  if(error) throw error;
+  return current;
+}
+function applyClubFeaturesToTabs(){
+  const btnJ = document.getElementById('tabBtnJugadores');
+  const btnA = document.getElementById('tabBtnArqueros');
+  const btnC = document.getElementById('tabBtnCarga');
+  const btnP = document.getElementById('tabBtnPartidos');
+  const btnW = document.getElementById('tabBtnWellness');
+  const btnR = document.getElementById('tabBtnRpe');
+  [btnJ,btnA,btnC,btnP].forEach(b=>{ if(b) b.style.display = CLUB_FEATURES.gps ? '' : 'none'; });
+  if(btnW) btnW.style.display = CLUB_FEATURES.rpe_wellness ? '' : 'none';
+  // El grupo de paneles de RPE vive en un solo lugar del DOM: adentro de Control de Carga si hay GPS
+  // (conviven ahí con ACWR/Monotonía/Carga Semanal), o en su propia pestaña si el club no tiene GPS
+  // (porque en ese caso "Control de Carga" entero queda oculto y no hay dónde mostrarlo).
+  const rpeGroup = document.getElementById('rpePanelsGroup');
+  const anchorInCarga = document.getElementById('rpeGroupAnchorInCarga');
+  const rpeViewEl = document.getElementById('rpeView');
+  if(rpeGroup){
+    if(CLUB_FEATURES.gps){ if(anchorInCarga) anchorInCarga.appendChild(rpeGroup); }
+    else{ if(rpeViewEl) rpeViewEl.appendChild(rpeGroup); }
+    rpeGroup.style.display = CLUB_FEATURES.rpe_wellness ? '' : 'none';
+  }
+  if(btnR) btnR.style.display = (CLUB_FEATURES.rpe_wellness && !CLUB_FEATURES.gps) ? '' : 'none';
+  // Si la pestaña activa quedó oculta por el cambio de features, mandamos a la primera disponible.
+  const current = typeof currentAdminTab!=='undefined' ? currentAdminTab : 'jugadores';
+  const hiddenNow = (['jugadores','arqueros','carga','partidos'].includes(current) && !CLUB_FEATURES.gps)
+    || (current==='wellness' && !CLUB_FEATURES.rpe_wellness)
+    || (current==='rpe' && !(CLUB_FEATURES.rpe_wellness && !CLUB_FEATURES.gps));
+  if(hiddenNow && myProfile && myProfile.role!=='player'){
+    switchAdminTab(CLUB_FEATURES.gps ? 'jugadores' : (CLUB_FEATURES.rpe_wellness ? 'wellness' : 'clubes'));
+  }
 }
 function setupWellnessWindowBar(){
   if(!(myProfile && (myProfile.role==='admin' || myProfile.role==='owner'))) return;
@@ -2691,6 +2758,7 @@ async function startDashboard(){
   await loadNextMatchDate();
   await loadRpeWindow();
   await loadWellnessWindow();
+  CLUB_FEATURES = await loadClubFeatures(CURRENT_CLUB);
   await loadGkData();
   document.getElementById('authScreen').style.display='none';
   document.getElementById('nameScreen').style.display='none';
@@ -2721,6 +2789,7 @@ async function startDashboard(){
   setupNextMatchBar();
   setupRpeWindowBar();
   setupWellnessWindowBar();
+  applyClubFeaturesToTabs();
   setupCsvImportModal();
   checkNewPlayerSignups();
   buildPendingRequestsPanel();
@@ -2791,7 +2860,7 @@ const I18N = {
     cargaInterna:'Carga interna (RPE)', cargaInternaTag:'carga aguda : crónica basada en RPE × minutos', fecha2:'Fecha',
     footer:'Por Matías González Galindo — Head of Physical Performance',
     gkMetrics:{dist:'Distancia Total', impact_left:'Impacto Izq.', impact_right:'Impacto Der.', impact_total:'Impactos Total', dives_left:'Buzos Izq.', dives_right:'Buzos Der.', pl:'Player Load', vel:'Vel. Máxima', acc:'Acc', dece:'Dece'},
-    tabJugadoresCampo:'⚽ Jugadores de Campo', tabArqueros:'🧤 Arqueros', tabControlCarga:'📊 Control de Carga', tabPartidos:'🆚 Partidos', tabWellness:'💚 Wellness', tabClubes:'🏢 Clubes', nombreClub:'Nombre del club', clubesRegistrados:'🏢 Clubes en la plataforma',
+    tabJugadoresCampo:'⚽ Jugadores de Campo', tabArqueros:'🧤 Arqueros', tabControlCarga:'📊 Control de Carga', tabPartidos:'🆚 Partidos', tabWellness:'💚 Wellness', tabRpe:'📋 RPE', tabClubes:'🏢 Clubes', nombreClub:'Nombre del club', clubesRegistrados:'🏢 Clubes en la plataforma',
     gkVistaPrevia:'🧤 Vista previa como arquero', gkVistaPreviaTag:'ver el dashboard como lo ve un arquero puntual', gkVerComo:'Ver como este arquero',
     gkEvolucion:'🧤 Evolución de arqueros', gkEvolucionTag:'promedio diario de arqueros',
     gkRanking:'🧤 Ranking de arqueros', gkOrdenMayorMenor:'orden de mayor a menor · récord personal como tope',
@@ -2834,7 +2903,7 @@ const I18N = {
     cargaInterna:'Internal load (RPE)', cargaInternaTag:'acute : chronic load based on RPE × minutes', fecha2:'Date',
     footer:'By Matías González Galindo — Head of Physical Performance',
     gkMetrics:{dist:'Total Distance', impact_left:'Impact L', impact_right:'Impact R', impact_total:'Total Impacts', dives_left:'Dives L', dives_right:'Dives R', pl:'Player Load', vel:'Max Speed', acc:'Acc', dece:'Dec'},
-    tabJugadoresCampo:'⚽ Field Players', tabArqueros:'🧤 Goalkeepers', tabControlCarga:'📊 Load Control', tabPartidos:'🆚 Matches', tabWellness:'💚 Wellness', tabClubes:'🏢 Clubs', nombreClub:'Club name', clubesRegistrados:'🏢 Clubs on the platform',
+    tabJugadoresCampo:'⚽ Field Players', tabArqueros:'🧤 Goalkeepers', tabControlCarga:'📊 Load Control', tabPartidos:'🆚 Matches', tabWellness:'💚 Wellness', tabRpe:'📋 RPE', tabClubes:'🏢 Clubs', nombreClub:'Club name', clubesRegistrados:'🏢 Clubs on the platform',
     gkVistaPrevia:'🧤 Preview as goalkeeper', gkVistaPreviaTag:'see the dashboard as a given goalkeeper sees it', gkVerComo:'View as this goalkeeper',
     gkEvolucion:'🧤 Goalkeeper evolution', gkEvolucionTag:'daily average of goalkeepers',
     gkRanking:'🧤 Goalkeeper ranking', gkOrdenMayorMenor:'highest to lowest · personal record as ceiling',
@@ -2877,7 +2946,7 @@ const I18N = {
     cargaInterna:'الحمل الداخلي (RPE)', cargaInternaTag:'الحمل الحاد : المزمن استنادًا إلى RPE × الدقائق', fecha2:'التاريخ',
     footer:'بواسطة ماتياس غونزاليس غاليندو — مسؤول الأداء البدني',
     gkMetrics:{dist:'المسافة الإجمالية', impact_left:'ارتطام يسار', impact_right:'ارتطام يمين', impact_total:'إجمالي الارتطامات', dives_left:'غطسة يسار', dives_right:'غطسة يمين', pl:'حمل اللاعب', vel:'السرعة القصوى', acc:'تسارع', dece:'تباطؤ'},
-    tabJugadoresCampo:'⚽ لاعبو الميدان', tabArqueros:'🧤 حراس المرمى', tabControlCarga:'📊 التحكم بالحمل', tabPartidos:'🆚 المباريات', tabWellness:'💚 Wellness', tabClubes:'🏢 الأندية', nombreClub:'اسم النادي', clubesRegistrados:'🏢 الأندية على المنصة',
+    tabJugadoresCampo:'⚽ لاعبو الميدان', tabArqueros:'🧤 حراس المرمى', tabControlCarga:'📊 التحكم بالحمل', tabPartidos:'🆚 المباريات', tabWellness:'💚 Wellness', tabRpe:'📋 RPE', tabClubes:'🏢 الأندية', nombreClub:'اسم النادي', clubesRegistrados:'🏢 الأندية على المنصة',
     gkVistaPrevia:'🧤 معاينة كحارس مرمى', gkVistaPreviaTag:'شاهد لوحة التحكم كما يراها حارس مرمى محدد', gkVerComo:'عرض كهذا الحارس',
     gkEvolucion:'🧤 تطور حراس المرمى', gkEvolucionTag:'المتوسط اليومي لحراس المرمى',
     gkRanking:'🧤 تصنيف حراس المرمى', gkOrdenMayorMenor:'من الأعلى إلى الأدنى · الرقم القياسي الشخصي كحد أقصى',
@@ -3377,18 +3446,20 @@ function switchAdminTab(tab){
   const cargaView = document.getElementById('controlCargaView');
   const partidosView = document.getElementById('partidosView');
   const wellnessView = document.getElementById('wellnessView');
+  const rpeView = document.getElementById('rpeView');
   const clubesView = document.getElementById('clubesView');
   const btnJ = document.getElementById('tabBtnJugadores');
   const btnA = document.getElementById('tabBtnArqueros');
   const btnC = document.getElementById('tabBtnCarga');
   const btnP = document.getElementById('tabBtnPartidos');
   const btnW = document.getElementById('tabBtnWellness');
+  const btnR = document.getElementById('tabBtnRpe');
   const btnCl = document.getElementById('tabBtnClubes');
   const activeStyle = 'border-color:var(--gold);background:var(--gold);color:var(--pitch-950);';
   const inactiveStyle = 'border-color:var(--line-strong);background:transparent;color:var(--mist);';
 
-  const views = {jugadores:fieldWrap, arqueros:gkView, carga:cargaView, partidos:partidosView, wellness:wellnessView, clubes:clubesView};
-  const btns = {jugadores:btnJ, arqueros:btnA, carga:btnC, partidos:btnP, wellness:btnW, clubes:btnCl};
+  const views = {jugadores:fieldWrap, arqueros:gkView, carga:cargaView, partidos:partidosView, wellness:wellnessView, rpe:rpeView, clubes:clubesView};
+  const btns = {jugadores:btnJ, arqueros:btnA, carga:btnC, partidos:btnP, wellness:btnW, rpe:btnR, clubes:btnCl};
   const selected = views[tab] ? tab : 'jugadores';
   currentAdminTab = selected;
   Object.keys(views).forEach(key=>{
@@ -3483,11 +3554,41 @@ async function buildClubesList(){
     box.innerHTML = '<p style="padding:14px 18px;color:var(--mist);font-size:12.5px;">Todavía no hay clubes registrados.</p>';
     return;
   }
-  box.innerHTML = clubs.map(c=>`
+  // Features (GPS / RPE+Wellness) de cada club, para pintar los toggles
+  const featuresByClub = {};
+  await Promise.all(clubs.map(async c=>{ featuresByClub[c] = await loadClubFeatures(c); }));
+
+  const toggleBtn = (club, key, active, label) => `<button type="button" class="club-feature-toggle" data-club="${club}" data-key="${key}"
+    style="padding:5px 10px;border-radius:7px;font:700 11px 'IBM Plex Mono';cursor:pointer;margin-right:6px;
+    border:1px solid ${active?'var(--good)':'var(--line-strong)'};
+    background:${active?'rgba(52,211,153,.15)':'transparent'};
+    color:${active?'var(--good)':'var(--mist)'};">${active?'✓ ':'✗ '}${label}</button>`;
+
+  box.innerHTML = clubs.map(c=>{
+    const f = featuresByClub[c] || {gps:true, rpe_wellness:true};
+    return `
     <div class="club-row" data-club="${c}" style="cursor:pointer;">
       <div class="nm">${c}${c===CURRENT_CLUB?' <span class="lb-record-tag">VIENDO AHORA</span>':''}</div>
+      <div style="margin:6px 0;">${toggleBtn(c,'gps',f.gps,'📡 GPS')}${toggleBtn(c,'rpe_wellness',f.rpe_wellness,'💚 RPE+Wellness')}</div>
       <div class="num">${counts[c]} usuario${counts[c]===1?'':'s'}</div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+  box.querySelectorAll('.club-feature-toggle').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      e.stopPropagation();
+      btn.disabled = true;
+      const club = btn.dataset.club, key = btn.dataset.key;
+      const current = await loadClubFeatures(club);
+      try{
+        const updated = await saveClubFeature(club, key, !current[key]);
+        if(club === CURRENT_CLUB){ CLUB_FEATURES = updated; applyClubFeaturesToTabs(); }
+        buildClubesList();
+      }catch(err){
+        alert('No se pudo actualizar: ' + err.message);
+        btn.disabled = false;
+      }
+    });
+  });
   box.querySelectorAll('.club-row').forEach(el=>{
     el.addEventListener('click', ()=> switchToClub(el.dataset.club));
   });
@@ -3499,6 +3600,7 @@ async function switchToClub(clubName){
   await loadNextMatchDate();
   await loadRpeWindow();
   await loadWellnessWindow();
+  CLUB_FEATURES = await loadClubFeatures(CURRENT_CLUB);
   await loadGkData();
   deriveAll(ACTIVE_EVENTS);
   renderAll();
@@ -3509,6 +3611,7 @@ async function switchToClub(clubName){
   setupNextMatchBar();
   setupRpeWindowBar();
   setupWellnessWindowBar();
+  applyClubFeaturesToTabs();
   buildPendingRequestsPanel();
   const subEl = document.querySelector('.top .brand-sub');
   if(subEl) subEl.textContent = `Viendo: ${CURRENT_CLUB} (modo Owner)`;
