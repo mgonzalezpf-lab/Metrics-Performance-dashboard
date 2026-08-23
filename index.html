@@ -4816,8 +4816,8 @@ function parseCatapultCSV(text){
     desa: idx('Deceleration B1-3 Average Efforts (Session) (Gen 2)'),
     pl: idx('Average Player Load (Session)'), dur: idx('Average Duration (Session)'),
     sprintPerMin: idx('Sprint Dist Per Min'), sprintEfforts: idx('Sprint Efforts'),
-    divesLeft: idx('Total Left Dives'), divesRight: idx('Total Right Dives'), // opcionales: solo el reporte completo de Catapult las trae (arqueros)
-    impactTotal: idx('Total Impacts'), // opcional: Catapult no separa izq/der, solo total
+    divesLeft: idx('Dive Left Count'), divesRight: idx('Dive Right Count'), // opcionales: solo el reporte completo de Catapult las trae (arqueros)
+    impactLeft: idx('Total Impact Dive Load Left High Intensity'), impactRight: idx('Total Impact Dive Load Right High Intensity'),
   };
   const requeridas = ['name','periodName','dist','hsr','vel','acc','desa','pl','dur'];
   if(requeridas.some(k => cols[k]<0)) return null; // le faltan columnas clave, no lo reconocemos como Catapult
@@ -4839,7 +4839,8 @@ function parseCatapultCSV(text){
       sprint_count: cols.sprintEfforts>=0 ? num(c[cols.sprintEfforts]) : null,
       dives_left: cols.divesLeft>=0 ? num(c[cols.divesLeft]) : null,
       dives_right: cols.divesRight>=0 ? num(c[cols.divesRight]) : null,
-      impact_total: cols.impactTotal>=0 ? num(c[cols.impactTotal]) : null,
+      impact_left: cols.impactLeft>=0 ? num(c[cols.impactLeft]) : null,
+      impact_right: cols.impactRight>=0 ? num(c[cols.impactRight]) : null,
     };
     if(periodName === 'Session') bySession.push(row);
     else if(periodName === '1ST HALF') byHalf1.push(row);
@@ -5097,12 +5098,14 @@ async function confirmCatapultImport(){
         alta_int:r.hsr, sprint:r.sprint, sprint_count:r.sprint_count,
       }));
 
-    // Arqueros del mismo CSV: se guardan aparte en gk_data (sin impactos/buzos, que el CSV crudo de Catapult no trae).
+    // Arqueros del mismo CSV: se guardan aparte en gk_data. Impactos y buzos ya vienen del reporte completo de Catapult.
     const nuevosGkEventos = pendingCatapultData.bySession
       .filter(r => isGoalkeeper(r.jugador))
       .map(r=>({
         fecha, jugador:r.jugador, tipo, detalle:detalleFinal,
-        dist:r.dist, impact_left:null, impact_right:null, impact_total:r.impact_total, dives_left:r.dives_left, dives_right:r.dives_right,
+        dist:r.dist, impact_left:r.impact_left, impact_right:r.impact_right,
+        impact_total: (r.impact_left!==null && r.impact_right!==null) ? (r.impact_left + r.impact_right) : null,
+        dives_left:r.dives_left, dives_right:r.dives_right,
         pl:r.pl, min:r.min, vel:r.vel, acc:r.acc, dece:r.desa,
       }));
     if(nuevosGkEventos.length){
