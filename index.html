@@ -571,7 +571,7 @@
 
 <div id="pendingScreen" class="auth-screen" style="display:none;">
   <div class="auth-card">
-    <h2>Cuenta creada</h2>
+    <h2 id="pendingTitle">Cuenta creada</h2>
     <p id="pendingMessage" style="color:var(--mist);line-height:1.5;margin-bottom:18px;">Tu cuenta fue creada correctamente. Necesita la aprobación del administrador antes de poder acceder al panel.</p>
     <button id="pendingLogoutBtn" class="auth-submit" type="button">Cerrar sesión</button>
   </div>
@@ -1884,6 +1884,14 @@ if(myProfile.role==='pending_club' || myProfile.role==='pending_staff' || myProf
     showPendingScreen(myProfile.role);
     return;
   }
+  if(myProfile.role!=='owner'){
+    const features = await loadClubFeatures(CURRENT_CLUB);
+    CLUB_FEATURES = features;
+    if(!features.active){
+      showPendingScreen('suspended');
+      return;
+    }
+  }
   if(myProfile.role==='player' && !myProfile.player_name){
     await loadGkData(); // para que los arqueros también aparezcan en el picker de nombre
     const taken = await getTakenPlayerNames();
@@ -1901,6 +1909,18 @@ function showPendingScreen(role){
   document.getElementById('nameScreen').style.display='none';
   const screen = document.getElementById('pendingScreen');
   const msg = document.getElementById('pendingMessage');
+  const title = document.getElementById('pendingTitle');
+  if(role==='suspended'){
+    title.textContent = 'Club suspendido';
+    msg.textContent = `El acceso de "${CURRENT_CLUB}" está temporalmente suspendido. Contactá al OWNER (Matías González) para reactivarlo — tus datos siguen guardados y vas a poder seguir usando el dashboard normalmente en cuanto se reactive.`;
+    screen.style.display='flex';
+    document.getElementById('pendingLogoutBtn').onclick = async ()=>{
+      await supabaseClient.auth.signOut();
+      location.reload();
+    };
+    return;
+  }
+  title.textContent = 'Cuenta creada';
   const roleLabel = role==='pending_club' ? 'Administrador de un nuevo club' : (role==='pending_gk_coach' ? 'Entrenador de arqueros' : 'Staff (médico y técnico)');
   const approver = role==='pending_club' ? 'OWNER (Matías González)' : 'el administrador de tu club';
   if(role==='rejected_club'){
@@ -2384,7 +2404,7 @@ function computeRpeACWR(playerReports, refDateStr){
 // pensado para clubes que entrenan de tarde; un club que entrena de mañana puede cambiarla).
 let RPE_WINDOW_START = '18:30'; // "HH:MM", hora local del navegador
 let RPE_WINDOW_END = '23:59';
-let CLUB_FEATURES = {gps:true, rpe_wellness:true}; // por defecto, todo activo (compatibilidad con clubes ya existentes)
+let CLUB_FEATURES = {gps:true, rpe_wellness:true, active:true}; // por defecto, todo activo (compatibilidad con clubes ya existentes)
 let WELLNESS_WINDOW_START = '05:00';
 let WELLNESS_WINDOW_END = '11:00';
 const PAIN_TYPES = ['Muscular','Articular','Tendinoso','Óseo/Golpe','Otro'];
@@ -2546,10 +2566,10 @@ async function loadClubFeatures(clubName){
     const {data} = await supabaseClient.from('app_settings').select('value').eq('club',clubName).eq('key','club_features').maybeSingle();
     if(data && data.value){
       const parsed = JSON.parse(data.value);
-      return {gps: parsed.gps!==false, rpe_wellness: parsed.rpe_wellness!==false};
+      return {gps: parsed.gps!==false, rpe_wellness: parsed.rpe_wellness!==false, active: parsed.active!==false};
     }
   }catch(e){ console.warn('No se pudieron cargar las features del club:', e); }
-  return {gps:true, rpe_wellness:true}; // clubes sin configurar todavía: todo activo (compatibilidad)
+  return {gps:true, rpe_wellness:true, active:true}; // clubes sin configurar todavía: todo activo (compatibilidad)
 }
 async function saveClubFeature(clubName, key, value){
   const current = await loadClubFeatures(clubName);
@@ -3564,23 +3584,33 @@ async function buildClubesList(){
     background:${active?'rgba(52,211,153,.15)':'transparent'};
     color:${active?'var(--good)':'var(--mist)'};">${active?'✓ ':'✗ '}${label}</button>`;
 
+  const suspendBtn = (club, active) => `<button type="button" class="club-feature-toggle" data-club="${club}" data-key="active"
+    style="padding:5px 10px;border-radius:7px;font:700 11px 'IBM Plex Mono';cursor:pointer;margin-right:6px;
+    border:1px solid ${active?'var(--line-strong)':'var(--bad)'};
+    background:${active?'transparent':'rgba(251,113,133,.15)'};
+    color:${active?'var(--mist)':'var(--bad)'};">${active?'🔓 Activo':'🔒 Suspendido'}</button>`;
+
   box.innerHTML = clubs.map(c=>{
-    const f = featuresByClub[c] || {gps:true, rpe_wellness:true};
+    const f = featuresByClub[c] || {gps:true, rpe_wellness:true, active:true};
     return `
     <div class="club-row" data-club="${c}" style="cursor:pointer;">
-      <div class="nm">${c}${c===CURRENT_CLUB?' <span class="lb-record-tag">VIENDO AHORA</span>':''}</div>
-      <div style="margin:6px 0;">${toggleBtn(c,'gps',f.gps,'📡 GPS')}${toggleBtn(c,'rpe_wellness',f.rpe_wellness,'💚 RPE+Wellness')}</div>
+      <div class="nm">${c}${c===CURRENT_CLUB?' <span class="lb-record-tag">VIENDO AHORA</span>':''}${f.active===false?' <span class="lb-record-tag" style="background:var(--bad);">SUSPENDIDO</span>':''}</div>
+      <div style="margin:6px 0;">${toggleBtn(c,'gps',f.gps,'📡 GPS')}${toggleBtn(c,'rpe_wellness',f.rpe_wellness,'💚 RPE+Wellness')}${suspendBtn(c,f.active!==false)}</div>
       <div class="num">${counts[c]} usuario${counts[c]===1?'':'s'}</div>
     </div>`;
   }).join('');
   box.querySelectorAll('.club-feature-toggle').forEach(btn=>{
     btn.addEventListener('click', async (e)=>{
       e.stopPropagation();
-      btn.disabled = true;
       const club = btn.dataset.club, key = btn.dataset.key;
       const current = await loadClubFeatures(club);
+      const newValue = !current[key];
+      if(key==='active' && !newValue){
+        if(!confirm(`¿Suspender el acceso de "${club}"? Nadie de ese club (admin ni jugadores) va a poder entrar hasta que lo reactives. Sus datos no se tocan ni se borran.`)) return;
+      }
+      btn.disabled = true;
       try{
-        const updated = await saveClubFeature(club, key, !current[key]);
+        const updated = await saveClubFeature(club, key, newValue);
         if(club === CURRENT_CLUB){ CLUB_FEATURES = updated; applyClubFeaturesToTabs(); }
         buildClubesList();
       }catch(err){
