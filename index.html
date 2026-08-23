@@ -4844,7 +4844,7 @@ function parseCatapultCSV(text){
     acc: idx('Acceleration B1-3 Average Efforts (Session) (Gen 2)'),
     desa: idx('Deceleration B1-3 Average Efforts (Session) (Gen 2)'),
     pl: idx('Average Player Load (Session)'), dur: idx('Average Duration (Session)'),
-    sprintPerMin: idx('Sprint Dist Per Min'), sprintEfforts: idx('Sprint Efforts'),
+    sprintDist: idx('Velocity Band 5 Total Distance'), sprintEfforts: idx('Velocity B5+ Total # Efforts (Gen 2)'),
     divesLeft: idx('Dive Left Count'), divesRight: idx('Dive Right Count'), // opcionales: solo el reporte completo de Catapult las trae (arqueros)
     impactLeft: idx('Total Impact Dive Load Left High Intensity'), impactRight: idx('Total Impact Dive Load Right High Intensity'),
     rhieBouts: idx('RHIE Total Bouts'),
@@ -4865,7 +4865,7 @@ function parseCatapultCSV(text){
       jugador,
       dist: num(c[cols.dist]), hsr: num(c[cols.hsr]), vel: num(c[cols.vel]),
       acc: num(c[cols.acc]), desa: num(c[cols.desa]), pl: num(c[cols.pl]), min: minutos,
-      sprint: (cols.sprintPerMin>=0 && num(c[cols.sprintPerMin])!==null && minutos) ? num(c[cols.sprintPerMin])*minutos : null,
+      sprint: cols.sprintDist>=0 ? num(c[cols.sprintDist]) : null,
       sprint_count: cols.sprintEfforts>=0 ? num(c[cols.sprintEfforts]) : null,
       dives_left: cols.divesLeft>=0 ? num(c[cols.divesLeft]) : null,
       dives_right: cols.divesRight>=0 ? num(c[cols.divesRight]) : null,
@@ -4873,9 +4873,10 @@ function parseCatapultCSV(text){
       impact_right: cols.impactRight>=0 ? num(c[cols.impactRight]) : null,
       rhie: cols.rhieBouts>=0 ? num(c[cols.rhieBouts]) : null,
     };
-    if(periodName === 'Session') bySession.push(row);
-    else if(periodName === '1ST HALF') byHalf1.push(row);
-    else if(periodName === '2ND HALF') byHalf2.push(row);
+    const periodUpper = periodName.toUpperCase();
+    if(periodUpper === 'SESSION') bySession.push(row);
+    else if(periodUpper === '1ST HALF') byHalf1.push(row);
+    else if(periodUpper === '2ND HALF') byHalf2.push(row);
   }
   if(!bySession.length) return null;
   return { fecha, bySession, byHalf1, byHalf2 };
