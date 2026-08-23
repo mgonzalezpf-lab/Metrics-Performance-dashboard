@@ -850,6 +850,8 @@
       <div id="wellnessWindowWrap" style="position:relative;display:none;padding:0 18px 12px;">
         <button id="wellnessWindowBtn" class="upload-btn" style="padding:7px 10px;">🕐 Horario de Wellness</button>
         <span id="wellnessWindowLabel" style="margin-left:8px;font-size:11.5px;color:var(--mist);font-family:'IBM Plex Mono';"></span>
+        <label for="wellnessDatePicker" data-i18n="fecha2" style="margin-left:14px;font-size:11px;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;">Fecha</label>
+        <input id="wellnessDatePicker" type="date" style="margin-left:6px;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;">
         <div id="wellnessWindowForm" style="display:none;position:absolute;top:38px;left:18px;background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:10px;padding:12px;z-index:50;min-width:230px;box-shadow:0 8px 24px rgba(0,0,0,.4);">
           <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:6px;">Desde qué hora se habilita el envío</label>
           <input id="wellnessWindowStartInput" type="time" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:8px;box-sizing:border-box;">
@@ -2258,13 +2260,14 @@ async function buildRpeTeamList(){
   buildRpeLoadTable(document.getElementById('rpeDatePicker').value || today);
 }
 // ---------- Wellness: vista de staff (promedio del plantel, tabla y alertas de dolor) ----------
-async function buildWellnessTeamList(){
+async function buildWellnessTeamList(fecha){
   const kpiBox = document.getElementById('wellnessKpi');
   const tableBox = document.getElementById('wellnessTable');
   const alertBox = document.getElementById('wellnessAlerts');
   if(!tableBox) return;
-  const today = todayISO();
-  const {data,error} = await supabaseClient.from('wellness_reports').select('*').eq('club',CURRENT_CLUB).eq('fecha',today);
+  const targetDate = fecha || todayISO();
+  const isToday = targetDate === todayISO();
+  const {data,error} = await supabaseClient.from('wellness_reports').select('*').eq('club',CURRENT_CLUB).eq('fecha',targetDate);
   if(error){
     tableBox.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">No se pudo cargar el Wellness del plantel.</div>`;
     return;
@@ -2272,6 +2275,10 @@ async function buildWellnessTeamList(){
   const reports = data || [];
   const byPlayer = {};
   reports.forEach(r=> byPlayer[r.player_name] = r);
+
+  // Plantel completo: jugadores con datos GPS + los que se agregaron manualmente (todavía sin GPS cargado)
+  const rosterExtra = await getRosterExtraNames();
+  const allPlayers = [...new Set([...players, ...rosterExtra])].sort();
 
   const scoreOf = r => {
     const vals = ['sueno','fatiga','dolor_muscular','estres','animo'].map(k=>r[k]).filter(v=>v!==null && v!==undefined);
@@ -2281,28 +2288,37 @@ async function buildWellnessTeamList(){
   const teamAvg = scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length) : null;
 
   if(kpiBox){
+    const diaLabel = isToday ? 'hoy' : targetDate.split('-').reverse().join('/');
     kpiBox.innerHTML = `<div class="kpi-card">
-      <div class="kpi-label">Wellness promedio del plantel hoy</div>
+      <div class="kpi-label">Wellness promedio del plantel · ${diaLabel}</div>
       <div class="kpi-value">${teamAvg!==null ? teamAvg.toFixed(1) : '—'}<span style="font-size:14px;color:var(--mist);">/5</span></div>
-      <div class="kpi-sub">${reports.length} de ${players.length} jugadores reportaron hoy</div>
+      <div class="kpi-sub">${reports.length} de ${allPlayers.length} jugadores reportaron ${diaLabel==='hoy'?'hoy':`el ${diaLabel}`}</div>
     </div>`;
   }
 
   const conDolor = reports.filter(r=> (r.zonas_dolor||[]).length>0);
   if(alertBox){
+    const diaTxt = isToday ? 'hoy' : `el ${targetDate.split('-').reverse().join('/')}`;
     alertBox.innerHTML = !conDolor.length ? '' : `<div style="padding:12px 14px;background:rgba(251,113,133,.08);border:1px solid rgba(251,113,133,.3);border-radius:10px;margin-bottom:14px;">
-      <div style="font-size:12.5px;color:var(--bad);font-weight:700;margin-bottom:6px;">⚠️ ${conDolor.length} jugador${conDolor.length===1?'':'es'} reportó dolor hoy</div>
+      <div style="font-size:12.5px;color:var(--bad);font-weight:700;margin-bottom:6px;">⚠️ ${conDolor.length} jugador${conDolor.length===1?'':'es'} reportó dolor ${diaTxt}</div>
       ${conDolor.map(r=>`<div style="font-size:12px;color:var(--bone);margin-bottom:3px;">
         <b>${r.player_name}</b>: ${(r.zonas_dolor||[]).map(z=>`${BODY_ZONE_LABELS[z.zona]||z.zona} (${z.tipo})`).join(', ')}
       </div>`).join('')}
     </div>`;
   }
 
+  const avgCol = (key) => {
+    const vals = reports.map(r=>r[key]).filter(v=>v!==null && v!==undefined);
+    return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length) : null;
+  };
+  const fmtAvg = (v) => v!==null ? v.toFixed(1) : '—';
+  const scoreColor = (v) => v===null ? 'var(--mist)' : v<3.0 ? '#FB7185' : v<4.0 ? '#FBBF24' : '#34D399';
+
   tableBox.innerHTML = `<table class="mc-table">
     <thead><tr><th>Jugador</th><th>Sueño</th><th>Fatiga</th><th>Dolor Musc.</th><th>Estrés</th><th>Ánimo</th><th>Score</th><th>Zona de dolor</th><th>Observación</th></tr></thead>
-    <tbody>${players.map(p=>{
+    <tbody>${allPlayers.map(p=>{
       const r = byPlayer[p];
-      if(!r) return `<tr><td><b>${p}</b></td><td colspan="8" style="color:var(--mist);">Sin reportar hoy</td></tr>`;
+      if(!r) return `<tr><td><b>${p}</b></td><td colspan="8" style="color:var(--mist);">${isToday?'Sin reportar hoy':'Sin reportar ese día'}</td></tr>`;
       const sc = scoreOf(r);
       const zonas = (r.zonas_dolor||[]).map(z=> BODY_ZONE_LABELS[z.zona]||z.zona).join(', ');
       return `<tr>
@@ -2312,11 +2328,22 @@ async function buildWellnessTeamList(){
         <td class="mono">${r.dolor_muscular??'—'}</td>
         <td class="mono">${r.estres??'—'}</td>
         <td class="mono">${r.animo??'—'}</td>
-        <td class="mono" style="font-weight:700;">${sc!==null?sc.toFixed(1):'—'}</td>
+        <td class="mono" style="font-weight:800;font-size:15px;color:${scoreColor(sc)};">${sc!==null?sc.toFixed(1):'—'}</td>
         <td style="color:${zonas?'var(--bad)':'var(--mist)'};font-size:11.5px;">${zonas||'—'}</td>
         <td style="color:var(--mist);font-size:11.5px;">${r.observacion||''}</td>
       </tr>`;
     }).join('')}</tbody>
+    <tfoot><tr class="mc-total" style="border-top:2px solid var(--line-strong);">
+      <td><b>Promedio del plantel</b></td>
+      <td class="mono">${fmtAvg(avgCol('sueno'))}</td>
+      <td class="mono">${fmtAvg(avgCol('fatiga'))}</td>
+      <td class="mono">${fmtAvg(avgCol('dolor_muscular'))}</td>
+      <td class="mono">${fmtAvg(avgCol('estres'))}</td>
+      <td class="mono">${fmtAvg(avgCol('animo'))}</td>
+      <td class="mono" style="font-weight:800;font-size:15px;color:${scoreColor(teamAvg)};">${teamAvg!==null?teamAvg.toFixed(1):'—'}</td>
+      <td></td>
+      <td></td>
+    </tr></tfoot>
   </table>`;
 }
 
@@ -2523,6 +2550,12 @@ function setupWellnessWindowBar(){
     refreshLabel();
   };
   document.addEventListener('click',(e)=>{ if(!wrap.contains(e.target)) form.style.display='none'; });
+
+  const datePicker = document.getElementById('wellnessDatePicker');
+  if(datePicker){
+    datePicker.value = todayISO();
+    datePicker.addEventListener('change', ()=> buildWellnessTeamList(datePicker.value));
+  }
 }
 const RPE_LOCK_MSG = { es:'', en:'', ar:'' }; // se mantiene por compatibilidad; el mensaje real ahora sale de rpeLockMsg()
 function buildRpeLoadTable(dateStr){
