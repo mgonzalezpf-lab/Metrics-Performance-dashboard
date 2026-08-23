@@ -4342,24 +4342,33 @@ function fatigaLabel(v){
   if(v<0) return 'Caída leve — normal';
   return 'Sin caída — rendimiento sostenido';
 }
+function diffBadge(diff){
+  if(diff===null || diff===undefined || isNaN(diff)) return '';
+  const color = diff<=-8 ? 'var(--bad)' : diff<=-4 ? 'var(--warn)' : diff<0 ? 'var(--mist)' : 'var(--good)';
+  const arrow = diff<0 ? '▼' : '▲';
+  return ` <span style="font-size:11px;color:${color};font-weight:600;">${arrow}${Math.abs(diff).toFixed(0)}% 2T</span>`;
+}
 function buildMatchGrid(){
   const box = document.getElementById('matchGrid');
   const entries = Object.entries(ACTIVE_TEAMTOTALS)
     .sort((a,b)=> (b[1].fecha||'').localeCompare(a[1].fecha||''));
-  box.innerHTML = entries.map(([name,t])=>`
+  box.innerHTML = entries.map(([name,t])=>{
+    const h = t.halves || {};
+    return `
     <div class="match-card">
       <h4>${name}</h4>
       <div class="dt">${t.fecha.split('-').reverse().join('/')}</div>
-      <div class="mm-row"><span class="k">Distancia total</span><span class="v">${fmt(t.dist)} m</span></div>
-      <div class="mm-row"><span class="k">HSR</span><span class="v">${fmt(t.hsr)} m</span></div>
-      <div class="mm-row"><span class="k">Sprint distancia</span><span class="v">${fmt(t.sprint_dist)} m</span></div>
-      <div class="mm-row"><span class="k">Sprint conteo</span><span class="v">${t.sprint_count}</span></div>
-      <div class="mm-row"><span class="k">Acc B2-3</span><span class="v">${t.acc}</span></div>
-      <div class="mm-row"><span class="k">Desa B2-3</span><span class="v">${t.desa}</span></div>
-      <div class="mm-row"><span class="k">RHIE bouts</span><span class="v">${t.rhie}</span></div>
-      <div class="mm-row"><span class="k">Player Load</span><span class="v">${fmt(t.pl)}</span></div>
+      <div class="mm-row"><span class="k">Distancia total</span><span class="v">${fmt(t.dist)} m${diffBadge(h.dist && h.dist.diff)}</span></div>
+      <div class="mm-row"><span class="k">HSR</span><span class="v">${fmt(t.hsr)} m${diffBadge(h.hsr && h.hsr.diff)}</span></div>
+      <div class="mm-row"><span class="k">Sprint distancia</span><span class="v">${fmt(t.sprint_dist)} m${diffBadge(h.sprint && h.sprint.diff)}</span></div>
+      <div class="mm-row"><span class="k">Sprint conteo</span><span class="v">${fmt(t.sprint_count)}${diffBadge(h.sprint_count && h.sprint_count.diff)}</span></div>
+      <div class="mm-row"><span class="k">Acc B2-3</span><span class="v">${fmt(t.acc)}${diffBadge(h.acc && h.acc.diff)}</span></div>
+      <div class="mm-row"><span class="k">Desa B2-3</span><span class="v">${fmt(t.desa)}${diffBadge(h.desa && h.desa.diff)}</span></div>
+      <div class="mm-row"><span class="k">RHIE bouts</span><span class="v">${fmt(t.rhie)}${diffBadge(h.rhie && h.rhie.diff)}</span></div>
+      <div class="mm-row"><span class="k">Player Load</span><span class="v">${fmt(t.pl)}${diffBadge(h.pl && h.pl.diff)}</span></div>
       ${t.fatiga!==undefined && t.fatiga!==null ? `<div class="mm-row"><span class="k">Índice de fatiga (2T vs 1T)</span><span class="v" style="color:${t.fatiga<=-8?'var(--bad)':t.fatiga<=-4?'var(--warn)':'var(--good)'};">${t.fatiga>0?'+':''}${fmt(t.fatiga,1)}% <span style="font-size:10.5px;font-weight:400;opacity:.85;">(${fatigaLabel(t.fatiga)})</span></span></div>` : ''}
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // ---------- ACWR panel ----------
@@ -4838,6 +4847,7 @@ function parseCatapultCSV(text){
     sprintPerMin: idx('Sprint Dist Per Min'), sprintEfforts: idx('Sprint Efforts'),
     divesLeft: idx('Dive Left Count'), divesRight: idx('Dive Right Count'), // opcionales: solo el reporte completo de Catapult las trae (arqueros)
     impactLeft: idx('Total Impact Dive Load Left High Intensity'), impactRight: idx('Total Impact Dive Load Right High Intensity'),
+    rhieBouts: idx('RHIE Total Bouts'),
   };
   const requeridas = ['name','periodName','dist','hsr','vel','acc','desa','pl','dur'];
   if(requeridas.some(k => cols[k]<0)) return null; // le faltan columnas clave, no lo reconocemos como Catapult
@@ -4861,6 +4871,7 @@ function parseCatapultCSV(text){
       dives_right: cols.divesRight>=0 ? num(c[cols.divesRight]) : null,
       impact_left: cols.impactLeft>=0 ? num(c[cols.impactLeft]) : null,
       impact_right: cols.impactRight>=0 ? num(c[cols.impactRight]) : null,
+      rhie: cols.rhieBouts>=0 ? num(c[cols.rhieBouts]) : null,
     };
     if(periodName === 'Session') bySession.push(row);
     else if(periodName === '1ST HALF') byHalf1.push(row);
@@ -4872,14 +4883,21 @@ function parseCatapultCSV(text){
 // Arma la fila de "Comparativo GPS" (promedio del plantel) a partir de los datos crudos de Catapult,
 // calculando el índice de fatiga (2T vs 1T) automáticamente si el archivo trae las dos mitades.
 function computeCatapultTeamTotals(bySession, byHalf1, byHalf2){
-  const avg = (arr, key) => { const v = arr.map(r=>r[key]).filter(x=>x!==null && x!==undefined && !isNaN(x)); return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null; };
-  const dist1 = avg(byHalf1,'dist'), dist2 = avg(byHalf2,'dist');
-  const fatiga = (dist1!==null && dist2!==null && dist1>0) ? ((dist2-dist1)/dist1*100) : null;
+  const sum = (arr, key) => { const v = arr.map(r=>r[key]).filter(x=>x!==null && x!==undefined && !isNaN(x)); return v.length ? v.reduce((a,b)=>a+b,0) : null; };
+  const pctDiff = (v1, v2) => (v1!==null && v2!==null && v1>0) ? ((v2-v1)/v1*100) : null;
+  const halfSum = (key) => {
+    const v1 = sum(byHalf1,key), v2 = sum(byHalf2,key);
+    return { t1:v1, t2:v2, diff: pctDiff(v1,v2) };
+  };
+  const distH = halfSum('dist'), hsrH = halfSum('hsr'), accH = halfSum('acc'), desaH = halfSum('desa'), plH = halfSum('pl');
+  const sprintDistH = halfSum('sprint'), sprintCountH = halfSum('sprint_count');
+  const rhieH = halfSum('rhie');
   return {
-    dist: avg(bySession,'dist'), hsr: avg(bySession,'hsr'),
-    sprint_dist: avg(bySession,'sprint'), sprint_count: avg(bySession,'sprint_count'),
-    acc: avg(bySession,'acc'), desa: avg(bySession,'desa'), rhie: null, pl: avg(bySession,'pl'),
-    fatiga,
+    dist: sum(bySession,'dist'), hsr: sum(bySession,'hsr'),
+    sprint_dist: sum(bySession,'sprint'), sprint_count: sum(bySession,'sprint_count'),
+    acc: sum(bySession,'acc'), desa: sum(bySession,'desa'), rhie: sum(bySession,'rhie'), pl: sum(bySession,'pl'),
+    fatiga: distH.diff,
+    halves: { dist:distH, hsr:hsrH, acc:accH, desa:desaH, pl:plH, sprint:sprintDistH, sprint_count:sprintCountH, rhie:rhieH },
   };
 }
 
