@@ -639,6 +639,7 @@
     <div style="background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:14px;padding:22px;max-width:380px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.5);">
       <h3 style="margin:0 0 6px;font-size:15px;color:var(--bone);">📊 Archivo de Catapult detectado</h3>
       <p style="color:var(--mist);font-size:12px;margin:0 0 16px;line-height:1.5;">Encontramos <b id="csvImportCount" style="color:var(--gold-bright);">0</b> jugadores en este archivo. Completá estos datos para cargarlo:</p>
+      <div id="csvImportWarnings" style="display:none;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.35);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:#FBBF24;line-height:1.5;"></div>
 
       <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:4px;">Tipo de sesión</label>
       <select id="csvImportTipo" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:10px;box-sizing:border-box;">
@@ -4833,7 +4834,7 @@ function parseCatapultCSV(text){
   for(let i=0;i<lines.length;i++){
     if(lines[i].replace(/"/g,'').trim().startsWith('Player Name')){ headerIdx = i; break; }
   }
-  if(headerIdx<0) return null; // no es un CSV de Catapult reconocible
+  if(headerIdx<0) throw new Error('Este archivo no parece un export de Catapult: no encontramos la fila de encabezados ("Player Name").');
 
   const headers = parseCsvLine(lines[headerIdx]);
   const idx = (name) => headers.indexOf(name);
@@ -4849,8 +4850,17 @@ function parseCatapultCSV(text){
     impactLeft: idx('Total Impact Dive Load Left High Intensity'), impactRight: idx('Total Impact Dive Load Right High Intensity'),
     rhieBouts: idx('RHIE Total Bouts'),
   };
-  const requeridas = ['name','periodName','dist','hsr','vel','acc','desa','pl','dur'];
-  if(requeridas.some(k => cols[k]<0)) return null; // le faltan columnas clave, no lo reconocemos como Catapult
+  const requeridasLabels = {
+    name:'Player Name', periodName:'Period Name', dist:'Average Distance (Session)', hsr:'HSR',
+    vel:'Maximum Velocity', acc:'Acceleration B2-3 Average Efforts (Session) (Gen 2)',
+    desa:'Deceleration B2-3 Average Efforts (Session) (Gen 2)', pl:'Average Player Load (Session)',
+    dur:'Average Duration (Session)',
+  };
+  const requeridas = Object.keys(requeridasLabels);
+  const requeridasFaltantes = requeridas.filter(k => cols[k]<0).map(k => requeridasLabels[k]);
+  if(requeridasFaltantes.length){
+    throw new Error(`Este archivo no tiene el formato esperado de Catapult. No encontramos estas columnas: ${requeridasFaltantes.join(', ')}.`);
+  }
 
   const bySession = [], byHalf1 = [], byHalf2 = [];
   for(let i=headerIdx+1;i<lines.length;i++){
@@ -4879,7 +4889,17 @@ function parseCatapultCSV(text){
     else if(periodUpper === '2ND HALF') byHalf2.push(row);
   }
   if(!bySession.length) return null;
-  return { fecha, bySession, byHalf1, byHalf2 };
+  const opcionales = [
+    {key:'sprintDist', label:'Sprint distancia (Velocity Band 5 Total Distance)'},
+    {key:'sprintEfforts', label:'Sprint conteo (Velocity B5+ Total # Efforts)'},
+    {key:'divesLeft', label:'Buzos Izq. (Dive Left Count)'},
+    {key:'divesRight', label:'Buzos Der. (Dive Right Count)'},
+    {key:'impactLeft', label:'Impacto Izq. (Total Impact Dive Load Left High Intensity)'},
+    {key:'impactRight', label:'Impacto Der. (Total Impact Dive Load Right High Intensity)'},
+    {key:'rhieBouts', label:'RHIE bouts (RHIE Total Bouts)'},
+  ];
+  const columnasNoEncontradas = opcionales.filter(o => cols[o.key]<0).map(o => o.label);
+  return { fecha, bySession, byHalf1, byHalf2, columnasNoEncontradas };
 }
 // Arma la fila de "Comparativo GPS" (promedio del plantel) a partir de los datos crudos de Catapult,
 // calculando el índice de fatiga (2T vs 1T) automáticamente si el archivo trae las dos mitades.
@@ -5081,13 +5101,20 @@ async function handleCatapultCSV(file){
   try{
     const text = await file.text();
     const parsed = parseCatapultCSV(text);
-    if(!parsed) throw new Error('No reconocemos este CSV como un export de Catapult (le faltan columnas clave).');
     pendingCatapultData = parsed;
     document.getElementById('csvImportCount').textContent = parsed.bySession.length;
     document.getElementById('csvImportFecha').value = parsed.fecha || '';
     document.getElementById('csvImportRival').value = '';
     document.getElementById('csvImportDetalle').value = '';
     document.getElementById('csvImportStatus').textContent = '';
+    const warnBox = document.getElementById('csvImportWarnings');
+    if(parsed.columnasNoEncontradas && parsed.columnasNoEncontradas.length){
+      warnBox.style.display = 'block';
+      warnBox.innerHTML = `⚠️ Este archivo no trae estas columnas — van a quedar vacías para esta carga:<br>${parsed.columnasNoEncontradas.map(c=>`• ${c}`).join('<br>')}`;
+    } else {
+      warnBox.style.display = 'none';
+      warnBox.innerHTML = '';
+    }
     document.getElementById('csvImportModal').style.display = 'flex';
     showStatus('', '');
   }catch(err){
