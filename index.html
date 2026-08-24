@@ -643,8 +643,8 @@
 
       <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:4px;">Tipo de sesión</label>
       <select id="csvImportTipo" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:10px;box-sizing:border-box;">
-        <option value="Partido">Partido</option>
         <option value="Entreno">Entreno</option>
+        <option value="Partido">Partido</option>
       </select>
 
       <div id="csvImportRivalWrap">
@@ -5104,9 +5104,11 @@ async function handleCatapultCSV(file){
     pendingCatapultData = parsed;
     document.getElementById('csvImportCount').textContent = parsed.bySession.length;
     document.getElementById('csvImportFecha').value = parsed.fecha || '';
+    document.getElementById('csvImportTipo').value = 'Entreno';
     document.getElementById('csvImportRival').value = '';
     document.getElementById('csvImportDetalle').value = '';
     document.getElementById('csvImportStatus').textContent = '';
+    syncCsvImportFields();
     const warnBox = document.getElementById('csvImportWarnings');
     if(parsed.columnasNoEncontradas && parsed.columnasNoEncontradas.length){
       warnBox.style.display = 'block';
@@ -5123,6 +5125,15 @@ async function handleCatapultCSV(file){
   }
 }
 
+function syncCsvImportFields(){
+  const tipoSelect = document.getElementById('csvImportTipo');
+  const rivalWrap = document.getElementById('csvImportRivalWrap');
+  const detalleWrap = document.getElementById('csvImportDetalleWrap');
+  if(!tipoSelect || !rivalWrap || !detalleWrap) return;
+  const esPartido = tipoSelect.value === 'Partido';
+  rivalWrap.style.display = esPartido ? '' : 'none';
+  detalleWrap.style.display = esPartido ? 'none' : '';
+}
 function setupCsvImportModal(){
   const modal = document.getElementById('csvImportModal');
   const tipoSelect = document.getElementById('csvImportTipo');
@@ -5131,11 +5142,8 @@ function setupCsvImportModal(){
   const cancelBtn = document.getElementById('csvImportCancel');
   const confirmBtn = document.getElementById('csvImportConfirm');
   if(!modal || !tipoSelect || !rivalWrap || !detalleWrap || !cancelBtn || !confirmBtn) return; // resguardo: si falta algo, no rompe el resto del arranque
-  tipoSelect.onchange = ()=>{
-    const esPartido = tipoSelect.value === 'Partido';
-    rivalWrap.style.display = esPartido ? '' : 'none';
-    detalleWrap.style.display = esPartido ? 'none' : '';
-  };
+  syncCsvImportFields(); // sincroniza los campos visibles con el valor real del selector (por si el default cambió)
+  tipoSelect.onchange = syncCsvImportFields;
   cancelBtn.onclick = ()=>{
     modal.style.display = 'none';
     pendingCatapultData = null;
