@@ -735,6 +735,29 @@
         <div id="gkTable"></div>
       </div>
     </div>
+
+    <div class="panel team-only" style="margin-bottom:18px;">
+      <div class="panel-head">
+        <h3>🧤 RPE de arqueros</h3>
+        <span class="tag">percepción de esfuerzo reportada por cada arquero</span>
+      </div>
+      <div class="acwr-body" id="gkRpeTeamList"></div>
+    </div>
+
+    <div class="panel team-only">
+      <div class="panel-head">
+        <h3>🧤 Carga interna de arqueros (RPE)</h3>
+        <span class="tag">carga aguda : crónica basada en RPE × minutos</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin:8px 0 14px;flex-wrap:wrap;">
+        <label for="gkRpeDatePicker" style="font-size:11px;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;">Fecha</label>
+        <input id="gkRpeDatePicker" type="date" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;">
+        <button id="gkRpeSaveAllBtn" type="button" style="padding:8px 14px;border-radius:8px;border:1px solid var(--gold);background:var(--gold);color:var(--pitch-950);font:700 12px 'IBM Plex Mono';cursor:pointer;">Guardar todos</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="cmp-table" id="gkRpeLoadTable"></table>
+      </div>
+    </div>
   </div>
 
   <div id="controlCargaView" style="display:none;">
@@ -2301,7 +2324,7 @@ async function buildRpeTeamList(){
   const order = {high:0, caution:1, optimal:2, low:3, insuf:4};
   // Plantel completo: jugadores con datos GPS + los que se agregaron manualmente (todavía sin GPS cargado)
   const rosterExtra = await getRosterExtraNames();
-  const allPlayers = [...new Set([...players, ...rosterExtra])].sort();
+  const allPlayers = [...new Set([...players, ...rosterExtra])].filter(p=>!isGoalkeeper(p)).sort();
   const rows = allPlayers.map(p=>{
     const reportsForPlayer = byPlayerRpe[p] || [];
     const {ratio} = computeRpeACWR(reportsForPlayer, today);
@@ -2320,6 +2343,160 @@ async function buildRpeTeamList(){
   }).join('');
   box.querySelectorAll('.acwr-row').forEach(el=> el.addEventListener('click',()=>selectPlayer(el.dataset.p)));
   buildRpeLoadTable(document.getElementById('rpeDatePicker').value || today);
+}
+// ---------- RPE de arqueros: misma mecánica que RPE del plantel, pero solo para arqueros (gkPlayers) ----------
+let GK_RPE_REPORTS_CACHE = [];
+async function buildGkRpeTeamList(){
+  const box = document.getElementById('gkRpeTeamList');
+  if(!box) return;
+  const {data,error} = await supabaseClient.from('rpe_reports').select('player_name,fecha,rpe,minutos,updated_at').eq('club',CURRENT_CLUB).order('fecha',{ascending:false});
+  if(error){ box.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">No se pudo cargar el RPE de arqueros.</div>`; return; }
+  GK_RPE_REPORTS_CACHE = (data || []).filter(r => isGoalkeeper(r.player_name));
+  const byPlayerRpe = {};
+  GK_RPE_REPORTS_CACHE.forEach(r=>{ (byPlayerRpe[r.player_name] = byPlayerRpe[r.player_name]||[]).push(r); });
+  const today = todayISO();
+  const order = {high:0, caution:1, optimal:2, low:3, insuf:4};
+  if(!gkPlayers.length){
+    box.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">${t('gkSinArqueros')}</div>`;
+    return;
+  }
+  const rows = gkPlayers.map(p=>{
+    const reportsForPlayer = byPlayerRpe[p] || [];
+    const {ratio} = computeRpeACWR(reportsForPlayer, today);
+    const st = rpeAcwrStatus(ratio);
+    return {p, ratio, ...st};
+  }).sort((a,b)=> (order[a.status]-order[b.status]) || ((b.ratio||0)-(a.ratio||0)));
+  box.innerHTML = rows.map((r,i)=>{
+    const pct = r.ratio!==null ? Math.min(100, r.ratio/2*100) : null;
+    return `<div class="acwr-row ${r.p===state.player?'active':''}" data-p="${r.p}">
+      <div class="rk">${i+1<10?'0':''}${i+1}</div>
+      <div class="nm">${r.p}</div>
+      <div class="acwr-track">${pct!==null?`<div class="acwr-marker" style="left:${pct}%"></div>`:''}</div>
+      <div class="acwr-ratio">${r.ratio!==null? r.ratio.toFixed(2) : '—'}</div>
+      <div><span class="acwr-badge" style="background:var(${r.varName});color:#14143A;">${r.label}</span></div>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('.acwr-row').forEach(el=> el.addEventListener('click',()=>selectPlayer(el.dataset.p)));
+  const gkDatePicker = document.getElementById('gkRpeDatePicker');
+  buildGkRpeLoadTable(gkDatePicker ? (gkDatePicker.value || today) : today);
+}
+function buildGkRpeLoadTable(dateStr){
+  const table = document.getElementById('gkRpeLoadTable');
+  if(!table) return;
+  const saveAllBtn = document.getElementById('gkRpeSaveAllBtn');
+  if(saveAllBtn){
+    saveAllBtn.disabled = !(myProfile && (myProfile.role==='admin' || myProfile.role==='owner'));
+    saveAllBtn.style.opacity = saveAllBtn.disabled ? '.45' : '1';
+    saveAllBtn.style.cursor = saveAllBtn.disabled ? 'default' : 'pointer';
+  }
+  const byPlayerRpe = {};
+  GK_RPE_REPORTS_CACHE.forEach(r=>{ (byPlayerRpe[r.player_name] = byPlayerRpe[r.player_name]||[]).push(r); });
+  const rowsData = gkPlayers.map(p=>{
+    const reportsForPlayer = byPlayerRpe[p] || [];
+    const todayReport = reportsForPlayer.find(r=>r.fecha===dateStr);
+    const {ratio, acute, chronic} = computeRpeACWR(reportsForPlayer, dateStr);
+    const hora = todayReport && todayReport.updated_at ? new Date(todayReport.updated_at).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) : '—';
+    const rpeVal = todayReport ? todayReport.rpe : null;
+    const minVal = todayReport ? todayReport.minutos : null;
+    const cDiaria = (rpeVal!==null && minVal!==null) ? rpeVal*minVal : null;
+    return {p, hora, rpeVal, minVal, cDiaria, acute, chronic, ratio, todayReport};
+  });
+  const rowsHtml = rowsData.map(r=>{
+    let ratioColor = 'var(--mist)', ratioLabel = '—';
+    if(r.ratio!==null){
+      if(r.ratio<0.8){ ratioColor='var(--low)'; ratioLabel='Baja'; }
+      else if(r.ratio<1.3){ ratioColor='var(--good)'; ratioLabel='Óptima'; }
+      else if(r.ratio<1.5){ ratioColor='var(--warn)'; ratioLabel='Precaución'; }
+      else { ratioColor='var(--bad)'; ratioLabel='Riesgo alto'; }
+    }
+    const isAdmin = myProfile && (myProfile.role==='admin' || myProfile.role==='owner');
+    const minCell = r.todayReport
+      ? (isAdmin
+          ? `<input type="number" min="0" max="240" class="gk-rpe-min-input" data-player="${r.p}" data-fecha="${dateStr}" value="${r.minVal!==null?r.minVal:''}" placeholder="—" style="width:56px;padding:5px 6px;border-radius:6px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:12px 'IBM Plex Mono';outline:none;">`
+          : `<span style="color:var(--bone);">${r.minVal!==null? r.minVal : '—'}</span>`)
+      : `<span style="color:var(--mist);">—</span>`;
+    return `<tr>
+      <td class="metric-name">${r.p}</td>
+      <td>${r.hora}</td>
+      <td>${r.rpeVal!==null? r.rpeVal+'/10' : '—'}</td>
+      <td>${minCell}</td>
+      <td>${r.cDiaria!==null? r.cDiaria : '—'}</td>
+      <td>${r.acute!==null? r.acute.toFixed(1) : '—'}</td>
+      <td>${r.chronic!==null? r.chronic.toFixed(1) : '—'}</td>
+      <td><span class="acwr-badge" style="background:${ratioColor};color:#14143A;">${r.ratio!==null? r.ratio.toFixed(2)+' · '+ratioLabel : '—'}</span></td>
+    </tr>`;
+  }).join('');
+  const avg = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
+  const rpeAvg = avg(rowsData.map(r=>r.rpeVal).filter(v=>v!==null));
+  const minAvg = avg(rowsData.map(r=>r.minVal).filter(v=>v!==null));
+  const cDiariaAvg = avg(rowsData.map(r=>r.cDiaria).filter(v=>v!==null));
+  const acuteAvg = avg(rowsData.map(r=>r.acute).filter(v=>v!==null));
+  const chronicAvg = avg(rowsData.map(r=>r.chronic).filter(v=>v!==null));
+  const ratioAvg = avg(rowsData.map(r=>r.ratio).filter(v=>v!==null));
+  const footerHtml = `<tr style="border-top:2px solid var(--line-strong);font-weight:700;">
+    <td class="metric-name" style="color:var(--gold-bright);">Promedio de arqueros</td>
+    <td>—</td>
+    <td>${rpeAvg!==null? rpeAvg.toFixed(1)+'/10' : '—'}</td>
+    <td>${minAvg!==null? minAvg.toFixed(0) : '—'}</td>
+    <td>${cDiariaAvg!==null? cDiariaAvg.toFixed(0) : '—'}</td>
+    <td>${acuteAvg!==null? acuteAvg.toFixed(1) : '—'}</td>
+    <td>${chronicAvg!==null? chronicAvg.toFixed(1) : '—'}</td>
+    <td>${ratioAvg!==null? ratioAvg.toFixed(2) : '—'}</td>
+  </tr>`;
+  const isAdminGlobal = myProfile && (myProfile.role==='admin' || myProfile.role==='owner');
+  const minHeaderCell = isAdminGlobal
+    ? `<th>Min <span style="display:inline-flex;align-items:center;gap:4px;margin-left:4px;white-space:nowrap;">
+         <input id="gkRpeMinBulkFill" type="number" min="0" max="240" placeholder="min" title="Escribe un valor y aplícalo a todas las filas" style="width:46px;padding:3px 5px;border-radius:5px;border:1px solid var(--gold);background:var(--pitch-950);color:var(--gold-bright);font:11px 'IBM Plex Mono';outline:none;">
+         <button id="gkRpeMinBulkApplyBtn" type="button" title="Aplicar este valor a todos los arqueros" style="padding:3px 8px;border-radius:5px;border:1px solid var(--gold);background:var(--gold);color:var(--pitch-950);font:700 11px 'IBM Plex Mono';cursor:pointer;">✏️ Aplicar a todos</button>
+       </span></th>`
+    : `<th>Min</th>`;
+  table.innerHTML = `<thead><tr>
+    <th>Jugador</th><th>Hora</th><th>RPE</th>${minHeaderCell}<th>C. Diaria</th><th>C. Aguda</th><th>C. Crónica</th><th>Ratio A:C</th>
+  </tr></thead><tbody>${rowsHtml}${footerHtml}</tbody>`;
+  table.querySelectorAll('.gk-rpe-min-input').forEach(input=>{
+    const save = async ()=>{
+      const val = input.value===''? null : Number(input.value);
+      input.disabled = true;
+      const {error} = await supabaseClient.from('rpe_reports').update({minutos:val, updated_at:new Date().toISOString()})
+        .eq('club',CURRENT_CLUB).eq('player_name',input.dataset.player).eq('fecha',input.dataset.fecha);
+      input.disabled = false;
+      if(error){ console.warn(error); return; }
+      await buildGkRpeTeamList();
+    };
+    input.addEventListener('blur', save);
+    input.addEventListener('keydown', e=>{ if(e.key==='Enter'){ input.blur(); } });
+  });
+  if(isAdminGlobal){
+    const bulkInput = document.getElementById('gkRpeMinBulkFill');
+    const bulkBtn = document.getElementById('gkRpeMinBulkApplyBtn');
+    const applyToAll = ()=>{
+      if(bulkInput.value==='') return;
+      table.querySelectorAll('.gk-rpe-min-input').forEach(inp=>{ inp.value = bulkInput.value; });
+    };
+    if(bulkBtn) bulkBtn.addEventListener('click', applyToAll);
+    if(bulkInput) bulkInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); applyToAll(); } });
+  }
+}
+async function saveAllGkRpeMinutes(){
+  const btn = document.getElementById('gkRpeSaveAllBtn');
+  const inputs = document.querySelectorAll('#gkRpeLoadTable .gk-rpe-min-input:not([disabled])');
+  if(!inputs.length){ return; }
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Guardando…';
+  const updates = Array.from(inputs).map(input=>{
+    const val = input.value===''? null : Number(input.value);
+    return supabaseClient.from('rpe_reports').update({minutos:val, updated_at:new Date().toISOString()})
+      .eq('club',CURRENT_CLUB).eq('player_name',input.dataset.player).eq('fecha',input.dataset.fecha);
+  });
+  const results = await Promise.all(updates);
+  const failed = results.filter(r=>r.error);
+  btn.textContent = originalLabel;
+  if(failed.length){
+    failed.forEach(f=>console.warn(f.error));
+    alert(`Se guardaron ${updates.length-failed.length} de ${updates.length} arqueros. Hubo ${failed.length} error(es), revisa la consola.`);
+  }
+  await buildGkRpeTeamList();
 }
 // ---------- Wellness: vista de staff (promedio del plantel, tabla y alertas de dolor) ----------
 async function buildWellnessTeamList(fecha){
@@ -2682,7 +2859,7 @@ async function buildRpeLoadTable(dateStr){
   RPE_REPORTS_CACHE.forEach(r=>{ (byPlayerRpe[r.player_name] = byPlayerRpe[r.player_name]||[]).push(r); });
   // Plantel completo: jugadores con datos GPS + los que se agregaron manualmente (todavía sin GPS cargado)
   const rosterExtra = await getRosterExtraNames();
-  const allPlayers = [...new Set([...players, ...rosterExtra])].sort();
+  const allPlayers = [...new Set([...players, ...rosterExtra])].filter(p=>!isGoalkeeper(p)).sort();
   const rowsData = allPlayers.map(p=>{
     const reportsForPlayer = byPlayerRpe[p] || [];
     const todayReport = reportsForPlayer.find(r=>r.fecha===dateStr);
@@ -4786,6 +4963,7 @@ function renderAll(keepPlayer){
   buildGkTable();
   buildDataQuality();
   if(!(myProfile && myProfile.role==='player')) buildRpeTeamList();
+  if(!(myProfile && myProfile.role==='player')) buildGkRpeTeamList();
   populateCompareSelects();
   buildCompare();
   const defaultPlayer = (keepPlayer && players.includes(keepPlayer)) ? keepPlayer : players[0];
@@ -5275,6 +5453,15 @@ async function init(){
   if(rpeDatePicker){
     rpeDatePicker.value = todayISO();
     rpeDatePicker.addEventListener('change', ()=> buildRpeLoadTable(rpeDatePicker.value));
+  }
+  const gkRpeSaveAllBtn = document.getElementById('gkRpeSaveAllBtn');
+  if(gkRpeSaveAllBtn){
+    gkRpeSaveAllBtn.addEventListener('click', saveAllGkRpeMinutes);
+  }
+  const gkRpeDatePicker = document.getElementById('gkRpeDatePicker');
+  if(gkRpeDatePicker){
+    gkRpeDatePicker.value = todayISO();
+    gkRpeDatePicker.addEventListener('change', ()=> buildGkRpeLoadTable(gkRpeDatePicker.value));
   }
   document.getElementById('logoutBtn').addEventListener('click', async ()=>{
     await supabaseClient.auth.signOut();
