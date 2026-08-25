@@ -2299,7 +2299,10 @@ async function buildRpeTeamList(){
   RPE_REPORTS_CACHE.forEach(r=>{ (byPlayerRpe[r.player_name] = byPlayerRpe[r.player_name]||[]).push(r); });
   const today = todayISO();
   const order = {high:0, caution:1, optimal:2, low:3, insuf:4};
-  const rows = players.map(p=>{
+  // Plantel completo: jugadores con datos GPS + los que se agregaron manualmente (todavía sin GPS cargado)
+  const rosterExtra = await getRosterExtraNames();
+  const allPlayers = [...new Set([...players, ...rosterExtra])].sort();
+  const rows = allPlayers.map(p=>{
     const reportsForPlayer = byPlayerRpe[p] || [];
     const {ratio} = computeRpeACWR(reportsForPlayer, today);
     const st = rpeAcwrStatus(ratio);
@@ -2666,7 +2669,7 @@ function setupWellnessWindowBar(){
   }
 }
 const RPE_LOCK_MSG = { es:'', en:'', ar:'' }; // se mantiene por compatibilidad; el mensaje real ahora sale de rpeLockMsg()
-function buildRpeLoadTable(dateStr){
+async function buildRpeLoadTable(dateStr){
   const table = document.getElementById('rpeLoadTable');
   if(!table) return;
   const saveAllBtn = document.getElementById('rpeSaveAllBtn');
@@ -2677,7 +2680,10 @@ function buildRpeLoadTable(dateStr){
   }
   const byPlayerRpe = {};
   RPE_REPORTS_CACHE.forEach(r=>{ (byPlayerRpe[r.player_name] = byPlayerRpe[r.player_name]||[]).push(r); });
-  const rowsData = players.map(p=>{
+  // Plantel completo: jugadores con datos GPS + los que se agregaron manualmente (todavía sin GPS cargado)
+  const rosterExtra = await getRosterExtraNames();
+  const allPlayers = [...new Set([...players, ...rosterExtra])].sort();
+  const rowsData = allPlayers.map(p=>{
     const reportsForPlayer = byPlayerRpe[p] || [];
     const todayReport = reportsForPlayer.find(r=>r.fecha===dateStr);
     const {ratio, acute, chronic} = computeRpeACWR(reportsForPlayer, dateStr);
