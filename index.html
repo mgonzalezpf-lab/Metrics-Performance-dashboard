@@ -553,7 +553,7 @@
     <div id="authRoleWrap" style="display:none;">
       <label for="authClubName" data-i18n="nombreClub" class="i18n-text">Nombre del club</label>
       <input id="authClubName" type="text" autocomplete="organization" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Sans';outline:none;margin-bottom:10px;box-sizing:border-box;" placeholder="Ej: Al Saqer FC">
-      <label for="authRoleSelect" data-i18n="quienSos" class="i18n-text">¿Quién sos?</label>
+      <label for="authRoleSelect" data-i18n="quienSos" class="i18n-text">¿Quién eres?</label>
       <select id="authRoleSelect" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Sans';outline:none;margin-bottom:10px;">
         <option value="player" data-i18n="rolJugador">Jugador o arquero</option>
         <option value="pending_staff" data-i18n="rolStaff">Staff (médico y técnico)</option>
@@ -638,7 +638,7 @@
   <div id="csvImportModal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(20,20,58,.85);align-items:center;justify-content:center;padding:16px;">
     <div style="background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:14px;padding:22px;max-width:380px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.5);">
       <h3 style="margin:0 0 6px;font-size:15px;color:var(--bone);">📊 Archivo de Catapult detectado</h3>
-      <p style="color:var(--mist);font-size:12px;margin:0 0 16px;line-height:1.5;">Encontramos <b id="csvImportCount" style="color:var(--gold-bright);">0</b> jugadores en este archivo. Completá estos datos para cargarlo:</p>
+      <p style="color:var(--mist);font-size:12px;margin:0 0 16px;line-height:1.5;">Encontramos <b id="csvImportCount" style="color:var(--gold-bright);">0</b> jugadores en este archivo. Completa estos datos para cargarlo:</p>
       <div id="csvImportWarnings" style="display:none;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.35);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:#FBBF24;line-height:1.5;"></div>
 
       <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:4px;">Tipo de sesión</label>
@@ -743,7 +743,7 @@
       <h3 data-i18n="alertasCarga">Alertas de carga · ACWR</h3>
       <span class="tag" data-i18n="acwrTag">agudo (7 días) : crónico (28 días) · sobre Player Load</span>
     </div>
-    <div class="acwr-note">Ratio entre la carga de los últimos <b>7 días</b> y el promedio semanal de los últimos <b>28 días</b>. Con poco historial cargado el número es orientativo — se vuelve más confiable a medida que sumás sesiones. No reemplaza el criterio del cuerpo técnico ni médico.</div>
+    <div class="acwr-note">Ratio entre la carga de los últimos <b>7 días</b> y el promedio semanal de los últimos <b>28 días</b>. Con poco historial cargado el número es orientativo — se vuelve más confiable a medida que se suman sesiones. No reemplaza el criterio del cuerpo técnico ni médico.</div>
     <div class="acwr-legend">
       <span><span class="dot" style="background:var(--low);"></span>&lt;0.8 carga baja</span>
       <span><span class="dot" style="background:var(--good);"></span>0.8–1.3 zona óptima</span>
@@ -1719,7 +1719,7 @@ function setupNextMatchBar(){
   btn.onclick = ()=>{ form.style.display = form.style.display==='block' ? 'none' : 'block'; };
   document.getElementById('nextMatchSubmit').onclick = async ()=>{
     const dateVal = input.value;
-    if(!dateVal){ status.textContent='Elegí una fecha.'; return; }
+    if(!dateVal){ status.textContent='Elige una fecha.'; return; }
     status.textContent = 'Guardando…';
     const {error} = await supabaseClient.from('app_settings')
       .upsert({club:CURRENT_CLUB, key:'next_match_date', value:dateVal, updated_at:new Date().toISOString()}, {onConflict:'club,key'});
@@ -1825,7 +1825,7 @@ async function handleAuthSubmit(event){
     const roleEl = document.getElementById('authRoleSelect');
     const clubName = clubNameEl ? clubNameEl.value.trim() : '';
     const selectedRole = roleEl ? roleEl.value : 'player';
-    if(!clubName){ authMessage('Ingresá el nombre de tu club para continuar.','error'); return; }
+    if(!clubName){ authMessage('Ingresa el nombre de tu club para continuar.','error'); return; }
 
     // El rol y el club quedan en Auth metadata para que sobrevivan a la confirmación del email.
     pendingSignupClub = clubName;
@@ -1913,7 +1913,7 @@ function showPendingScreen(role){
   const title = document.getElementById('pendingTitle');
   if(role==='suspended'){
     title.textContent = 'Club suspendido';
-    msg.textContent = `El acceso de "${CURRENT_CLUB}" está temporalmente suspendido. Contactá al OWNER (Matías González) para reactivarlo — tus datos siguen guardados y vas a poder seguir usando el dashboard normalmente en cuanto se reactive.`;
+    msg.textContent = `El acceso de "${CURRENT_CLUB}" está temporalmente suspendido. Contacta al OWNER (Matías González) para reactivarlo — tus datos siguen guardados y vas a poder seguir usando el dashboard normalmente en cuanto se reactive.`;
     screen.style.display='flex';
     document.getElementById('pendingLogoutBtn').onclick = async ()=>{
       await supabaseClient.auth.signOut();
@@ -1925,7 +1925,7 @@ function showPendingScreen(role){
   const roleLabel = role==='pending_club' ? 'Administrador de un nuevo club' : (role==='pending_gk_coach' ? 'Entrenador de arqueros' : 'Staff (médico y técnico)');
   const approver = role==='pending_club' ? 'OWNER (Matías González)' : 'el administrador de tu club';
   if(role==='rejected_club'){
-    msg.textContent = 'La solicitud para crear este club fue rechazada. Si pensás que es un error, contactá al OWNER (Matías González).';
+    msg.textContent = 'La solicitud para crear este club fue rechazada. Si piensas que es un error, contacta al OWNER (Matías González).';
   } else {
     msg.textContent = role==='pending_club'
       ? `La solicitud del club fue creada correctamente. Necesita la aprobación del OWNER (Matías González) antes de activar el club y asignarte como administrador.`
@@ -2179,7 +2179,7 @@ function buildWellnessWidget(existing){
     ${catRows}
     <div style="margin-top:14px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <span style="font-size:12px;color:var(--mist);">🩹 ¿Tenés alguna molestia? Marcá la zona en el cuerpo</span>
+        <span style="font-size:12px;color:var(--mist);">🩹 ¿Tienes alguna molestia? Marca la zona en el cuerpo</span>
         <span style="display:flex;gap:4px;">
           <button type="button" id="bodyViewFront" class="upload-btn" style="padding:5px 10px;font-size:11px;">Frente</button>
           <button type="button" id="bodyViewBack" class="upload-btn" style="padding:5px 10px;font-size:11px;">Espalda</button>
@@ -2504,7 +2504,7 @@ function isRpeSubmitUnlocked(){
 }
 function rpeLockMsg(){
   const msgs = {
-    es: `🔴 El envío de RPE está disponible de ${RPE_WINDOW_START} a ${RPE_WINDOW_END}. Volvé a intentarlo dentro de ese horario.`,
+    es: `🔴 El envío de RPE está disponible de ${RPE_WINDOW_START} a ${RPE_WINDOW_END}. Vuelve a intentarlo dentro de ese horario.`,
     en: `🔴 RPE submission is available from ${RPE_WINDOW_START} to ${RPE_WINDOW_END}. Please try again within that window.`,
     ar: `🔴 إرسال مؤشر الجهد المدرك متاح من ${RPE_WINDOW_START} حتى ${RPE_WINDOW_END}. حاول مرة أخرى خلال هذا الوقت.`
   };
@@ -2523,7 +2523,7 @@ function isWellnessSubmitUnlocked(){
 }
 function wellnessLockMsg(){
   const msgs = {
-    es: `🔴 El envío de Wellness está disponible de ${WELLNESS_WINDOW_START} a ${WELLNESS_WINDOW_END}. Volvé a intentarlo mañana dentro de ese horario.`,
+    es: `🔴 El envío de Wellness está disponible de ${WELLNESS_WINDOW_START} a ${WELLNESS_WINDOW_END}. Vuelve a intentarlo mañana dentro de ese horario.`,
     en: `🔴 Wellness submission is available from ${WELLNESS_WINDOW_START} to ${WELLNESS_WINDOW_END}. Please try again tomorrow within that window.`,
     ar: `🔴 إرسال بيانات Wellness متاح من ${WELLNESS_WINDOW_START} حتى ${WELLNESS_WINDOW_END}. حاول مرة أخرى غدًا خلال هذا الوقت.`
   };
@@ -2559,7 +2559,7 @@ function setupRpeWindowBar(){
   btn.onclick = ()=>{ form.style.display = form.style.display==='block' ? 'none' : 'block'; };
   document.getElementById('rpeWindowSubmit').onclick = async ()=>{
     const startVal = startInput.value, endVal = endInput.value;
-    if(!startVal || !endVal){ status.textContent = 'Completá las dos horas.'; return; }
+    if(!startVal || !endVal){ status.textContent = 'Completa las dos horas.'; return; }
     status.textContent = 'Guardando…';
     const {error} = await supabaseClient.from('app_settings')
       .upsert({club:CURRENT_CLUB, key:'rpe_window', value:JSON.stringify({start:startVal, end:endVal}), updated_at:new Date().toISOString()}, {onConflict:'club,key'});
@@ -2648,7 +2648,7 @@ function setupWellnessWindowBar(){
   btn.onclick = ()=>{ form.style.display = form.style.display==='block' ? 'none' : 'block'; };
   document.getElementById('wellnessWindowSubmit').onclick = async ()=>{
     const startVal = startInput.value, endVal = endInput.value;
-    if(!startVal || !endVal){ status.textContent = 'Completá las dos horas.'; return; }
+    if(!startVal || !endVal){ status.textContent = 'Completa las dos horas.'; return; }
     status.textContent = 'Guardando…';
     const {error} = await supabaseClient.from('app_settings')
       .upsert({club:CURRENT_CLUB, key:'wellness_window', value:JSON.stringify({start:startVal, end:endVal}), updated_at:new Date().toISOString()}, {onConflict:'club,key'});
@@ -2732,7 +2732,7 @@ function buildRpeLoadTable(dateStr){
   const isAdminGlobal = myProfile && (myProfile.role==='admin' || myProfile.role==='owner');
   const minHeaderCell = isAdminGlobal
     ? `<th>Min <span style="display:inline-flex;align-items:center;gap:4px;margin-left:4px;white-space:nowrap;">
-         <input id="rpeMinBulkFill" type="number" min="0" max="240" placeholder="min" title="Escribí un valor y aplicalo a todas las filas" style="width:46px;padding:3px 5px;border-radius:5px;border:1px solid var(--gold);background:var(--pitch-950);color:var(--gold-bright);font:11px 'IBM Plex Mono';outline:none;">
+         <input id="rpeMinBulkFill" type="number" min="0" max="240" placeholder="min" title="Escribe un valor y aplícalo a todas las filas" style="width:46px;padding:3px 5px;border-radius:5px;border:1px solid var(--gold);background:var(--pitch-950);color:var(--gold-bright);font:11px 'IBM Plex Mono';outline:none;">
          <button id="rpeMinBulkApplyBtn" type="button" title="Aplicar este valor a todos los jugadores" style="padding:3px 8px;border-radius:5px;border:1px solid var(--gold);background:var(--gold);color:var(--pitch-950);font:700 11px 'IBM Plex Mono';cursor:pointer;">✏️ Aplicar a todos</button>
        </span></th>`
     : `<th>Min</th>`;
@@ -2781,7 +2781,7 @@ async function saveAllRpeMinutes(){
   btn.textContent = originalLabel;
   if(failed.length){
     failed.forEach(f=>console.warn(f.error));
-    alert(`Se guardaron ${updates.length-failed.length} de ${updates.length} jugadores. Hubo ${failed.length} error(es), revisá la consola.`);
+    alert(`Se guardaron ${updates.length-failed.length} de ${updates.length} jugadores. Hubo ${failed.length} error(es), revisa la consola.`);
   }
   await buildRpeTeamList(); // re-renderiza la tabla (esto ya vuelve a habilitar el botón según el horario)
 }
@@ -2910,7 +2910,7 @@ const I18N = {
     gkPromedioArquero:'Promedio del arquero', gkPromedioArqueros:'Promedio de arqueros',
     gkSinDatos:'Todavía no hay datos de arqueros cargados.', gkSinSesiones:'Todavía no hay sesiones cargadas.', gkSinArqueros:'Todavía no hay arqueros cargados.',
     gkColJugador:'Jugador', gkColFecha:'Fecha', gkColSesion:'Sesión', gkColDist:'Dist. (m)', gkColVelMax:'Vel. máx (km/h)', gkColVelMax2:'Vel. máx',
-    gkDistUltimaSesion:'Distancia última sesión', quienSos:'¿Quién sos?', rolJugador:'Jugador o arquero', rolStaff:'Staff (médico y técnico)', rolGkCoach:'Entrenador de arqueros', rolClubAdmin:'Administrador de un club nuevo',
+    gkDistUltimaSesion:'Distancia última sesión', quienSos:'¿Quién eres?', rolJugador:'Jugador o arquero', rolStaff:'Staff (médico y técnico)', rolGkCoach:'Entrenador de arqueros', rolClubAdmin:'Administrador de un club nuevo',
   },
   en: {
     metrics:{dist:'Total Distance',hsr:'HSR',vel:'Max Speed',acc:'Acc',desa:'Dec',pl:'Player Load',sprint:'Sprint Distance',sprint_count:'Sprint Count'},
