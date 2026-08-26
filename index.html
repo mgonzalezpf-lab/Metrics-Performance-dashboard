@@ -817,6 +817,15 @@
 
 <div class="panel team-only" style="margin-top:18px;">
     <div class="panel-head">
+      <h3>🎯 Objetivo próximo microciclo</h3>
+      <span class="tag">margen: <input id="weeklyTargetPct" type="number" min="1" max="100" value="20" style="width:44px;padding:2px 4px;border-radius:5px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--gold-bright);font:12px 'IBM Plex Mono';outline:none;text-align:center;">%</span>
+    </div>
+    <div id="weeklyTargetRecommendation" style="margin-bottom:12px;"></div>
+    <div id="weeklyTargetBody" style="display:flex;gap:12px;flex-wrap:wrap;"></div>
+  </div>
+
+<div class="panel team-only" style="margin-top:18px;">
+    <div class="panel-head">
       <h3 data-i18n="calidadDatos">Calidad de datos</h3>
       <span class="tag" data-i18n="valoresAtipicos">valores atípicos a revisar</span>
     </div>
@@ -4174,13 +4183,13 @@ function buildDataQuality(){
 }
 
 // ---------- KPI strip ----------
-// Player Load total de la semana actual vs la anterior (mismo agrupado lunes-domingo que "Carga semanal del plantel")
-function getWeeklyPLComparison(){
+// Total de un campo (pl, dist, etc.) de la semana actual vs la anterior (mismo agrupado lunes-domingo que "Carga semanal del plantel")
+function getWeeklyFieldComparison(field='pl'){
   const weekMap = {};
   ACTIVE_EVENTS.forEach(e=>{
     const monday = isoDate(getMonday(e.fecha));
     if(!weekMap[monday]) weekMap[monday] = 0;
-    if(e.pl!==null && !isNaN(e.pl)) weekMap[monday] += e.pl;
+    if(e[field]!==null && e[field]!==undefined && !isNaN(e[field])) weekMap[monday] += e[field];
   });
   const weeks = Object.keys(weekMap).sort();
   if(!weeks.length) return null;
@@ -4190,6 +4199,156 @@ function getWeeklyPLComparison(){
   return { current: Math.round(current), prev: prev!==null?Math.round(prev):null,
     pctChange: pctChange!==null?Math.round(pctChange):null,
     within20: pctChange!==null ? Math.abs(pctChange)<=20 : null };
+}
+function getWeeklyPLComparison(){ return getWeeklyFieldComparison('pl'); }
+
+// ---------- Objetivo para el próximo microciclo: rango de Distancia/HSR/Player Load según el promedio de los últimos 3 ciclos ----------
+function buildWeeklyTarget(){
+  const body = document.getElementById('weeklyTargetBody');
+  if(!body) return;
+  const pctInput = document.getElementById('weeklyTargetPct');
+  const pct = pctInput ? Math.max(1, Math.min(100, Number(pctInput.value) || 20)) : 20;
+
+  const {cycles, byDate, lastCycleWasClosed} = computeMicrocycles(ACTIVE_EVENTS);
+  if(!cycles.length){
+    body.innerHTML = `<div style="color:var(--mist);font-size:12px;">Sin datos suficientes todavía</div>`;
+    return;
+  }
+  // Ciclos cerrados: si el último bloque quedó abierto (sin partido todavía), no cuenta para las cuentas.
+  const closedCycles = lastCycleWasClosed ? cycles : cycles.slice(0, -1);
+
+  // Promedio DIARIO de un ciclo (total ÷ cantidad de días del ciclo) — así un microciclo corto (post-racha
+  // de partidos seguidos, 3-4 días) y uno normal (7 días) se comparan de igual a igual, sin que el tamaño
+  // del ciclo distorsione el objetivo (un ciclo corto no es "más liviano", solo tuvo menos días).
+  const cycleDailyAvg = (datesArr, field) => {
+    let total = 0;
+    datesArr.forEach(d=>{
+      const v = avgField(byDate[d]||[], field);
+      if(v!==null) total += v;
+    });
+    return datesArr.length ? total/datesArr.length : null;
+  };
+  const cycleRealTotal = (datesArr, field) => {
+    let total = 0, any = false;
+    datesArr.forEach(d=>{
+      const v = avgField(byDate[d]||[], field);
+      if(v!==null){ total += v; any = true; }
+    });
+    return any ? total : null;
+  };
+  const baselineDailyOf = (field, cyclesArr) => {
+    const dailyAvgs = cyclesArr.slice(-3).map(c=>cycleDailyAvg(c, field)).filter(v=>v!==null);
+    return dailyAvgs.length ? dailyAvgs.reduce((a,b)=>a+b,0)/dailyAvgs.length : null;
+  };
+
+  // El ciclo que "acaba de cerrar" (recién se cargó el partido que lo cierra) — solo existe si el último bloque ya cerró.
+  const justClosedCycle = lastCycleWasClosed ? closedCycles[closedCycles.length-1] : null;
+  // El ciclo EN CURSO (todavía no cerró con un partido) — solo existe si el último bloque sigue abierto.
+  const currentOpenCycle = lastCycleWasClosed ? null : cycles[cycles.length-1];
+
+  const metrics = [
+    {key:'dist', label:'Distancia', unit:'m'},
+    {key:'hsr', label:'HSR', unit:'m'},
+    {key:'pl', label:'Player Load', unit:''},
+  ];
+
+  const checks = []; // {label, diffPct, within} de cada métrica, para armar la recomendación general
+  const liveChecks = []; // {label, ritmoPct, dentro} del ciclo EN CURSO, para el aviso en vivo
+
+  const cardsHtml = metrics.map(m=>{
+    const baselineDaily = baselineDailyOf(m.key, closedCycles);
+    if(baselineDaily===null){
+      return `<div class="kpi" style="flex:1;min-width:150px;">
+        <div class="lbl">${m.label}</div>
+        <div class="sub">Sin ciclos cerrados todavía</div>
+      </div>`;
+    }
+    // Se muestra como equivalente semanal (promedio diario × 7) para que se lea igual que el resto
+    // del dashboard, aunque el cálculo de fondo ya esté corregido por la duración real de cada ciclo.
+    const weeklyEquivalent = baselineDaily * 7;
+    const min = Math.round(weeklyEquivalent * (1 - pct/100));
+    const max = Math.round(weeklyEquivalent * (1 + pct/100));
+
+    let checkHtml = '';
+    if(justClosedCycle && closedCycles.length>=2){
+      const priorCycles = closedCycles.slice(0, -1);
+      const baselinePriorDaily = baselineDailyOf(m.key, priorCycles);
+      const actualDaily = cycleDailyAvg(justClosedCycle, m.key);
+      const actualTotal = cycleRealTotal(justClosedCycle, m.key);
+      if(baselinePriorDaily!==null && actualDaily!==null && actualTotal!==null && baselinePriorDaily>0){
+        const diffPct = Math.round((actualDaily-baselinePriorDaily)/baselinePriorDaily*100);
+        const within = Math.abs(diffPct) <= pct;
+        checks.push({label:m.label, diffPct, within});
+        checkHtml = `<div class="sub" style="margin-top:4px;">
+          <span style="color:${within?'var(--good)':'var(--bad)'};font-weight:700;">${within?'✓ cumplido':'⚠ fuera'}</span>
+          último ciclo (${justClosedCycle.length}d): ${fmt(Math.round(actualTotal))}${m.unit} (${diffPct>=0?'+':''}${diffPct}%)
+        </div>`;
+      }
+    }
+
+    // Progreso EN VIVO del ciclo actual (todavía no cerró) — para poder corregir a tiempo, no solo enterarse al final.
+    let liveHtml = '';
+    if(currentOpenCycle && currentOpenCycle.length){
+      const actualSoFar = cycleRealTotal(currentOpenCycle, m.key);
+      const dailyRateSoFar = cycleDailyAvg(currentOpenCycle, m.key);
+      if(actualSoFar!==null && dailyRateSoFar!==null && baselineDaily>0){
+        const ritmoPct = Math.round((dailyRateSoFar-baselineDaily)/baselineDaily*100);
+        const dentro = Math.abs(ritmoPct) <= pct;
+        liveChecks.push({label:m.label, ritmoPct, dentro});
+        const colorRitmo = dentro ? 'var(--good)' : (ritmoPct>0 ? 'var(--bad)' : 'var(--warn)');
+        const flechaRitmo = ritmoPct>=0 ? '▲' : '▼';
+        liveHtml = `<div class="sub" style="margin-top:4px;padding-top:4px;border-top:1px dashed var(--line-strong);">
+          <span style="color:var(--gold-bright);">● En curso (${currentOpenCycle.length}d):</span> ${fmt(Math.round(actualSoFar))}${m.unit} acumulado
+          <span style="color:${colorRitmo};font-weight:700;"> · ritmo ${flechaRitmo}${Math.abs(ritmoPct)}%</span> vs objetivo
+        </div>`;
+      }
+    }
+
+    return `<div class="kpi" style="flex:1;min-width:170px;">
+      <div class="lbl">${m.label}</div>
+      <div class="val" style="font-size:24px;">${fmt(Math.round(weeklyEquivalent))}<small>${m.unit}</small></div>
+      <div class="sub">objetivo semanal · rango seguro ${fmt(min)}–${fmt(max)}${m.unit} (±${pct}%)</div>
+      ${checkHtml}
+      ${liveHtml}
+    </div>`;
+  }).join('');
+
+  body.innerHTML = cardsHtml;
+
+  // ---- Recomendación en palabras simples: ¿subo, bajo o mantengo la carga esta semana? ----
+  const recBox = document.getElementById('weeklyTargetRecommendation');
+  if(recBox){
+    let liveNote = '';
+    if(currentOpenCycle && liveChecks.length){
+      const porArriba = liveChecks.filter(c=>!c.dentro && c.ritmoPct>0);
+      const porAbajo = liveChecks.filter(c=>!c.dentro && c.ritmoPct<0);
+      if(porArriba.length){
+        liveNote = ` <span style="color:var(--bad);">El ritmo de este ciclo en curso (día ${currentOpenCycle.length}) ya viene por encima del objetivo en ${porArriba.map(c=>c.label).join(', ')} — conviene bajar la intensidad de las próximas sesiones antes de que cierre el ciclo.</span>`;
+      } else if(porAbajo.length){
+        liveNote = ` <span style="color:var(--warn);">El ritmo de este ciclo en curso (día ${currentOpenCycle.length}) viene por debajo en ${porAbajo.map(c=>c.label).join(', ')} — hay margen para sumar algo más de carga en lo que queda de la semana.</span>`;
+      }
+    }
+    if(!checks.length){
+      recBox.innerHTML = `<div style="padding:10px 14px;background:rgba(255,255,255,.03);border:1px solid var(--line-strong);border-radius:8px;font-size:12.5px;color:var(--mist);line-height:1.5;">
+        📋 Todavía no cerró un microciclo para comparar. Por ahora, apunta al plantel a los rangos de abajo esta semana.${liveNote}
+      </div>`;
+    } else {
+      const excedidos = checks.filter(c=>!c.within && c.diffPct>0); // se pasó por arriba (sobrecarga)
+      const bajaron = checks.filter(c=>!c.within && c.diffPct<0);   // se quedó muy por debajo (descarga)
+      let color, texto;
+      if(excedidos.length){
+        color = 'var(--bad)';
+        texto = `⚠ <b>Baja la carga esta semana.</b> ${excedidos.map(c=>c.label).join(', ')} se pasó del margen seguro en el último ciclo (hasta ${Math.max(...excedidos.map(c=>c.diffPct))}%). Recomendado: no subir el volumen hasta volver a estar dentro del rango, para no acumular riesgo de lesión.`;
+      } else if(bajaron.length){
+        color = 'var(--warn)';
+        texto = `📉 <b>Se puede progresar de a poco esta semana.</b> ${bajaron.map(c=>c.label).join(', ')} quedó por debajo del margen en el último ciclo — no hay urgencia, pero conviene evitar un salto brusco: subir gradual hacia el objetivo.`;
+      } else {
+        color = 'var(--good)';
+        texto = `✓ <b>Se puede mantener o subir levemente la carga esta semana.</b> El último ciclo se mantuvo dentro del margen seguro en todas las métricas.`;
+      }
+      recBox.innerHTML = `<div style="padding:10px 14px;background:rgba(255,255,255,.03);border:1px solid ${color};border-radius:8px;font-size:12.5px;color:var(--bone);line-height:1.5;">${texto}${liveNote}</div>`;
+    }
+  }
 }
 
 // % de intensidad compuesta (dist+hsr+pl+m/min vs promedio de los últimos 3 partidos) de la sesión MÁS RECIENTE cargada
@@ -4974,6 +5133,7 @@ function selectPlayer(p){
 // ---------- render everything (used on init and after a data refresh) ----------
 function renderAll(keepPlayer){
   buildKPIs();
+  buildWeeklyTarget();
   buildPlayerList(document.getElementById('searchInput')?.value || '');
   buildLeaderboard();
   buildRecordsTable();
@@ -5492,6 +5652,10 @@ async function init(){
   if(gkRpeDatePicker){
     gkRpeDatePicker.value = todayISO();
     gkRpeDatePicker.addEventListener('change', ()=> buildGkRpeLoadTable(gkRpeDatePicker.value));
+  }
+  const weeklyTargetPct = document.getElementById('weeklyTargetPct');
+  if(weeklyTargetPct){
+    weeklyTargetPct.addEventListener('input', buildWeeklyTarget);
   }
   document.getElementById('logoutBtn').addEventListener('click', async ()=>{
     await supabaseClient.auth.signOut();
