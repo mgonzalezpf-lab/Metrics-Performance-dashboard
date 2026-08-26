@@ -1700,6 +1700,27 @@ async function getRosterExtraNames(){
   const {data,error} = await supabaseClient.from('roster_players').select('player_name').eq('club',CURRENT_CLUB);
   return error ? [] : (data||[]).map(r=>r.player_name);
 }
+// Compara nombres ignorando tildes, mayúsculas y espacios de más — para que "Matías Cofré"
+// y "Matias Cofre " (escritos distinto en el roster manual vs los datos de GPS) se traten
+// como la misma persona en vez de aparecer duplicados en las tablas de RPE/Wellness.
+function normalizeNameKey(name){
+  return String(name||'')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .trim().replace(/\s+/g,' ')
+    .toLowerCase();
+}
+function mergePlayerNames(conDatos, extra){
+  const map = new Map();
+  [...extra, ...conDatos].forEach(name=>{
+    const key = normalizeNameKey(name);
+    if(key) map.set(key, name); // último en escribir gana; lo pisamos abajo con la versión "oficial"
+  });
+  conDatos.forEach(name=>{
+    const key = normalizeNameKey(name);
+    if(key) map.set(key, name); // la versión de los datos de GPS siempre queda como la mostrada
+  });
+  return [...map.values()].sort();
+}
 // Botón de "Actualizar datos" — visible solo para admin/owner. Se decide acá,
 // no en init(), porque init() corre al cargar la página, antes de saber quién inició sesión.
 function setupUploadButtons(){
@@ -2333,7 +2354,7 @@ async function buildRpeTeamList(){
   const order = {high:0, caution:1, optimal:2, low:3, insuf:4};
   // Plantel completo: jugadores con datos GPS + los que se agregaron manualmente (todavía sin GPS cargado)
   const rosterExtra = await getRosterExtraNames();
-  const allPlayers = [...new Set([...players, ...rosterExtra])].filter(p=>!isGoalkeeper(p)).sort();
+  const allPlayers = mergePlayerNames(players, rosterExtra).filter(p=>!isGoalkeeper(p));
   const rows = allPlayers.map(p=>{
     const reportsForPlayer = byPlayerRpe[p] || [];
     const {ratio} = computeRpeACWR(reportsForPlayer, today);
@@ -2526,7 +2547,7 @@ async function buildWellnessTeamList(fecha){
 
   // Plantel completo: jugadores con datos GPS + los que se agregaron manualmente (todavía sin GPS cargado)
   const rosterExtra = await getRosterExtraNames();
-  const allPlayers = [...new Set([...players, ...rosterExtra])].sort();
+  const allPlayers = mergePlayerNames(players, rosterExtra);
 
   const scoreOf = r => {
     const vals = ['sueno','fatiga','dolor_muscular','estres','animo'].map(k=>r[k]).filter(v=>v!==null && v!==undefined);
@@ -2868,7 +2889,7 @@ async function buildRpeLoadTable(dateStr){
   RPE_REPORTS_CACHE.forEach(r=>{ (byPlayerRpe[r.player_name] = byPlayerRpe[r.player_name]||[]).push(r); });
   // Plantel completo: jugadores con datos GPS + los que se agregaron manualmente (todavía sin GPS cargado)
   const rosterExtra = await getRosterExtraNames();
-  const allPlayers = [...new Set([...players, ...rosterExtra])].filter(p=>!isGoalkeeper(p)).sort();
+  const allPlayers = mergePlayerNames(players, rosterExtra).filter(p=>!isGoalkeeper(p));
   const rowsData = allPlayers.map(p=>{
     const reportsForPlayer = byPlayerRpe[p] || [];
     const todayReport = reportsForPlayer.find(r=>r.fecha===dateStr);
