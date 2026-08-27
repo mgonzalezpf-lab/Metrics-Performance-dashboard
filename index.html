@@ -2071,7 +2071,7 @@ async function submitWellness(payload){
   const {error}=await supabaseClient.from('wellness_reports').upsert({
     user_id:user.id, club:CURRENT_CLUB, player_name:myProfile.player_name, fecha,
     sueno:payload.sueno, fatiga:payload.fatiga, dolor_muscular:payload.dolor_muscular, estres:payload.estres, animo:payload.animo,
-    observacion:payload.observacion||null, zonas_dolor:payload.zonas_dolor||[], updated_at:new Date().toISOString()
+    tqr:payload.tqr, observacion:payload.observacion||null, zonas_dolor:payload.zonas_dolor||[], updated_at:new Date().toISOString()
   }, {onConflict:'user_id,fecha'});
   if(error) throw error;
 }
@@ -2174,6 +2174,7 @@ const WELLNESS_CATEGORIES = [
   {key:'animo', label:{es:'Ánimo / motivación', en:'Mood / motivation', ar:'الحالة المزاجية / الدافع'},
     opts:{es:['Muy enojado e irritable','Mal genio','Menos interesado de lo normal en mis actividades','Buen ánimo y humor','Muy positivo']}},
 ];
+const TQR_CAPTIONS = ['Muy mala, nada recuperado','Mala','Bastante mala','Regular, algo baja','Regular','Regular, algo mejor','Buena','Bastante buena','Muy buena','Excelente, totalmente recuperado'];
 let wellnessState = { values:{}, zonas:[], view:'front' };
 function renderBodyMapSvg(){
   const zones = wellnessState.view==='front' ? BODY_ZONES_FRONT : BODY_ZONES_BACK;
@@ -2211,6 +2212,12 @@ function buildWellnessWidget(existing){
 
   if(existing){
     const zonas = existing.zonas_dolor || [];
+    const tqrDesc = (existing.tqr && TQR_CAPTIONS[existing.tqr-1]) ? TQR_CAPTIONS[existing.tqr-1] : '';
+    const tqrCard = `<div style="flex:1;min-width:130px;padding:10px 12px;border-radius:8px;border:2px solid var(--gold);background:rgba(255,255,255,.03);">
+        <div style="font-size:11px;color:var(--mist);margin-bottom:4px;">🔋 Recuperación (TQR)</div>
+        <div style="font-size:20px;font-weight:800;color:var(--bone);">${existing.tqr??'—'}<span style="font-size:12px;color:var(--mist);">/10</span></div>
+        ${tqrDesc ? `<div style="font-size:10.5px;color:var(--gold);margin-top:2px;font-style:italic;">${tqrDesc}</div>` : ''}
+      </div>`;
     box.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
       ${WELLNESS_CATEGORIES.map(c=>{
         const val = existing[c.key];
@@ -2222,6 +2229,7 @@ function buildWellnessWidget(existing){
         ${desc ? `<div style="font-size:10.5px;color:var(--gold);margin-top:2px;font-style:italic;">${desc}</div>` : ''}
       </div>`;
       }).join('')}
+      ${tqrCard}
     </div>
     ${zonas.length ? `<div style="font-size:12px;color:var(--warn);margin-bottom:6px;">🩹 Zonas reportadas: ${zonas.map(z=>`${BODY_ZONE_LABELS[z.zona]||z.zona} (${z.tipo})`).join(', ')}</div>` : ''}
     ${existing.observacion ? `<div style="font-size:12px;color:var(--mist);font-style:italic;">"${existing.observacion}"</div>` : ''}`;
@@ -2244,8 +2252,18 @@ function buildWellnessWidget(existing){
       <div id="wcap-${c.key}" style="font-size:11px;color:var(--gold);margin-top:5px;min-height:14px;font-style:italic;"></div>
     </div>`).join('');
 
+  const tqrRow = `
+    <div style="margin-bottom:14px;">
+      <div style="font-size:12px;color:var(--mist);margin-bottom:5px;">🔋 ¿Cómo fue tu recuperación? (TQR) <span style="opacity:.6;">(1 mal · 10 bien)</span></div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;" data-cat="tqr">
+        ${[1,2,3,4,5,6,7,8,9,10].map(n=>`<button type="button" class="wcat-btn" data-cat="tqr" data-n="${n}" style="flex:1;min-width:26px;padding:9px 0;border-radius:8px;border:2px solid transparent;background:rgba(255,255,255,.03);color:var(--bone);font:700 12px 'IBM Plex Mono';cursor:pointer;">${n}</button>`).join('')}
+      </div>
+      <div id="wcap-tqr" style="font-size:11px;color:var(--gold);margin-top:5px;min-height:14px;font-style:italic;"></div>
+    </div>`;
+
   box.innerHTML = `
     ${catRows}
+    ${tqrRow}
     <div style="margin-top:14px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
         <span style="font-size:12px;color:var(--mist);">🩹 ¿Tienes alguna molestia? Marca la zona en el cuerpo</span>
@@ -2277,6 +2295,8 @@ function buildWellnessWidget(existing){
         if(catDef && capEl){
           const opts = catDef.opts[currentLang] || catDef.opts.es;
           capEl.textContent = opts[n-1] || '';
+        } else if(cat==='tqr' && capEl){
+          capEl.textContent = TQR_CAPTIONS[n-1] || '';
         }
         checkReady();
       });
@@ -2321,7 +2341,7 @@ function buildWellnessWidget(existing){
     });
   }
   function checkReady(){
-    const allSet = WELLNESS_CATEGORIES.every(c=> wellnessState.values[c.key]!==undefined);
+    const allSet = WELLNESS_CATEGORIES.every(c=> wellnessState.values[c.key]!==undefined) && wellnessState.values.tqr!==undefined;
     submitBtn.disabled = !allSet;
   }
 
@@ -2341,6 +2361,7 @@ function buildWellnessWidget(existing){
       await submitWellness({
         sueno: wellnessState.values.sueno, fatiga: wellnessState.values.fatiga,
         dolor_muscular: wellnessState.values.dolor_muscular, estres: wellnessState.values.estres, animo: wellnessState.values.animo,
+        tqr: wellnessState.values.tqr,
         observacion: obsEl ? obsEl.value.trim() : '', zonas_dolor: wellnessState.zonas,
       });
       const nuevo = await getMyTodayWellness();
@@ -2598,13 +2619,17 @@ async function buildWellnessTeamList(fecha){
   };
   const fmtAvg = (v) => v!==null ? v.toFixed(1) : '—';
   const scoreColor = (v) => v===null ? 'var(--mist)' : v<3.0 ? '#FB7185' : v<4.0 ? '#FBBF24' : '#34D399';
+  const totalMuscularOf = (r) => (r.fatiga!==null && r.fatiga!==undefined && r.dolor_muscular!==null && r.dolor_muscular!==undefined) ? (r.fatiga + r.dolor_muscular) : null;
+  const totalMuscularVals = reports.map(totalMuscularOf).filter(v=>v!==null);
+  const totalMuscularAvg = totalMuscularVals.length ? (totalMuscularVals.reduce((a,b)=>a+b,0)/totalMuscularVals.length) : null;
 
   tableBox.innerHTML = `<table class="mc-table">
-    <thead><tr><th>Jugador</th><th>Sueño</th><th>Fatiga</th><th>Dolor Musc.</th><th>Estrés</th><th>Ánimo</th><th>Score</th><th>Zona de dolor</th><th>Observación</th></tr></thead>
+    <thead><tr><th>Jugador</th><th>Sueño</th><th>Fatiga</th><th>Dolor Musc.</th><th>Estrés</th><th>Ánimo</th><th>Score</th><th>Total Musc.</th><th>TQR</th><th>Zona de dolor</th><th>Observación</th></tr></thead>
     <tbody>${allPlayers.map(p=>{
       const r = byPlayer[p];
-      if(!r) return `<tr><td><b>${p}</b></td><td colspan="8" style="color:var(--mist);">${isToday?'Sin reportar hoy':'Sin reportar ese día'}</td></tr>`;
+      if(!r) return `<tr><td><b>${p}</b></td><td colspan="10" style="color:var(--mist);">${isToday?'Sin reportar hoy':'Sin reportar ese día'}</td></tr>`;
       const sc = scoreOf(r);
+      const tm = totalMuscularOf(r);
       const zonas = (r.zonas_dolor||[]).map(z=> BODY_ZONE_LABELS[z.zona]||z.zona).join(', ');
       return `<tr>
         <td><b>${p}</b></td>
@@ -2614,6 +2639,8 @@ async function buildWellnessTeamList(fecha){
         <td class="mono">${r.estres??'—'}</td>
         <td class="mono">${r.animo??'—'}</td>
         <td class="mono" style="font-weight:800;font-size:15px;color:${scoreColor(sc)};">${sc!==null?sc.toFixed(1):'—'}</td>
+        <td class="mono">${tm??'—'}<span style="color:var(--mist);font-size:10px;">/10</span></td>
+        <td class="mono">${r.tqr??'—'}<span style="color:var(--mist);font-size:10px;">/10</span></td>
         <td style="color:${zonas?'var(--bad)':'var(--mist)'};font-size:11.5px;">${zonas||'—'}</td>
         <td style="color:var(--mist);font-size:11.5px;">${r.observacion||''}</td>
       </tr>`;
@@ -2626,6 +2653,8 @@ async function buildWellnessTeamList(fecha){
       <td class="mono">${fmtAvg(avgCol('estres'))}</td>
       <td class="mono">${fmtAvg(avgCol('animo'))}</td>
       <td class="mono" style="font-weight:800;font-size:15px;color:${scoreColor(teamAvg)};">${teamAvg!==null?teamAvg.toFixed(1):'—'}</td>
+      <td class="mono">${fmtAvg(totalMuscularAvg)}</td>
+      <td class="mono">${fmtAvg(avgCol('tqr'))}</td>
       <td></td>
       <td></td>
     </tr></tfoot>
