@@ -1031,7 +1031,7 @@
         <div class="radar-body">
           <div class="radar-svg-wrap">
             <div class="sweep"></div>
-            <svg id="radarSvg" viewBox="0 0 340 340" width="100%" style="max-width:340px;"></svg>
+            <svg id="radarSvg" viewBox="0 0 400 400" width="100%" style="max-width:460px;"></svg>
           </div>
           <div class="radar-side" id="radarSide"></div>
         </div>
@@ -1124,7 +1124,7 @@
     <div class="compare-grid">
       <div>
         <div class="radar-svg-wrap" style="justify-content:flex-start;">
-          <svg id="compareRadarSvg" viewBox="0 0 340 340" width="100%" style="max-width:320px;"></svg>
+          <svg id="compareRadarSvg" viewBox="0 0 400 400" width="100%" style="max-width:440px;"></svg>
         </div>
         <div class="compare-legend" id="compareLegend"></div>
       </div>
@@ -4472,9 +4472,14 @@ function polygonPoints(values, cx, cy, R){
     return [cx + r*Math.cos(angle), cy + r*Math.sin(angle)];
   });
 }
+// Estira visualmente los valores hacia afuera del centro (un valor típico, no extremo, ocupa más
+// espacio del radar), sin cambiar el orden relativo entre métricas ni el límite de 100% en el borde.
+// Ej: 0.15 (un valor chico frente al máximo histórico del club) pasa a verse como ~0.42 en el dibujo.
+function radarBoost(v){ return v<=0 ? 0 : Math.pow(v, 0.55); }
+
 function drawRadar(player){
   const svg = document.getElementById('radarSvg');
-  const cx=170, cy=175, R=118;
+  const cx=200, cy=205, R=140;
   const n = METRIC_ORDER.length;
   let parts = [];
 
@@ -4488,37 +4493,37 @@ function drawRadar(player){
     const angle = -Math.PI/2 + i*(2*Math.PI/n);
     const x2 = cx + R*Math.cos(angle), y2 = cy + R*Math.sin(angle);
     parts.push(`<line x1="${cx}" y1="${cy}" x2="${x2}" y2="${y2}" stroke="rgba(231,231,251,.10)" stroke-width="1"/>`);
-    const lx = cx + (R+26)*Math.cos(angle), ly = cy + (R+26)*Math.sin(angle);
-    parts.push(`<text x="${lx}" y="${ly}" fill="#9797C9" font-size="10.5" font-family="IBM Plex Mono" text-anchor="middle" dominant-baseline="middle">${METRICS[m].label.toUpperCase()}</text>`);
+    const lx = cx + (R+31)*Math.cos(angle), ly = cy + (R+31)*Math.sin(angle);
+    parts.push(`<text x="${lx}" y="${ly}" fill="#9797C9" font-size="12.5" font-family="IBM Plex Mono" text-anchor="middle" dominant-baseline="middle">${METRICS[m].label.toUpperCase()}</text>`);
   });
 
   const pAvg = playerAvg[player] || {};
-  const normPlayer = METRIC_ORDER.map(m=> squadMax[m]? Math.min(1,(pAvg[m]||0)/squadMax[m]) : 0);
-  const normSquad = METRIC_ORDER.map(m=> squadMax[m]? (squadAvg[m]||0)/squadMax[m] : 0);
+  const normPlayer = METRIC_ORDER.map(m=> squadMax[m]? radarBoost(Math.min(1,(pAvg[m]||0)/squadMax[m])) : 0);
+  const normSquad = METRIC_ORDER.map(m=> squadMax[m]? radarBoost((squadAvg[m]||0)/squadMax[m]) : 0);
 
   const squadPts = polygonPoints(normSquad,cx,cy,R);
   parts.push(`<polygon points="${squadPts.map(p=>p.join(',')).join(' ')}" fill="rgba(151,151,201,.08)" stroke="#9797C9" stroke-width="1.4" stroke-dasharray="4,3"/>`);
 
   const playerPts = polygonPoints(normPlayer,cx,cy,R);
   parts.push(`<polygon points="${playerPts.map(p=>p.join(',')).join(' ')}" fill="rgba(34,211,238,.22)" stroke="#22D3EE" stroke-width="2"/>`);
-  playerPts.forEach(p=>{ parts.push(`<circle cx="${p[0]}" cy="${p[1]}" r="3.4" fill="#67E8F9"/>`); });
+  playerPts.forEach(p=>{ parts.push(`<circle cx="${p[0]}" cy="${p[1]}" r="5.5" fill="#67E8F9" stroke="#14143A" stroke-width="1.5"/>`); });
 
   // record markers (personal best) as small maroon diamonds + etiqueta fija con el valor
   const rec = recordByPlayer[player];
   if(rec){
-    const normRec = METRIC_ORDER.map(m=> squadMax[m]? Math.min(1,(rec[m]?rec[m].valor:0)/squadMax[m]) : 0);
+    const normRec = METRIC_ORDER.map(m=> squadMax[m]? radarBoost(Math.min(1,(rec[m]?rec[m].valor:0)/squadMax[m])) : 0);
     const recPts = polygonPoints(normRec,cx,cy,R);
-    recPts.forEach(p=>{ parts.push(`<rect x="${p[0]-3}" y="${p[1]-3}" width="6" height="6" fill="#FB923C" transform="rotate(45 ${p[0]} ${p[1]})"/>`); });
+    recPts.forEach(p=>{ parts.push(`<rect x="${p[0]-4.5}" y="${p[1]-4.5}" width="9" height="9" fill="#FB923C" stroke="#14143A" stroke-width="1.2" transform="rotate(45 ${p[0]} ${p[1]})"/>`); });
     METRIC_ORDER.forEach((m,i)=>{
       const rv = rec[m] ? rec[m].valor : null;
       if(rv===null || rv===undefined) return;
       const angle = -Math.PI/2 + i*(2*Math.PI/n);
       const p = recPts[i];
-      const labelR = Math.hypot(p[0]-cx, p[1]-cy) + 13; // un poco más afuera del punto, sobre el mismo ángulo
+      const labelR = Math.hypot(p[0]-cx, p[1]-cy) + 15; // un poco más afuera del punto, sobre el mismo ángulo
       const lx = cx + labelR*Math.cos(angle), ly = cy + labelR*Math.sin(angle);
       const unit = METRICS[m].unit;
       const text = `${fmt(rv, METRICS[m].dec)}${unit?(' '+unit):''}`;
-      parts.push(`<text x="${lx}" y="${ly}" fill="#FDBA74" font-size="9.5" font-weight="700" font-family="IBM Plex Mono" text-anchor="middle" dominant-baseline="middle" paint-order="stroke" stroke="#14143A" stroke-width="3">${text}</text>`);
+      parts.push(`<text x="${lx}" y="${ly}" fill="#FDBA74" font-size="11" font-weight="700" font-family="IBM Plex Mono" text-anchor="middle" dominant-baseline="middle" paint-order="stroke" stroke="#14143A" stroke-width="3">${text}</text>`);
     });
   }
 
@@ -4527,8 +4532,10 @@ function drawRadar(player){
 
   // side stats
   const side = document.getElementById('radarSide');
+  const sesionesJugador = byPlayer[player] || [];
+  const ultimaSesion = sesionesJugador.length ? sesionesJugador[sesionesJugador.length-1] : null;
   side.innerHTML = `
-    <div class="rs-item gold"><div class="k">Promedio jugador (últ. 5)</div><div class="v">${fmt(pAvg.dist||0)}<span>m dist.</span></div></div>
+    <div class="rs-item gold"><div class="k">Última sesión${ultimaSesion?' · '+ultimaSesion.fecha.split('-').reverse().join('/'):''}</div><div class="v">${fmt(ultimaSesion?ultimaSesion.dist:0)}<span>m dist.</span></div></div>
     <div class="rs-item gold"><div class="k">Player Load prom.</div><div class="v">${fmt(Math.round(pAvg.pl||0))}</div></div>
     <div class="rs-item mist"><div class="k">Promedio del plantel</div><div class="v">${fmt(Math.round(squadAvg.dist))}<span>m dist.</span></div></div>
   `;
@@ -5080,7 +5087,7 @@ function buildTeamTimeline(resetToLatest){
 function drawCompareRadar(pA,pB){
   const svg = document.getElementById('compareRadarSvg');
   if(!svg) return;
-  const cx=170, cy=175, R=118;
+  const cx=200, cy=205, R=140;
   const n = METRIC_ORDER.length;
   let parts = [];
   [0.25,0.5,0.75,1].forEach(f=>{
@@ -5091,18 +5098,18 @@ function drawCompareRadar(pA,pB){
     const angle = -Math.PI/2 + i*(2*Math.PI/n);
     const x2 = cx + R*Math.cos(angle), y2 = cy + R*Math.sin(angle);
     parts.push(`<line x1="${cx}" y1="${cy}" x2="${x2}" y2="${y2}" stroke="rgba(231,231,251,.10)" stroke-width="1"/>`);
-    const lx = cx + (R+26)*Math.cos(angle), ly = cy + (R+26)*Math.sin(angle);
-    parts.push(`<text x="${lx}" y="${ly}" fill="#9797C9" font-size="10.5" font-family="IBM Plex Mono" text-anchor="middle" dominant-baseline="middle">${METRICS[m].label.toUpperCase()}</text>`);
+    const lx = cx + (R+31)*Math.cos(angle), ly = cy + (R+31)*Math.sin(angle);
+    parts.push(`<text x="${lx}" y="${ly}" fill="#9797C9" font-size="12.5" font-family="IBM Plex Mono" text-anchor="middle" dominant-baseline="middle">${METRICS[m].label.toUpperCase()}</text>`);
   });
   if(players.includes(pA) && players.includes(pB)){
-    const normA = METRIC_ORDER.map(m=> squadMax[m]? Math.min(1,(playerAvg[pA][m]||0)/squadMax[m]):0);
-    const normB = METRIC_ORDER.map(m=> squadMax[m]? Math.min(1,(playerAvg[pB][m]||0)/squadMax[m]):0);
+    const normA = METRIC_ORDER.map(m=> squadMax[m]? radarBoost(Math.min(1,(playerAvg[pA][m]||0)/squadMax[m])):0);
+    const normB = METRIC_ORDER.map(m=> squadMax[m]? radarBoost(Math.min(1,(playerAvg[pB][m]||0)/squadMax[m])):0);
     const ptsB = polygonPoints(normB,cx,cy,R);
     parts.push(`<polygon points="${ptsB.map(p=>p.join(',')).join(' ')}" fill="rgba(244,114,182,.16)" stroke="#F472B6" stroke-width="2"/>`);
-    ptsB.forEach(p=>parts.push(`<circle cx="${p[0]}" cy="${p[1]}" r="3.4" fill="#F472B6"/>`));
+    ptsB.forEach(p=>parts.push(`<circle cx="${p[0]}" cy="${p[1]}" r="5.5" fill="#F472B6" stroke="#14143A" stroke-width="1.5"/>`));
     const ptsA = polygonPoints(normA,cx,cy,R);
     parts.push(`<polygon points="${ptsA.map(p=>p.join(',')).join(' ')}" fill="rgba(34,211,238,.20)" stroke="#22D3EE" stroke-width="2"/>`);
-    ptsA.forEach(p=>parts.push(`<circle cx="${p[0]}" cy="${p[1]}" r="3.4" fill="#67E8F9"/>`));
+    ptsA.forEach(p=>parts.push(`<circle cx="${p[0]}" cy="${p[1]}" r="5.5" fill="#67E8F9" stroke="#14143A" stroke-width="1.5"/>`));
   }
   parts.push(`<circle cx="${cx}" cy="${cy}" r="2" fill="#E7E7FB"/>`);
   svg.innerHTML = parts.join('');
