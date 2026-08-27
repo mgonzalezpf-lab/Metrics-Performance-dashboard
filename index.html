@@ -4506,14 +4506,14 @@ function drawRadar(player){
 
   const playerPts = polygonPoints(normPlayer,cx,cy,R);
   parts.push(`<polygon points="${playerPts.map(p=>p.join(',')).join(' ')}" fill="rgba(34,211,238,.22)" stroke="#22D3EE" stroke-width="2"/>`);
-  playerPts.forEach(p=>{ parts.push(`<circle cx="${p[0]}" cy="${p[1]}" r="5.5" fill="#67E8F9" stroke="#14143A" stroke-width="1.5"/>`); });
+  playerPts.forEach(p=>{ parts.push(`<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="#67E8F9" stroke="#14143A" stroke-width="1.3"/>`); });
 
   // record markers (personal best) as small maroon diamonds + etiqueta fija con el valor
   const rec = recordByPlayer[player];
   if(rec){
     const normRec = METRIC_ORDER.map(m=> squadMax[m]? radarBoost(Math.min(1,(rec[m]?rec[m].valor:0)/squadMax[m])) : 0);
     const recPts = polygonPoints(normRec,cx,cy,R);
-    recPts.forEach(p=>{ parts.push(`<rect x="${p[0]-4.5}" y="${p[1]-4.5}" width="9" height="9" fill="#FB923C" stroke="#14143A" stroke-width="1.2" transform="rotate(45 ${p[0]} ${p[1]})"/>`); });
+    recPts.forEach(p=>{ parts.push(`<rect x="${p[0]-3.5}" y="${p[1]-3.5}" width="7" height="7" fill="#FB923C" stroke="#14143A" stroke-width="1.2" transform="rotate(45 ${p[0]} ${p[1]})"/>`); });
     METRIC_ORDER.forEach((m,i)=>{
       const rv = rec[m] ? rec[m].valor : null;
       if(rv===null || rv===undefined) return;
@@ -5106,10 +5106,10 @@ function drawCompareRadar(pA,pB){
     const normB = METRIC_ORDER.map(m=> squadMax[m]? radarBoost(Math.min(1,(playerAvg[pB][m]||0)/squadMax[m])):0);
     const ptsB = polygonPoints(normB,cx,cy,R);
     parts.push(`<polygon points="${ptsB.map(p=>p.join(',')).join(' ')}" fill="rgba(244,114,182,.16)" stroke="#F472B6" stroke-width="2"/>`);
-    ptsB.forEach(p=>parts.push(`<circle cx="${p[0]}" cy="${p[1]}" r="5.5" fill="#F472B6" stroke="#14143A" stroke-width="1.5"/>`));
+    ptsB.forEach(p=>parts.push(`<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="#F472B6" stroke="#14143A" stroke-width="1.3"/>`));
     const ptsA = polygonPoints(normA,cx,cy,R);
     parts.push(`<polygon points="${ptsA.map(p=>p.join(',')).join(' ')}" fill="rgba(34,211,238,.20)" stroke="#22D3EE" stroke-width="2"/>`);
-    ptsA.forEach(p=>parts.push(`<circle cx="${p[0]}" cy="${p[1]}" r="5.5" fill="#67E8F9" stroke="#14143A" stroke-width="1.5"/>`));
+    ptsA.forEach(p=>parts.push(`<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="#67E8F9" stroke="#14143A" stroke-width="1.3"/>`));
   }
   parts.push(`<circle cx="${cx}" cy="${cy}" r="2" fill="#E7E7FB"/>`);
   svg.innerHTML = parts.join('');
