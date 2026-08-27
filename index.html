@@ -628,6 +628,9 @@
         <div id="addPlayerForm" style="display:none;position:absolute;top:42px;right:0;background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:10px;padding:12px;z-index:50;min-width:230px;box-shadow:0 8px 24px rgba(0,0,0,.4);">
           <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:6px;">Nombre del jugador nuevo</label>
           <input id="addPlayerInput" type="text" placeholder="Ej: Carlos Pérez" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Sans';outline:none;margin-bottom:8px;box-sizing:border-box;">
+          <label style="font-size:12px;color:var(--mist);display:flex;align-items:center;gap:6px;margin-bottom:8px;cursor:pointer;">
+            <input id="addPlayerIsGk" type="checkbox" style="width:14px;height:14px;cursor:pointer;"> 🧤 Es arquero
+          </label>
           <button id="addPlayerSubmit" class="upload-btn" style="width:100%;">Agregar a la lista</button>
           <div id="addPlayerStatus" style="font-size:11px;color:var(--mist);margin-top:6px;"></div>
         </div>
@@ -1706,8 +1709,10 @@ async function approvePendingUser(userId, newRole, btnEl){
 
 // ---------- Admin: agregar jugador manualmente a la lista (antes de tener datos de GPS) ----------
 async function getRosterExtraNames(){
-  const {data,error} = await supabaseClient.from('roster_players').select('player_name').eq('club',CURRENT_CLUB);
-  return error ? [] : (data||[]).map(r=>r.player_name);
+  const {data,error} = await supabaseClient.from('roster_players').select('player_name,is_goalkeeper').eq('club',CURRENT_CLUB);
+  if(error) return [];
+  ROSTER_GK_NAMES = (data||[]).filter(r=>r.is_goalkeeper).map(r=>r.player_name);
+  return (data||[]).map(r=>r.player_name);
 }
 // Compara nombres ignorando tildes, mayúsculas y espacios de más — para que "Matías Cofré"
 // y "Matias Cofre " (escritos distinto en el roster manual vs los datos de GPS) se traten
@@ -1744,19 +1749,21 @@ function setupAddPlayerBar(){
   const btn = document.getElementById('addPlayerBtn');
   const form = document.getElementById('addPlayerForm');
   const input = document.getElementById('addPlayerInput');
+  const isGkCheckbox = document.getElementById('addPlayerIsGk');
   const status = document.getElementById('addPlayerStatus');
   btn.onclick = ()=>{ form.style.display = form.style.display==='block' ? 'none' : 'block'; };
   document.getElementById('addPlayerSubmit').onclick = async ()=>{
     const name = input.value.trim();
     if(!name){ status.textContent='Escribe un nombre.'; return; }
     status.textContent = 'Agregando…';
-    const {error} = await supabaseClient.from('roster_players').insert({club:CURRENT_CLUB, player_name:name});
+    const {error} = await supabaseClient.from('roster_players').insert({club:CURRENT_CLUB, player_name:name, is_goalkeeper:isGkCheckbox.checked});
     if(error){
       status.textContent = error.code==='23505' ? 'Ese nombre ya está en la lista.' : 'No se pudo agregar: '+error.message;
       return;
     }
     status.textContent = `✅ "${name}" agregado. Ya puede crear su cuenta y elegirlo.`;
     input.value='';
+    isGkCheckbox.checked = false;
   };
   document.addEventListener('click',(e)=>{ if(!wrap.contains(e.target)) form.style.display='none'; });
 }
@@ -5423,8 +5430,9 @@ async function loadGkData(){
   }catch(e){ console.warn('No se pudieron cargar los datos de arqueros:', e); GK_EVENTS = []; }
   deriveGkData();
 }
+let ROSTER_GK_NAMES = []; // nombres marcados como arquero en roster_players (agregados a mano, sin datos de GPS todavía)
 function isGoalkeeper(playerName){
-  return GK_EVENTS.some(e=>e.jugador===playerName);
+  return GK_EVENTS.some(e=>e.jugador===playerName) || ROSTER_GK_NAMES.includes(playerName);
 }
 
 let pendingCatapultData = null; // datos parseados del CSV, en espera de que confirmes rival/fecha/tipo en el modal
