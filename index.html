@@ -764,6 +764,15 @@
   </div>
 
   <div id="controlCargaView" style="display:none;">
+<div class="panel team-only" style="margin-bottom:18px;">
+    <div class="panel-head">
+      <h3>🎯 Objetivo próximo microciclo</h3>
+      <span class="tag">margen: <input id="weeklyTargetPct" type="number" min="1" max="100" value="20" style="width:44px;padding:2px 4px;border-radius:5px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--gold-bright);font:12px 'IBM Plex Mono';outline:none;text-align:center;">%</span>
+    </div>
+    <div id="weeklyTargetRecommendation" style="margin-bottom:12px;"></div>
+    <div id="weeklyTargetBody" style="display:flex;gap:12px;flex-wrap:wrap;"></div>
+  </div>
+
 <div class="panel team-only staff-ok" style="margin-bottom:18px;">
     <div class="panel-head">
       <h3 data-i18n="alertasCarga">Alertas de carga · ACWR</h3>
@@ -813,15 +822,6 @@
     </div>
     <div class="metric-tabs" id="weeklyMicroTabs"></div>
     <div class="chart-box" style="height:260px;"><canvas id="weeklyMicroChart"></canvas></div>
-  </div>
-
-<div class="panel team-only" style="margin-top:18px;">
-    <div class="panel-head">
-      <h3>🎯 Objetivo próximo microciclo</h3>
-      <span class="tag">margen: <input id="weeklyTargetPct" type="number" min="1" max="100" value="20" style="width:44px;padding:2px 4px;border-radius:5px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--gold-bright);font:12px 'IBM Plex Mono';outline:none;text-align:center;">%</span>
-    </div>
-    <div id="weeklyTargetRecommendation" style="margin-bottom:12px;"></div>
-    <div id="weeklyTargetBody" style="display:flex;gap:12px;flex-wrap:wrap;"></div>
   </div>
 
 <div class="panel team-only" style="margin-top:18px;">
@@ -4246,6 +4246,26 @@ function buildWeeklyTarget(){
   // El ciclo EN CURSO (todavía no cerró con un partido) — solo existe si el último bloque sigue abierto.
   const currentOpenCycle = lastCycleWasClosed ? null : cycles[cycles.length-1];
 
+  // Duración del ciclo a evaluar — NO siempre "una semana": si el próximo partido ya está cargado,
+  // se usa la cantidad real de días hasta esa fecha (por ejemplo, 3 días en una racha de partidos seguidos).
+  // Si no hay fecha cargada, se usa el promedio de duración de los últimos ciclos cerrados como estimación.
+  const avgCycleLength = (cyclesArr) => {
+    const lens = cyclesArr.slice(-3).map(c=>c.length);
+    return lens.length ? Math.round(lens.reduce((a,b)=>a+b,0)/lens.length) : 7;
+  };
+  let cicloDias;
+  if(currentOpenCycle && currentOpenCycle.length){
+    if(NEXT_MATCH_DATE){
+      const start = currentOpenCycle[0];
+      const totalDays = Math.round((new Date(NEXT_MATCH_DATE+'T00:00:00') - new Date(start+'T00:00:00')) / 86400000) + 1;
+      cicloDias = totalDays > 0 ? totalDays : Math.max(currentOpenCycle.length, avgCycleLength(closedCycles));
+    } else {
+      cicloDias = Math.max(currentOpenCycle.length, avgCycleLength(closedCycles));
+    }
+  } else {
+    cicloDias = avgCycleLength(closedCycles);
+  }
+
   const metrics = [
     {key:'dist', label:'Distancia', unit:'m'},
     {key:'hsr', label:'HSR', unit:'m'},
@@ -4263,11 +4283,13 @@ function buildWeeklyTarget(){
         <div class="sub">Sin ciclos cerrados todavía</div>
       </div>`;
     }
-    // Se muestra como equivalente semanal (promedio diario × 7) para que se lea igual que el resto
-    // del dashboard, aunque el cálculo de fondo ya esté corregido por la duración real de cada ciclo.
-    const weeklyEquivalent = baselineDaily * 7;
-    const min = Math.round(weeklyEquivalent * (1 - pct/100));
-    const max = Math.round(weeklyEquivalent * (1 + pct/100));
+    // El objetivo se escala a la duración REAL (o esperada) del ciclo, no a una semana fija de 7 días.
+    // Así un ciclo corto (post-racha de partidos, 3-4 días) muestra un objetivo acorde a esos días,
+    // en vez de un número inflado como si fuera una semana completa.
+    const targetLabel = currentOpenCycle ? `objetivo de este ciclo (${cicloDias}d)` : `objetivo próximo ciclo (${cicloDias}d aprox.)`;
+    const objetivoCiclo = baselineDaily * cicloDias;
+    const min = Math.round(objetivoCiclo * (1 - pct/100));
+    const max = Math.round(objetivoCiclo * (1 + pct/100));
 
     let checkHtml = '';
     if(justClosedCycle && closedCycles.length>=2){
@@ -4306,8 +4328,8 @@ function buildWeeklyTarget(){
 
     return `<div class="kpi" style="flex:1;min-width:170px;">
       <div class="lbl">${m.label}</div>
-      <div class="val" style="font-size:24px;">${fmt(Math.round(weeklyEquivalent))}<small>${m.unit}</small></div>
-      <div class="sub">objetivo semanal · rango seguro ${fmt(min)}–${fmt(max)}${m.unit} (±${pct}%)</div>
+      <div class="val" style="font-size:24px;">${fmt(Math.round(objetivoCiclo))}<small>${m.unit}</small></div>
+      <div class="sub">${targetLabel} · rango ${fmt(min)}–${fmt(max)}${m.unit} (±${pct}%)</div>
       ${checkHtml}
       ${liveHtml}
     </div>`;
