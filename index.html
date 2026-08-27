@@ -799,15 +799,12 @@
         <span><span class="dot" style="background:var(--good);"></span>0.80–1.30 zona óptima</span>
         <span><span class="dot" style="background:var(--bad);"></span>1.50 riesgo alto</span>
       </div>
-      <div class="weekly-chart-box"><canvas id="weeklyLoadChart"></canvas></div>
-      <div class="timeline-nav">
-        <button class="tl-btn" id="wlPrev" data-i18n-title="diasAnteriores" title="Días anteriores">◀</button>
-        <div class="tl-range">
-          <input type="range" id="wlSlider" min="0" max="0" value="0" step="1">
-          <div class="tl-label" id="wlLabel">—</div>
+      <div class="weekly-chart-box" id="weeklyChartScrollBox" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <div id="weeklyChartInner" style="height:100%;">
+          <canvas id="weeklyLoadChart"></canvas>
         </div>
-        <button class="tl-btn" id="wlNext" data-i18n-title="diasSiguientes" title="Días siguientes">▶</button>
       </div>
+      <div class="tl-label" id="wlLabel" style="text-align:center;padding:6px 0 0;">—</div>
     </div>
   </div>
 
@@ -4837,15 +4834,9 @@ function buildACWR(){
   box.querySelectorAll('.acwr-row').forEach(el=> el.addEventListener('click',()=>selectPlayer(el.dataset.p)));
 }
 
-// ---------- daily team ACWR (1 dato por día, ventana navegable de 7 días) ----------
+// ---------- daily team ACWR (1 dato por día, se desliza horizontal con el dedo, sin flechas) ----------
 let weeklyLoadChart;
-const ACWR_WINDOW = 7;
-function clampWlOffset(total){
-  const maxOffset = Math.max(0, total - ACWR_WINDOW);
-  state.wlOffset = Math.min(Math.max(0, state.wlOffset), maxOffset);
-  return maxOffset;
-}
-function buildWeeklyLoadChart(resetToLatest){
+function buildWeeklyLoadChart(){
   const canvas = document.getElementById('weeklyLoadChart');
   if(!canvas) return;
   const dates = [...new Set(ACTIVE_EVENTS.map(e=>e.fecha))].sort();
@@ -4865,34 +4856,18 @@ function buildWeeklyLoadChart(resetToLatest){
     return { fecha:d, ratio: avgRatio!==null ? Math.round(avgRatio*100)/100 : null };
   });
 
-  const maxOffset = Math.max(0, allRatios.length - ACWR_WINDOW);
-  if(resetToLatest) state.wlOffset = maxOffset;
-  clampWlOffset(allRatios.length);
-
-  // controles de navegación (día a día, ventana de 7)
-  const prevBtn = document.getElementById('wlPrev');
-  const nextBtn = document.getElementById('wlNext');
-  const slider = document.getElementById('wlSlider');
-  if(slider){
-    slider.max = maxOffset;
-    slider.value = state.wlOffset;
-    slider.oninput = (e)=>{ state.wlOffset = Number(e.target.value); buildWeeklyLoadChart(); };
-  }
-  if(prevBtn) prevBtn.onclick = ()=>{ state.wlOffset = Math.max(0, state.wlOffset - ACWR_WINDOW); buildWeeklyLoadChart(); };
-  if(nextBtn) nextBtn.onclick = ()=>{ state.wlOffset = Math.min(maxOffset, state.wlOffset + ACWR_WINDOW); buildWeeklyLoadChart(); };
-  if(prevBtn) prevBtn.disabled = state.wlOffset<=0;
-  if(nextBtn) nextBtn.disabled = state.wlOffset>=maxOffset;
-  if(slider) slider.disabled = maxOffset<=0;
-
-  const windowSlice = allRatios.slice(state.wlOffset, state.wlOffset + ACWR_WINDOW);
-  const labels = windowSlice.map(r=> r.fecha.slice(5).split('-').reverse().join('/'));
-  const data = windowSlice.map(r=> r.ratio);
+  const labels = allRatios.map(r=> r.fecha.slice(5).split('-').reverse().join('/'));
+  const data = allRatios.map(r=> r.ratio);
 
   const wlLabelEl = document.getElementById('wlLabel');
-  if(wlLabelEl){
-    const from = state.wlOffset+1, to = Math.min(allRatios.length, state.wlOffset+ACWR_WINDOW);
-    wlLabelEl.innerHTML = `Días <b>${from}–${to}</b> de <b>${allRatios.length}</b>`;
-  }
+  if(wlLabelEl) wlLabelEl.innerHTML = `<b>${allRatios.length}</b> día${allRatios.length===1?'':'s'} cargado${allRatios.length===1?'':'s'} · deslizá para ver el historial`;
+
+  // Ancho dinámico: ~48px por día, para que aparezca el scroll horizontal apenas hay más días de los que entran en pantalla
+  const scrollBox = document.getElementById('weeklyChartScrollBox');
+  const inner = document.getElementById('weeklyChartInner');
+  const minWidth = scrollBox ? scrollBox.clientWidth : 300;
+  const wantedWidth = Math.max(minWidth, allRatios.length * 48);
+  if(inner) inner.style.width = wantedWidth + 'px';
 
   if(typeof Chart === 'undefined'){
     canvas.parentElement.innerHTML = '<div style="color:var(--mist);font-family:\'IBM Plex Mono\';font-size:12px;padding:14px;text-align:center;">No se pudo cargar Chart.js (sin conexión).</div>';
@@ -4965,7 +4940,11 @@ function buildWeeklyLoadChart(resetToLatest){
   };
   if(weeklyLoadChart){ weeklyLoadChart.destroy(); }
   weeklyLoadChart = new Chart(ctx, cfg);
-  requestAnimationFrame(()=>{ if(weeklyLoadChart) weeklyLoadChart.resize(); });
+  requestAnimationFrame(()=>{
+    if(weeklyLoadChart) weeklyLoadChart.resize();
+    // arranca mostrando los días más recientes (extremo derecho), como antes hacía "resetToLatest"
+    if(scrollBox) scrollBox.scrollLeft = scrollBox.scrollWidth;
+  });
   const tag = document.getElementById('weeklyLoadTag');
   if(tag) tag.textContent = `Promedio del plantel · ${allRatios.length} día${allRatios.length===1?'':'s'} cargado${allRatios.length===1?'':'s'}`;
 }
