@@ -3426,6 +3426,24 @@ function computeRecordsFromEvents(events, metricOrder=METRIC_ORDER){
   return Object.values(rec);
 }
 
+let ROSTER_GK_NAMES = []; // nombres marcados como arquero en roster_players (agregados a mano, sin datos de GPS todavía)
+const CATEGORIAS_FUTBOL_BASE = ['U16','U18','U20'];
+let CURRENT_CATEGORY = null; // null = "Todas las categorías"
+let ROSTER_CATEGORIES = {}; // normalizeNameKey(nombre) -> categoria ('U16'/'U18'/'U20'), para clubes de fútbol base con varias categorías
+function matchesCurrentCategory(playerName){
+  if(!CURRENT_CATEGORY) return true; // "Todas": no filtra nada
+  return ROSTER_CATEGORIES[normalizeNameKey(playerName)] === CURRENT_CATEGORY;
+}
+// Eventos del club ya filtrados por la categoría seleccionada — usar esto (no ACTIVE_EVENTS directo)
+// en cualquier cálculo que agrupe por fecha/ciclo mezclando jugadores (microciclos, etc.), para que
+// un club de fútbol base con varias categorías no mezcle los entrenos de una categoría con otra.
+function categoryFilteredEvents(){
+  return ACTIVE_EVENTS.filter(e=> matchesCurrentCategory(e.jugador));
+}
+function isGoalkeeper(playerName){
+  return GK_EVENTS.some(e=>e.jugador===playerName) || ROSTER_GK_NAMES.includes(playerName);
+}
+
 let players=[], byPlayer={}, playerAvg={}, squadMax={}, squadAvg={}, RECORDS=[], recordByPlayer={};
 
 function deriveAll(events){
@@ -5563,24 +5581,6 @@ async function loadGkData(){
   }catch(e){ console.warn('No se pudieron cargar los datos de arqueros:', e); GK_EVENTS = []; }
   deriveGkData();
 }
-let ROSTER_GK_NAMES = []; // nombres marcados como arquero en roster_players (agregados a mano, sin datos de GPS todavía)
-const CATEGORIAS_FUTBOL_BASE = ['U16','U18','U20'];
-let CURRENT_CATEGORY = null; // null = "Todas las categorías"
-let ROSTER_CATEGORIES = {}; // normalizeNameKey(nombre) -> categoria ('U16'/'U18'/'U20'), para clubes de fútbol base con varias categorías
-function matchesCurrentCategory(playerName){
-  if(!CURRENT_CATEGORY) return true; // "Todas": no filtra nada
-  return ROSTER_CATEGORIES[normalizeNameKey(playerName)] === CURRENT_CATEGORY;
-}
-// Eventos del club ya filtrados por la categoría seleccionada — usar esto (no ACTIVE_EVENTS directo)
-// en cualquier cálculo que agrupe por fecha/ciclo mezclando jugadores (microciclos, etc.), para que
-// un club de fútbol base con varias categorías no mezcle los entrenos de una categoría con otra.
-function categoryFilteredEvents(){
-  return ACTIVE_EVENTS.filter(e=> matchesCurrentCategory(e.jugador));
-}
-function isGoalkeeper(playerName){
-  return GK_EVENTS.some(e=>e.jugador===playerName) || ROSTER_GK_NAMES.includes(playerName);
-}
-
 let pendingCatapultData = null; // datos parseados del CSV, en espera de que confirmes rival/fecha/tipo en el modal
 
 async function handleFile(file){
