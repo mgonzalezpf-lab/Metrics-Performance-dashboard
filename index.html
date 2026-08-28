@@ -801,18 +801,6 @@
   </div>
 
 <div class="panel team-only staff-ok" style="margin-bottom:18px;">
-    <div class="panel-head">
-      <h3 data-i18n="alertasCarga">Alertas de carga · ACWR</h3>
-      <span class="tag" data-i18n="acwrTag">agudo (7 días) : crónico (28 días) · sobre Player Load</span>
-    </div>
-    <div class="acwr-note">Ratio entre la carga de los últimos <b>7 días</b> y el promedio semanal de los últimos <b>28 días</b>. Con poco historial cargado el número es orientativo — se vuelve más confiable a medida que se suman sesiones. No reemplaza el criterio del cuerpo técnico ni médico.</div>
-    <div class="acwr-legend">
-      <span><span class="dot" style="background:var(--low);"></span>&lt;0.8 carga baja</span>
-      <span><span class="dot" style="background:var(--good);"></span>0.8–1.3 zona óptima</span>
-      <span><span class="dot" style="background:var(--warn);"></span>1.3–1.5 precaución</span>
-      <span><span class="dot" style="background:var(--bad);"></span>&gt;1.5 riesgo alto</span>
-    </div>
-    <div class="acwr-body" id="acwrList"></div>
     <div class="weekly-load-box" id="acwrDailyTeamBox">
       <div class="weekly-load-head">
         <h4>ACWR diario del equipo</h4>
@@ -829,6 +817,21 @@
       </div>
       <div class="tl-label" id="wlLabel" style="text-align:center;padding:6px 0 0;">—</div>
     </div>
+  </div>
+
+<div class="panel team-only staff-ok" style="margin-bottom:18px;">
+    <div class="panel-head">
+      <h3 data-i18n="alertasCarga">Alertas de carga · ACWR</h3>
+      <span class="tag" data-i18n="acwrTag">agudo (7 días) : crónico (28 días) · sobre Player Load</span>
+    </div>
+    <div class="acwr-note">Ratio entre la carga de los últimos <b>7 días</b> y el promedio semanal de los últimos <b>28 días</b>. Con poco historial cargado el número es orientativo — se vuelve más confiable a medida que se suman sesiones. No reemplaza el criterio del cuerpo técnico ni médico.</div>
+    <div class="acwr-legend">
+      <span><span class="dot" style="background:var(--low);"></span>&lt;0.8 carga baja</span>
+      <span><span class="dot" style="background:var(--good);"></span>0.8–1.3 zona óptima</span>
+      <span><span class="dot" style="background:var(--warn);"></span>1.3–1.5 precaución</span>
+      <span><span class="dot" style="background:var(--bad);"></span>&gt;1.5 riesgo alto</span>
+    </div>
+    <div class="acwr-body" id="acwrList"></div>
   </div>
 
 <div class="panel team-only staff-ok" style="margin-top:18px;">
