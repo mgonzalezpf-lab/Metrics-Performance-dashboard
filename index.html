@@ -4906,20 +4906,23 @@ function buildWeeklyLoadChart(){
       .map(p=> computeACWR(byPlayer[p], d).ratio)
       .filter(r=> r!==null && r!==undefined && !isNaN(r));
     const avgRatio = ratios.length ? ratios.reduce((a,b)=>a+b,0)/ratios.length : null;
-    return { fecha:d, ratio: avgRatio!==null ? Math.round(avgRatio*100)/100 : null };
+    const esPartido = ACTIVE_EVENTS.some(e=> e.fecha===d && e.tipo==='Partido');
+    return { fecha:d, ratio: avgRatio!==null ? Math.round(avgRatio*100)/100 : null, esPartido };
   });
 
   const labels = allRatios.map(r=> r.fecha.slice(5).split('-').reverse().join('/'));
   const data = allRatios.map(r=> r.ratio);
 
   const wlLabelEl = document.getElementById('wlLabel');
-  if(wlLabelEl) wlLabelEl.innerHTML = `<b>${allRatios.length}</b> día${allRatios.length===1?'':'s'} cargado${allRatios.length===1?'':'s'} · deslizá para ver el historial`;
+  if(wlLabelEl) wlLabelEl.innerHTML = `<b>${allRatios.length}</b> día${allRatios.length===1?'':'s'} cargado${allRatios.length===1?'':'s'} · deslizá para ver el historial · <span style="color:#7C5CFC;">●</span> = partido`;
 
-  // Ancho dinámico: ~48px por día, para que aparezca el scroll horizontal apenas hay más días de los que entran en pantalla
+  // Ancho dinámico: se calcula para que en reposo (sin scroll) entren ~10 días en pantalla,
+  // y el resto quede disponible deslizando hacia la izquierda.
   const scrollBox = document.getElementById('weeklyChartScrollBox');
   const inner = document.getElementById('weeklyChartInner');
   const minWidth = scrollBox ? scrollBox.clientWidth : 300;
-  const wantedWidth = Math.max(minWidth, allRatios.length * 48);
+  const perDay = Math.max(48, Math.floor(minWidth / 10)); // ~10 días visibles en reposo, sin achicar demasiado en pantallas chicas
+  const wantedWidth = Math.max(minWidth, allRatios.length * perDay);
   if(inner) inner.style.width = wantedWidth + 'px';
 
   if(typeof Chart === 'undefined'){
@@ -4945,12 +4948,13 @@ function buildWeeklyLoadChart(){
 
       const meta = chart.getDatasetMeta(0);
       ctx.save();
-      ctx.font = "600 11px 'IBM Plex Mono', monospace";
-      ctx.fillStyle = '#67E8F9';
       ctx.textAlign = 'center';
       meta.data.forEach((point, idx)=>{
         const v = chart.data.datasets[0].data[idx];
         if(v===null || v===undefined) return;
+        const esPartido = allRatios[idx] && allRatios[idx].esPartido;
+        ctx.font = esPartido ? "700 12px 'IBM Plex Mono', monospace" : "600 11px 'IBM Plex Mono', monospace";
+        ctx.fillStyle = esPartido ? '#B794F6' : '#67E8F9';
         ctx.fillText(v.toFixed(2), point.x, point.y - 12);
       });
       ctx.restore();
@@ -4966,10 +4970,11 @@ function buildWeeklyLoadChart(){
       spanGaps:true,
       borderColor:'#22D3EE',
       backgroundColor:'rgba(34,211,238,.10)',
-      pointBackgroundColor:'#67E8F9',
-      pointBorderColor:'#22D3EE',
-      pointRadius:5,
-      pointHoverRadius:7,
+      pointBackgroundColor: allRatios.map(r=> r.esPartido ? '#B794F6' : '#67E8F9'),
+      pointBorderColor: allRatios.map(r=> r.esPartido ? '#7C5CFC' : '#22D3EE'),
+      pointStyle: allRatios.map(r=> r.esPartido ? 'rectRot' : 'circle'),
+      pointRadius: allRatios.map(r=> r.esPartido ? 6.5 : 5),
+      pointHoverRadius: allRatios.map(r=> r.esPartido ? 8.5 : 7),
       tension:.3,
       fill:true,
       borderWidth:2.2,
@@ -4981,11 +4986,17 @@ function buildWeeklyLoadChart(){
         legend:{display:false},
         tooltip:{
           backgroundColor:'#1E1E58', borderColor:'#22D3EE', borderWidth:1, titleColor:'#67E8F9', bodyColor:'#E7E7FB',
-          callbacks:{ label:(ctx)=> ctx.raw===null?'Datos insuficientes':`ACWR promedio: ${ctx.raw.toFixed(2)}` }
+          callbacks:{
+            label:(ctx)=> ctx.raw===null?'Datos insuficientes':`ACWR promedio: ${ctx.raw.toFixed(2)}`,
+            afterLabel:(ctx)=> allRatios[ctx.dataIndex] && allRatios[ctx.dataIndex].esPartido ? '⚽ Día de partido' : ''
+          }
         }
       },
       scales:{
-        x:{ grid:{display:false}, ticks:{color:'#9797C9', font:{family:'IBM Plex Mono', size:9.5}} },
+        x:{ grid:{display:false}, ticks:{
+          color:(c)=> allRatios[c.index] && allRatios[c.index].esPartido ? '#B794F6' : '#9797C9',
+          font:(c)=> ({family:'IBM Plex Mono', size:9.5, weight: (allRatios[c.index] && allRatios[c.index].esPartido) ? '700' : '400'})
+        } },
         y:{ min:0.5, max:2.1, grid:{color:'rgba(231,231,251,.06)'}, ticks:{color:'#9797C9', font:{family:'IBM Plex Mono', size:10}, stepSize:.2} }
       }
     },
