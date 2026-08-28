@@ -966,14 +966,25 @@
       <h3>Microciclo (partido a partido)</h3>
       <span class="tag">promedio diario · total por microciclo · intensidad vs prom. últimos 3 partidos</span>
     </div>
-    <div id="nextMatchWrap" style="position:relative;display:none;padding:0 18px 12px;">
-      <button id="nextMatchBtn" class="upload-btn" style="padding:7px 10px;">📅 Próximo partido</button>
-      <span id="nextMatchLabel" style="margin-left:8px;font-size:11.5px;color:var(--mist);font-family:'IBM Plex Mono';"></span>
-      <div id="nextMatchForm" style="display:none;position:absolute;top:38px;left:18px;background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:10px;padding:12px;z-index:50;min-width:230px;box-shadow:0 8px 24px rgba(0,0,0,.4);">
-        <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:6px;">Fecha del próximo partido</label>
-        <input id="nextMatchInput" type="date" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:8px;box-sizing:border-box;">
-        <button id="nextMatchSubmit" class="upload-btn" style="width:100%;">Guardar fecha</button>
-        <div id="nextMatchStatus" style="font-size:11px;color:var(--mist);margin-top:6px;"></div>
+    <div id="nextMatchWrap" style="position:relative;display:none;padding:0 18px 12px;gap:10px;flex-wrap:wrap;align-items:flex-start;">
+      <div style="position:relative;">
+        <button id="nextMatchBtn" class="upload-btn" style="padding:7px 10px;">📅 Próximo partido</button>
+        <span id="nextMatchLabel" style="margin-left:8px;font-size:11.5px;color:var(--mist);font-family:'IBM Plex Mono';"></span>
+        <div id="nextMatchForm" style="display:none;position:absolute;top:38px;left:0;background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:10px;padding:12px;z-index:50;min-width:230px;box-shadow:0 8px 24px rgba(0,0,0,.4);">
+          <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:6px;">Fecha del próximo partido</label>
+          <input id="nextMatchInput" type="date" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:8px;box-sizing:border-box;">
+          <button id="nextMatchSubmit" class="upload-btn" style="width:100%;">Guardar fecha</button>
+          <div id="nextMatchStatus" style="font-size:11px;color:var(--mist);margin-top:6px;"></div>
+        </div>
+      </div>
+      <div style="position:relative;">
+        <button id="restDayBtn" class="upload-btn" style="padding:7px 10px;">🛌 Día Libre</button>
+        <div id="restDayForm" style="display:none;position:absolute;top:38px;left:0;background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:10px;padding:12px;z-index:50;min-width:230px;box-shadow:0 8px 24px rgba(0,0,0,.4);">
+          <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:6px;">Fecha del día libre</label>
+          <input id="restDayInput" type="date" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:8px;box-sizing:border-box;">
+          <button id="restDaySubmit" class="upload-btn" style="width:100%;">Marcar día libre</button>
+          <div id="restDayStatus" style="font-size:11px;color:var(--mist);margin-top:6px;"></div>
+        </div>
       </div>
     </div>
     <div class="rec-scroll">
@@ -1771,7 +1782,7 @@ function setupAddPlayerBar(){
 function setupNextMatchBar(){
   if(!(myProfile && (myProfile.role==='admin' || myProfile.role==='owner'))) return;
   const wrap = document.getElementById('nextMatchWrap');
-  wrap.style.display = 'block';
+  wrap.style.display = 'flex';
   const btn = document.getElementById('nextMatchBtn');
   const form = document.getElementById('nextMatchForm');
   const input = document.getElementById('nextMatchInput');
@@ -1796,6 +1807,46 @@ function setupNextMatchBar(){
     buildMicrocycleTable();
   };
   document.addEventListener('click',(e)=>{ if(!wrap.contains(e.target)) form.style.display='none'; });
+}
+
+// ---------- Admin: marcar un día libre (sin necesitar ningún CSV) — inserta un evento liviano por jugador,
+// con detalle "Día libre", para que computeMicrocycles() lo reconozca y cierre bien los ciclos ----------
+function setupRestDayBar(){
+  if(!(myProfile && (myProfile.role==='admin' || myProfile.role==='owner'))) return;
+  const btn = document.getElementById('restDayBtn');
+  const form = document.getElementById('restDayForm');
+  const input = document.getElementById('restDayInput');
+  const status = document.getElementById('restDayStatus');
+  if(!btn || !form || !input || !status) return;
+  btn.onclick = ()=>{ form.style.display = form.style.display==='block' ? 'none' : 'block'; };
+  document.getElementById('restDaySubmit').onclick = async ()=>{
+    const dateVal = input.value;
+    if(!dateVal){ status.textContent='Elige una fecha.'; return; }
+    const yaHayDatos = ACTIVE_EVENTS.some(e=>e.fecha===dateVal);
+    if(yaHayDatos){ status.textContent='Ya hay una sesión cargada ese día — elige otra fecha.'; return; }
+    if(!players.length){ status.textContent='No hay jugadores cargados todavía.'; return; }
+    status.textContent = 'Guardando…';
+    const nuevosEventos = players.map(p=>({
+      fecha:dateVal, jugador:p, tipo:'Entreno', detalle:'Día libre',
+      dist:null, hsr:null, vel:null, acc:null, desa:null, pl:null, min:null,
+      alta_int:null, sprint:null, sprint_count:null,
+    }));
+    const eventosFinales = [...ACTIVE_EVENTS, ...nuevosEventos];
+    try{
+      const prevPlayer = state.player;
+      ACTIVE_EVENTS = eventosFinales;
+      await saveRemoteData(ACTIVE_EVENTS, ACTIVE_TEAMTOTALS);
+      saveData(ACTIVE_EVENTS, ACTIVE_TEAMTOTALS);
+      deriveAll(ACTIVE_EVENTS);
+      renderAll(prevPlayer);
+      status.textContent = '✅ Día libre marcado.';
+      input.value = '';
+      setTimeout(()=>{ form.style.display='none'; status.textContent=''; }, 1500);
+    }catch(err){
+      status.textContent = 'No se pudo guardar: ' + err.message;
+    }
+  };
+  document.addEventListener('click',(e)=>{ if(!form.contains(e.target) && e.target!==btn) form.style.display='none'; });
 }
 
 let previewingAsPlayer = null;
@@ -3085,6 +3136,7 @@ async function startDashboard(){
   setupAddPlayerBar();
   setupUploadButtons();
   setupNextMatchBar();
+  setupRestDayBar();
   setupRpeWindowBar();
   setupWellnessWindowBar();
   applyClubFeaturesToTabs();
@@ -3919,6 +3971,7 @@ async function switchToClub(clubName){
   setupAddPlayerBar();
   setupUploadButtons();
   setupNextMatchBar();
+  setupRestDayBar();
   setupRpeWindowBar();
   setupWellnessWindowBar();
   applyClubFeaturesToTabs();
