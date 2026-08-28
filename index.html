@@ -454,7 +454,7 @@
   .acwr-legend{display:flex;gap:14px;padding:8px 18px 4px;font-size:10.5px;color:var(--mist);font-family:'IBM Plex Mono';flex-wrap:wrap;}
   .acwr-legend .dot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle;}
   .acwr-body{padding:8px 18px 18px;}
-  .weekly-load-box{padding:6px 18px 18px;border-top:1px solid var(--line);margin-top:4px;}
+  .weekly-load-box{padding:6px 18px 18px;margin-top:4px;}
   .weekly-load-head{display:flex;align-items:center;justify-content:space-between;padding:12px 0 8px;}
   .weekly-load-head h4{margin:0;font-family:'Big Shoulders Display',sans-serif;font-weight:700;font-size:13px;letter-spacing:.07em;text-transform:uppercase;color:var(--bone);}
   .weekly-load-head .tag{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--mist);}
@@ -5020,20 +5020,33 @@ function buildWeeklyLoadChart(){
     return;
   }
 
-  // plugin propio: dibuja las bandas de referencia (0.80 / 1.30 / 1.50) y el valor sobre cada punto
+  // plugin propio: dibuja la banda de zona óptima (0.80–1.30) + una marca corta de riesgo alto (1.50) y el valor sobre cada punto
   const acwrRefPlugin = {
     id: 'acwrDailyRef',
     afterDatasetsDraw(chart){
       const {ctx, chartArea, scales} = chart;
       if(!chartArea) return;
       const yScale = scales.y;
+
+      // banda translúcida para la zona óptima (0.80–1.30), en vez de dos líneas cruzando todo
       ctx.save();
-      [{v:0.8, color:'#34D399'},{v:1.3, color:'#34D399'},{v:1.5, color:'#FB7185'}].forEach(l=>{
-        const y = yScale.getPixelForValue(l.v);
-        if(y<chartArea.top || y>chartArea.bottom) return;
-        ctx.strokeStyle = l.color; ctx.lineWidth = 1.2; ctx.setLineDash([5,4]);
-        ctx.beginPath(); ctx.moveTo(chartArea.left,y); ctx.lineTo(chartArea.right,y); ctx.stroke();
-      });
+      const yTop = yScale.getPixelForValue(1.3);
+      const yBottom = yScale.getPixelForValue(0.8);
+      ctx.fillStyle = 'rgba(52,211,153,.07)';
+      ctx.fillRect(chartArea.left, yTop, chartArea.right - chartArea.left, yBottom - yTop);
+      ctx.restore();
+
+      // marca corta (no cruza todo el gráfico) para el umbral de riesgo alto (1.50), solo sobre el borde derecho
+      ctx.save();
+      const yRisk = yScale.getPixelForValue(1.5);
+      if(yRisk>=chartArea.top && yRisk<=chartArea.bottom){
+        const markLen = 46;
+        ctx.strokeStyle = '#FB7185'; ctx.lineWidth = 1.2; ctx.setLineDash([5,4]);
+        ctx.beginPath();
+        ctx.moveTo(chartArea.right - markLen, yRisk);
+        ctx.lineTo(chartArea.right, yRisk);
+        ctx.stroke();
+      }
       ctx.restore();
 
       const meta = chart.getDatasetMeta(0);
@@ -5050,6 +5063,12 @@ function buildWeeklyLoadChart(){
       ctx.restore();
     }
   };
+
+  // eje Y dinámico: se ajusta al rango real de los datos (con margen), en vez de un tope fijo alto
+  // que dejaba la línea de 1.50 pegada arriba del todo cuando los valores del equipo eran bajos.
+  const validData = data.filter(v=> v!==null && v!==undefined);
+  const dataMax = validData.length ? Math.max(...validData) : 1.5;
+  const yMax = Math.max(1.7, Math.ceil((Math.max(dataMax, 1.5) + 0.15) * 10) / 10);
 
   const ctx = canvas.getContext('2d');
   const cfg = {
@@ -5087,7 +5106,7 @@ function buildWeeklyLoadChart(){
           color:(c)=> allRatios[c.index] && allRatios[c.index].esPartido ? '#B794F6' : '#9797C9',
           font:(c)=> ({family:'IBM Plex Mono', size:9.5, weight: (allRatios[c.index] && allRatios[c.index].esPartido) ? '700' : '400'})
         } },
-        y:{ min:0.5, max:2.1, grid:{color:'rgba(231,231,251,.06)'}, ticks:{color:'#9797C9', font:{family:'IBM Plex Mono', size:10}, stepSize:.2} }
+        y:{ min:0.5, max:yMax, grid:{color:'rgba(231,231,251,.06)'}, ticks:{color:'#9797C9', font:{family:'IBM Plex Mono', size:10}, stepSize:.2} }
       }
     },
     plugins:[acwrRefPlugin]
