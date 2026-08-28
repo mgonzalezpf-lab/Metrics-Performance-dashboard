@@ -620,6 +620,14 @@
         <button class="lang-btn upload-btn" data-lang="ar" style="padding:6px 9px;font-size:11px;">AR</button>
       </span>
       <button id="uploadBtn" class="upload-btn" style="display:none;" data-i18n="actualizarDatos">⟳ Actualizar datos (subir Excel)</button>
+      <span id="categorySelectorWrap" style="display:none;margin-left:6px;">
+        <select id="categorySelector" class="upload-btn" style="padding:6px 9px;font-size:11px;cursor:pointer;">
+          <option value="">Todas las categorías</option>
+          <option value="U16">U16</option>
+          <option value="U18">U18</option>
+          <option value="U20">U20</option>
+        </select>
+      </span>
       <span id="notifBellWrap" style="position:relative;display:none;margin-left:6px;">
         <button id="notifBell" class="upload-btn" style="padding:7px 10px;position:relative;">🔔<span id="notifBadge" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--bad);color:#fff;font-size:10px;font-weight:700;border-radius:10px;min-width:16px;height:16px;line-height:16px;text-align:center;padding:0 3px;">0</span></button>
         <div id="notifDropdown" style="display:none;position:absolute;top:42px;right:0;background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:10px;min-width:260px;max-height:320px;overflow-y:auto;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.4);"></div>
@@ -632,6 +640,13 @@
           <label style="font-size:12px;color:var(--mist);display:flex;align-items:center;gap:6px;margin-bottom:8px;cursor:pointer;">
             <input id="addPlayerIsGk" type="checkbox" style="width:14px;height:14px;cursor:pointer;"> 🧤 Es arquero
           </label>
+          <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:6px;">Categoría (opcional, fútbol base)</label>
+          <select id="addPlayerCategoria" style="width:100%;padding:7px 9px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:12.5px 'IBM Plex Sans';outline:none;margin-bottom:8px;box-sizing:border-box;">
+            <option value="">Sin categoría</option>
+            <option value="U16">U16</option>
+            <option value="U18">U18</option>
+            <option value="U20">U20</option>
+          </select>
           <button id="addPlayerSubmit" class="upload-btn" style="width:100%;">Agregar a la lista</button>
           <div id="addPlayerStatus" style="font-size:11px;color:var(--mist);margin-top:6px;"></div>
         </div>
@@ -652,6 +667,14 @@
       <select id="csvImportTipo" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:10px;box-sizing:border-box;">
         <option value="Entreno">Entreno</option>
         <option value="Partido">Partido</option>
+      </select>
+
+      <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:4px;">Categoría (opcional, fútbol base)</label>
+      <select id="csvImportCategoria" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:10px;box-sizing:border-box;">
+        <option value="">Sin categoría</option>
+        <option value="U16">U16</option>
+        <option value="U18">U18</option>
+        <option value="U20">U20</option>
       </select>
 
       <div id="csvImportRivalWrap">
@@ -1719,10 +1742,12 @@ async function approvePendingUser(userId, newRole, btnEl){
 
 // ---------- Admin: agregar jugador manualmente a la lista (antes de tener datos de GPS) ----------
 async function getRosterExtraNames(){
-  const {data,error} = await supabaseClient.from('roster_players').select('player_name,is_goalkeeper').eq('club',CURRENT_CLUB);
+  const {data,error} = await supabaseClient.from('roster_players').select('player_name,is_goalkeeper,categoria').eq('club',CURRENT_CLUB);
   if(error) return [];
   ROSTER_GK_NAMES = (data||[]).filter(r=>r.is_goalkeeper).map(r=>r.player_name);
-  return (data||[]).map(r=>r.player_name);
+  (data||[]).forEach(r=>{ if(r.categoria) ROSTER_CATEGORIES[normalizeNameKey(r.player_name)] = r.categoria; });
+  const visibles = (data||[]).filter(r => matchesCurrentCategory(r.player_name));
+  return visibles.map(r=>r.player_name);
 }
 // Compara nombres ignorando tildes, mayúsculas y espacios de más — para que "Matías Cofré"
 // y "Matias Cofre " (escritos distinto en el roster manual vs los datos de GPS) se traten
@@ -1752,6 +1777,24 @@ function setupUploadButtons(){
   const isAdminOrOwner = myProfile && (myProfile.role==='admin' || myProfile.role==='owner');
   if(uploadBtn) uploadBtn.style.display = isAdminOrOwner ? 'inline-block' : 'none';
 }
+// Selector de categoría (fútbol base con varias categorías, ej: U16/U18/U20, dentro del mismo club) —
+// visible solo para admin/owner. Cambiar la categoría vuelve a calcular todo el dashboard filtrado a esa categoría.
+function setupCategorySelector(){
+  const wrap = document.getElementById('categorySelectorWrap');
+  const select = document.getElementById('categorySelector');
+  const isAdminOrOwner = myProfile && (myProfile.role==='admin' || myProfile.role==='owner');
+  if(!wrap || !select) return;
+  wrap.style.display = isAdminOrOwner ? 'inline-block' : 'none';
+  select.value = CURRENT_CATEGORY || '';
+  select.onchange = async ()=>{
+    CURRENT_CATEGORY = select.value || null;
+    const prevPlayer = state.player;
+    await getRosterExtraNames(); // refresca ROSTER_CATEGORIES y filtra rosterExtra por la nueva categoría
+    await loadGkData(); // vuelve a calcular deriveGkData ya filtrado
+    deriveAll(ACTIVE_EVENTS);
+    renderAll(prevPlayer);
+  };
+}
 function setupAddPlayerBar(){
   if(!(myProfile && (myProfile.role==='admin' || myProfile.role==='owner'))) return;
   const wrap = document.getElementById('addPlayerWrap');
@@ -1760,13 +1803,14 @@ function setupAddPlayerBar(){
   const form = document.getElementById('addPlayerForm');
   const input = document.getElementById('addPlayerInput');
   const isGkCheckbox = document.getElementById('addPlayerIsGk');
+  const categoriaSelect = document.getElementById('addPlayerCategoria');
   const status = document.getElementById('addPlayerStatus');
   btn.onclick = ()=>{ form.style.display = form.style.display==='block' ? 'none' : 'block'; };
   document.getElementById('addPlayerSubmit').onclick = async ()=>{
     const name = input.value.trim();
     if(!name){ status.textContent='Escribe un nombre.'; return; }
     status.textContent = 'Agregando…';
-    const {error} = await supabaseClient.from('roster_players').insert({club:CURRENT_CLUB, player_name:name, is_goalkeeper:isGkCheckbox.checked});
+    const {error} = await supabaseClient.from('roster_players').insert({club:CURRENT_CLUB, player_name:name, is_goalkeeper:isGkCheckbox.checked, categoria: categoriaSelect.value || null});
     if(error){
       status.textContent = error.code==='23505' ? 'Ese nombre ya está en la lista.' : 'No se pudo agregar: '+error.message;
       return;
@@ -1774,6 +1818,7 @@ function setupAddPlayerBar(){
     status.textContent = `✅ "${name}" agregado. Ya puede crear su cuenta y elegirlo.`;
     input.value='';
     isGkCheckbox.checked = false;
+    categoriaSelect.value = '';
   };
   document.addEventListener('click',(e)=>{ if(!wrap.contains(e.target)) form.style.display='none'; });
 }
@@ -3135,6 +3180,7 @@ async function startDashboard(){
   setupGkPreviewBar();
   setupAddPlayerBar();
   setupUploadButtons();
+  setupCategorySelector();
   setupNextMatchBar();
   setupRestDayBar();
   setupRpeWindowBar();
@@ -3383,9 +3429,10 @@ function computeRecordsFromEvents(events, metricOrder=METRIC_ORDER){
 let players=[], byPlayer={}, playerAvg={}, squadMax={}, squadAvg={}, RECORDS=[], recordByPlayer={};
 
 function deriveAll(events){
-  players = [...new Set(events.map(e=>e.jugador))].sort();
+  const filtered = events.filter(e=> matchesCurrentCategory(e.jugador));
+  players = [...new Set(filtered.map(e=>e.jugador))].sort();
   byPlayer = {};
-  players.forEach(p=>{ byPlayer[p] = events.filter(e=>e.jugador===p).sort((a,b)=>a.fecha.localeCompare(b.fecha)); });
+  players.forEach(p=>{ byPlayer[p] = filtered.filter(e=>e.jugador===p).sort((a,b)=>a.fecha.localeCompare(b.fecha)); });
 
   playerAvg = {}; // metric averages over last 5 events
   players.forEach(p=>{
@@ -3396,11 +3443,11 @@ function deriveAll(events){
 
   squadMax = {}; squadAvg = {};
   METRIC_ORDER.forEach(m=>{
-    squadMax[m] = Math.max(...events.map(e=>e[m]||0), 1);
-    squadAvg[m] = avg(events,m);
+    squadMax[m] = Math.max(...filtered.map(e=>e[m]||0), 1);
+    squadAvg[m] = avg(filtered,m);
   });
 
-  RECORDS = computeRecordsFromEvents(events);
+  RECORDS = computeRecordsFromEvents(filtered);
   recordByPlayer = {};
   RECORDS.forEach(r=> recordByPlayer[r.jugador]=r);
 }
@@ -3545,7 +3592,7 @@ function sumCycleDistanceAvg(datesArr, byDate){
   return total;
 }
 function computeCurrentCycleAvg(field='dist'){
-  const {cycles, byDate} = computeMicrocycles(ACTIVE_EVENTS);
+  const {cycles, byDate} = computeMicrocycles(categoryFilteredEvents());
   if(!cycles.length) return null;
   const lastCycle = cycles[cycles.length-1];
   let total = 0, count = 0;
@@ -3561,7 +3608,7 @@ function computeCurrentCycleAvg(field='dist'){
 // Igual que computeCurrentCycleAvg, pero sumando el promedio diario de cada sesión del ciclo
 // (el total acumulado del microciclo), en vez de promediar todo junto.
 function computeCurrentCycleTotal(field='dist'){
-  const {cycles, byDate} = computeMicrocycles(ACTIVE_EVENTS);
+  const {cycles, byDate} = computeMicrocycles(categoryFilteredEvents());
   if(!cycles.length) return null;
   const lastCycle = cycles[cycles.length-1];
   let total = 0, count = 0;
@@ -3613,7 +3660,7 @@ function computeMicrocycles(events){
 function buildMicrocycleTable(){
   const box = document.getElementById('microcycleTable');
   if(!box) return;
-  const {cycles, byDate, lastCycleWasClosed} = computeMicrocycles(ACTIVE_EVENTS);
+  const {cycles, byDate, lastCycleWasClosed} = computeMicrocycles(categoryFilteredEvents());
   if(!cycles.length){ box.innerHTML=''; return; }
   const lastMatch = getLastMatchInfo(ACTIVE_EVENTS); // referencia fija: último partido REALMENTE jugado
   const last4 = cycles.slice(-4); // últimos 4 microciclos, para no saturar la pantalla
@@ -3970,6 +4017,7 @@ async function switchToClub(clubName){
   setupGkPreviewBar();
   setupAddPlayerBar();
   setupUploadButtons();
+  setupCategorySelector();
   setupNextMatchBar();
   setupRestDayBar();
   setupRpeWindowBar();
@@ -4274,7 +4322,7 @@ function buildDataQuality(){
 // Total de un campo (pl, dist, etc.) de la semana actual vs la anterior (mismo agrupado lunes-domingo que "Carga semanal del plantel")
 function getWeeklyFieldComparison(field='pl'){
   const weekMap = {};
-  ACTIVE_EVENTS.forEach(e=>{
+  categoryFilteredEvents().forEach(e=>{
     const monday = isoDate(getMonday(e.fecha));
     if(!weekMap[monday]) weekMap[monday] = 0;
     if(e[field]!==null && e[field]!==undefined && !isNaN(e[field])) weekMap[monday] += e[field];
@@ -4297,7 +4345,7 @@ function buildWeeklyTarget(){
   const pctInput = document.getElementById('weeklyTargetPct');
   const pct = pctInput ? Math.max(1, Math.min(100, Number(pctInput.value) || 20)) : 20;
 
-  const {cycles, byDate, lastCycleWasClosed} = computeMicrocycles(ACTIVE_EVENTS);
+  const {cycles, byDate, lastCycleWasClosed} = computeMicrocycles(categoryFilteredEvents());
   if(!cycles.length){
     body.innerHTML = `<div style="color:var(--mist);font-size:12px;">Sin datos suficientes todavía</div>`;
     return;
@@ -4463,11 +4511,12 @@ function buildWeeklyTarget(){
 
 // % de intensidad compuesta (dist+hsr+pl+m/min vs promedio de los últimos 3 partidos) de la sesión MÁS RECIENTE cargada
 function getCurrentSessionIntensity(){
-  const dates = [...new Set(ACTIVE_EVENTS.map(e=>e.fecha))].sort();
+  const dates = [...new Set(categoryFilteredEvents().map(e=>e.fecha))].sort();
   if(!dates.length) return null;
   const lastDate = dates[dates.length-1];
-  const dayEvents = ACTIVE_EVENTS.filter(e=>e.fecha===lastDate);
-  const lastMatch = getLastMatchInfo(ACTIVE_EVENTS);
+  const catEvents = categoryFilteredEvents();
+  const dayEvents = catEvents.filter(e=>e.fecha===lastDate);
+  const lastMatch = getLastMatchInfo(catEvents);
   const distAvg = avgField(dayEvents,'dist');
   const hsrAvg = avgField(dayEvents,'hsr');
   const plAvg = avgField(dayEvents,'pl');
@@ -4481,14 +4530,15 @@ function getCurrentSessionIntensity(){
 }
 
 function buildKPIs(){
-  const avgPL = avg(ACTIVE_EVENTS,'pl');
-  const dates = [...new Set(ACTIVE_EVENTS.map(e=>e.fecha))].sort();
+  const catEvents = categoryFilteredEvents();
+  const avgPL = avg(catEvents,'pl');
+  const dates = [...new Set(catEvents.map(e=>e.fecha))].sort();
   const lastDate = dates[dates.length-1];
   document.getElementById('lastDate').textContent = lastDate ? lastDate.split('-').reverse().join('/') : '—';
   const rangeMetaCountEl = document.getElementById('rangeMetaCount');
   if(rangeMetaCountEl) rangeMetaCountEl.textContent = players.length;
   const todays = lastDate ? RECORDS.filter(r=>['dist','hsr','vel','acc','desa','pl'].some(m=>r[m].fecha===lastDate)) : [];
-  const lastMatch = getLastMatchInfo(ACTIVE_EVENTS);
+  const lastMatch = getLastMatchInfo(catEvents);
   const cycleDistTotal = computeCurrentCycleTotal('dist');
   const cycleHsrTotal = computeCurrentCycleTotal('hsr');
   const weeklyPL = getWeeklyPLComparison();
@@ -4531,7 +4581,7 @@ function buildPlayerList(filter=''){
   document.getElementById('railCount').textContent = filtered.length;
   list.innerHTML = filtered.map(p=>{
     const rec = recordByPlayer[p];
-    const lastDate = [...new Set(ACTIVE_EVENTS.map(e=>e.fecha))].sort().pop();
+    const lastDate = [...new Set(categoryFilteredEvents().map(e=>e.fecha))].sort().pop();
     const isNew = rec && METRIC_ORDER.some(m=>rec[m] && rec[m].fecha===lastDate);
     return `<div class="p-item ${p===state.player?'active':''}" data-p="${p}">
       <div class="ini">${initials(p)}</div>
@@ -4801,7 +4851,7 @@ function buildLeaderboard(){
 
 // ---------- records table ----------
 function buildRecordsTable(){
-  const lastDate = [...new Set(ACTIVE_EVENTS.map(e=>e.fecha))].sort().pop();
+  const lastDate = [...new Set(categoryFilteredEvents().map(e=>e.fecha))].sort().pop();
   const rows = RECORDS.slice().sort((a,b)=> a.jugador.localeCompare(b.jugador));
   const head = `<tr><th>Jugador</th>${METRIC_ORDER.map(m=>`<th>${METRICS[m].label}</th>`).join('')}</tr>`;
   const body = rows.map(r=>{
@@ -4843,6 +4893,7 @@ function diffBadge(diff){
 function buildMatchGrid(){
   const box = document.getElementById('matchGrid');
   const entries = Object.entries(ACTIVE_TEAMTOTALS)
+    .filter(([name,t]) => !CURRENT_CATEGORY || !t.categoria || t.categoria===CURRENT_CATEGORY)
     .sort((a,b)=> (b[1].fecha||'').localeCompare(a[1].fecha||''));
   box.innerHTML = entries.map(([name,t])=>{
     const h = t.halves || {};
@@ -4867,7 +4918,7 @@ function buildMatchGrid(){
 const ACWR_LABEL = {low:'Carga baja', optimal:'Óptima', caution:'Precaución', high:'Riesgo alto', insuf:'Datos insuf.'};
 const ACWR_VAR = {low:'--low', optimal:'--good', caution:'--warn', high:'--bad', insuf:'--mist'};
 function buildACWR(){
-  const dates = [...new Set(ACTIVE_EVENTS.map(e=>e.fecha))].sort();
+  const dates = [...new Set(categoryFilteredEvents().map(e=>e.fecha))].sort();
   const refDate = dates[dates.length-1];
   const order = {high:0, caution:1, optimal:2, low:3, insuf:4};
   const rows = players.map(p=>({p, ...computeACWR(byPlayer[p], refDate)}))
@@ -4892,7 +4943,7 @@ let weeklyLoadChart;
 function buildWeeklyLoadChart(){
   const canvas = document.getElementById('weeklyLoadChart');
   if(!canvas) return;
-  const dates = [...new Set(ACTIVE_EVENTS.map(e=>e.fecha))].sort();
+  const dates = [...new Set(categoryFilteredEvents().map(e=>e.fecha))].sort();
   if(!dates.length){
     if(weeklyLoadChart){ weeklyLoadChart.destroy(); weeklyLoadChart=null; }
     const tag = document.getElementById('weeklyLoadTag');
@@ -4906,7 +4957,7 @@ function buildWeeklyLoadChart(){
       .map(p=> computeACWR(byPlayer[p], d).ratio)
       .filter(r=> r!==null && r!==undefined && !isNaN(r));
     const avgRatio = ratios.length ? ratios.reduce((a,b)=>a+b,0)/ratios.length : null;
-    const esPartido = ACTIVE_EVENTS.some(e=> e.fecha===d && e.tipo==='Partido');
+    const esPartido = categoryFilteredEvents().some(e=> e.fecha===d && e.tipo==='Partido');
     return { fecha:d, ratio: avgRatio!==null ? Math.round(avgRatio*100)/100 : null, esPartido };
   });
 
@@ -5467,9 +5518,10 @@ function withGkDerivedFields(e){
 let GK_EVENTS = [];
 let gkPlayers=[], gkByPlayer={}, gkPlayerAvg={}, gkSquadMax={}, gkSquadAvg={}, gkRecordByPlayer={};
 function deriveGkData(){
-  gkPlayers = [...new Set(GK_EVENTS.map(e=>e.jugador))].sort();
+  const gkFiltered = GK_EVENTS.filter(e=> matchesCurrentCategory(e.jugador));
+  gkPlayers = [...new Set(gkFiltered.map(e=>e.jugador))].sort();
   gkByPlayer = {};
-  gkPlayers.forEach(p=>{ gkByPlayer[p] = GK_EVENTS.filter(e=>e.jugador===p).sort((a,b)=>a.fecha.localeCompare(b.fecha)); });
+  gkPlayers.forEach(p=>{ gkByPlayer[p] = gkFiltered.filter(e=>e.jugador===p).sort((a,b)=>a.fecha.localeCompare(b.fecha)); });
 
   gkPlayerAvg = {};
   gkPlayers.forEach(p=>{
@@ -5480,11 +5532,11 @@ function deriveGkData(){
 
   gkSquadMax = {}; gkSquadAvg = {};
   GK_METRIC_ORDER.forEach(m=>{
-    gkSquadMax[m] = Math.max(...GK_EVENTS.map(e=>e[m]||0), 1);
-    gkSquadAvg[m] = avg(GK_EVENTS,m);
+    gkSquadMax[m] = Math.max(...gkFiltered.map(e=>e[m]||0), 1);
+    gkSquadAvg[m] = avg(gkFiltered,m);
   });
 
-  const gkRecords = computeRecordsFromEvents(GK_EVENTS, GK_METRIC_ORDER);
+  const gkRecords = computeRecordsFromEvents(gkFiltered, GK_METRIC_ORDER);
   gkRecordByPlayer = {};
   gkRecords.forEach(r=> gkRecordByPlayer[r.jugador]=r);
 }
@@ -5512,6 +5564,19 @@ async function loadGkData(){
   deriveGkData();
 }
 let ROSTER_GK_NAMES = []; // nombres marcados como arquero en roster_players (agregados a mano, sin datos de GPS todavía)
+const CATEGORIAS_FUTBOL_BASE = ['U16','U18','U20'];
+let CURRENT_CATEGORY = null; // null = "Todas las categorías"
+let ROSTER_CATEGORIES = {}; // normalizeNameKey(nombre) -> categoria ('U16'/'U18'/'U20'), para clubes de fútbol base con varias categorías
+function matchesCurrentCategory(playerName){
+  if(!CURRENT_CATEGORY) return true; // "Todas": no filtra nada
+  return ROSTER_CATEGORIES[normalizeNameKey(playerName)] === CURRENT_CATEGORY;
+}
+// Eventos del club ya filtrados por la categoría seleccionada — usar esto (no ACTIVE_EVENTS directo)
+// en cualquier cálculo que agrupe por fecha/ciclo mezclando jugadores (microciclos, etc.), para que
+// un club de fútbol base con varias categorías no mezcle los entrenos de una categoría con otra.
+function categoryFilteredEvents(){
+  return ACTIVE_EVENTS.filter(e=> matchesCurrentCategory(e.jugador));
+}
 function isGoalkeeper(playerName){
   return GK_EVENTS.some(e=>e.jugador===playerName) || ROSTER_GK_NAMES.includes(playerName);
 }
@@ -5592,6 +5657,8 @@ async function handleCatapultCSV(file){
     document.getElementById('csvImportCount').textContent = parsed.bySession.length;
     document.getElementById('csvImportFecha').value = parsed.fecha || '';
     document.getElementById('csvImportTipo').value = 'Entreno';
+    const catEl = document.getElementById('csvImportCategoria');
+    if(catEl) catEl.value = CURRENT_CATEGORY || ''; // si ya estás viendo una categoría puntual, la propone de entrada
     document.getElementById('csvImportRival').value = '';
     document.getElementById('csvImportDetalle').value = '';
     document.getElementById('csvImportStatus').textContent = '';
@@ -5645,6 +5712,8 @@ async function confirmCatapultImport(){
   const rival = document.getElementById('csvImportRival').value.trim();
   const detalle = document.getElementById('csvImportDetalle').value.trim();
   const fecha = document.getElementById('csvImportFecha').value;
+  const categoriaEl = document.getElementById('csvImportCategoria');
+  const categoriaSeleccionada = categoriaEl ? (categoriaEl.value || null) : null;
   if(!fecha){ status.textContent = 'Falta la fecha.'; return; }
   if(tipo==='Partido' && !rival){ status.textContent = 'Falta el nombre del rival.'; return; }
 
@@ -5654,7 +5723,7 @@ async function confirmCatapultImport(){
     const nuevosEventos = pendingCatapultData.bySession
       .filter(r => !isGoalkeeper(r.jugador))   // los arqueros no van a Jugadores de Campo, quedan en gk_data
       .map(r=>({
-        fecha, jugador:r.jugador, tipo, detalle:detalleFinal,
+        fecha, jugador:r.jugador, tipo, detalle:detalleFinal, categoria: categoriaSeleccionada,
         dist:r.dist, hsr:r.hsr, vel:r.vel, acc:r.acc, desa:r.desa, pl:r.pl, min:r.min,
         alta_int:r.hsr, sprint:r.sprint, sprint_count:r.sprint_count,
       }));
@@ -5663,7 +5732,7 @@ async function confirmCatapultImport(){
     const nuevosGkEventos = pendingCatapultData.bySession
       .filter(r => isGoalkeeper(r.jugador))
       .map(r=>({
-        fecha, jugador:r.jugador, tipo, detalle:detalleFinal,
+        fecha, jugador:r.jugador, tipo, detalle:detalleFinal, categoria: categoriaSeleccionada,
         dist:r.dist, impact_left:r.impact_left, impact_right:r.impact_right,
         impact_total: (r.impact_left!==null && r.impact_right!==null) ? (r.impact_left + r.impact_right) : null,
         dives_left:r.dives_left, dives_right:r.dives_right,
@@ -5686,7 +5755,15 @@ async function confirmCatapultImport(){
     let teamTotalsFinal = ACTIVE_TEAMTOTALS;
     if(tipo==='Partido'){
       const totalsRow = computeCatapultTeamTotals(pendingCatapultData.bySession, pendingCatapultData.byHalf1, pendingCatapultData.byHalf2);
-      teamTotalsFinal = {...ACTIVE_TEAMTOTALS, [`vs ${rival}`]: {...totalsRow, fecha}};
+      teamTotalsFinal = {...ACTIVE_TEAMTOTALS, [`vs ${rival}`]: {...totalsRow, fecha, categoria: categoriaSeleccionada}};
+    }
+
+    // Si se eligió una categoría para esta carga, se etiqueta también en roster_players — así los jugadores
+    // detectados por GPS quedan clasificados automáticamente, sin tener que asignarlos a mano uno por uno.
+    if(categoriaSeleccionada){
+      const nombresDelArchivo = [...new Set(pendingCatapultData.bySession.map(r=>r.jugador))];
+      const filasRoster = nombresDelArchivo.map(nombre => ({club:CURRENT_CLUB, player_name:nombre, categoria:categoriaSeleccionada}));
+      await supabaseClient.from('roster_players').upsert(filasRoster, {onConflict:'club,player_name', ignoreDuplicates:false});
     }
 
     const prevPlayer = state.player;
@@ -5694,6 +5771,7 @@ async function confirmCatapultImport(){
     ACTIVE_TEAMTOTALS = teamTotalsFinal;
     await saveRemoteData(ACTIVE_EVENTS, ACTIVE_TEAMTOTALS);
     saveData(ACTIVE_EVENTS, ACTIVE_TEAMTOTALS);
+    await getRosterExtraNames(); // refresca ROSTER_CATEGORIES con lo que acabamos de etiquetar
     deriveAll(ACTIVE_EVENTS);
     renderAll(prevPlayer);
 
