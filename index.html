@@ -2436,14 +2436,14 @@ async function buildRpeTeamList(){
   if(error){ box.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">No se pudo cargar el RPE del plantel.</div>`; return; }
   RPE_REPORTS_CACHE = data || [];
   const byPlayerRpe = {};
-  RPE_REPORTS_CACHE.forEach(r=>{ (byPlayerRpe[r.player_name] = byPlayerRpe[r.player_name]||[]).push(r); });
+  RPE_REPORTS_CACHE.forEach(r=>{ (byPlayerRpe[normalizeNameKey(r.player_name)] = byPlayerRpe[normalizeNameKey(r.player_name)]||[]).push(r); });
   const today = todayISO();
   const order = {high:0, caution:1, optimal:2, low:3, insuf:4};
   // Plantel completo: jugadores con datos GPS + los que se agregaron manualmente (todavía sin GPS cargado)
   const rosterExtra = await getRosterExtraNames();
   const allPlayers = mergePlayerNames(players, rosterExtra).filter(p=>!isGoalkeeper(p));
   const rows = allPlayers.map(p=>{
-    const reportsForPlayer = byPlayerRpe[p] || [];
+    const reportsForPlayer = byPlayerRpe[normalizeNameKey(p)] || [];
     const {ratio} = computeRpeACWR(reportsForPlayer, today);
     const st = rpeAcwrStatus(ratio);
     return {p, ratio, ...st};
@@ -2470,7 +2470,7 @@ async function buildGkRpeTeamList(){
   if(error){ box.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">No se pudo cargar el RPE de arqueros.</div>`; return; }
   GK_RPE_REPORTS_CACHE = (data || []).filter(r => isGoalkeeper(r.player_name));
   const byPlayerRpe = {};
-  GK_RPE_REPORTS_CACHE.forEach(r=>{ (byPlayerRpe[r.player_name] = byPlayerRpe[r.player_name]||[]).push(r); });
+  GK_RPE_REPORTS_CACHE.forEach(r=>{ (byPlayerRpe[normalizeNameKey(r.player_name)] = byPlayerRpe[normalizeNameKey(r.player_name)]||[]).push(r); });
   const today = todayISO();
   const order = {high:0, caution:1, optimal:2, low:3, insuf:4};
   if(!gkPlayers.length){
@@ -2478,7 +2478,7 @@ async function buildGkRpeTeamList(){
     return;
   }
   const rows = gkPlayers.map(p=>{
-    const reportsForPlayer = byPlayerRpe[p] || [];
+    const reportsForPlayer = byPlayerRpe[normalizeNameKey(p)] || [];
     const {ratio} = computeRpeACWR(reportsForPlayer, today);
     const st = rpeAcwrStatus(ratio);
     return {p, ratio, ...st};
@@ -2507,9 +2507,9 @@ function buildGkRpeLoadTable(dateStr){
     saveAllBtn.style.cursor = saveAllBtn.disabled ? 'default' : 'pointer';
   }
   const byPlayerRpe = {};
-  GK_RPE_REPORTS_CACHE.forEach(r=>{ (byPlayerRpe[r.player_name] = byPlayerRpe[r.player_name]||[]).push(r); });
+  GK_RPE_REPORTS_CACHE.forEach(r=>{ (byPlayerRpe[normalizeNameKey(r.player_name)] = byPlayerRpe[normalizeNameKey(r.player_name)]||[]).push(r); });
   const rowsData = gkPlayers.map(p=>{
-    const reportsForPlayer = byPlayerRpe[p] || [];
+    const reportsForPlayer = byPlayerRpe[normalizeNameKey(p)] || [];
     const todayReport = reportsForPlayer.find(r=>r.fecha===dateStr);
     const {ratio, acute, chronic} = computeRpeACWR(reportsForPlayer, dateStr);
     const hora = todayReport && todayReport.updated_at ? new Date(todayReport.updated_at).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) : '—';
@@ -2630,7 +2630,7 @@ async function buildWellnessTeamList(fecha){
   }
   const reports = data || [];
   const byPlayer = {};
-  reports.forEach(r=> byPlayer[r.player_name] = r);
+  reports.forEach(r=> byPlayer[normalizeNameKey(r.player_name)] = r);
 
   // Plantel completo: jugadores con datos GPS + los que se agregaron manualmente (todavía sin GPS cargado)
   const rosterExtra = await getRosterExtraNames();
@@ -2676,7 +2676,7 @@ async function buildWellnessTeamList(fecha){
   tableBox.innerHTML = `<table class="mc-table">
     <thead><tr><th>Jugador</th><th>Sueño</th><th>Fatiga</th><th>Dolor Musc.</th><th>Estrés</th><th>Ánimo</th><th>Score</th><th>Total Musc.</th><th>TQR</th><th>Zona de dolor</th><th>Observación</th></tr></thead>
     <tbody>${allPlayers.map(p=>{
-      const r = byPlayer[p];
+      const r = byPlayer[normalizeNameKey(p)];
       if(!r) return `<tr><td><b>${p}</b></td><td colspan="10" style="color:var(--mist);">${isToday?'Sin reportar hoy':'Sin reportar ese día'}</td></tr>`;
       const sc = scoreOf(r);
       const tm = totalMuscularOf(r);
@@ -2981,12 +2981,12 @@ async function buildRpeLoadTable(dateStr){
     saveAllBtn.style.cursor = saveAllBtn.disabled ? 'default' : 'pointer';
   }
   const byPlayerRpe = {};
-  RPE_REPORTS_CACHE.forEach(r=>{ (byPlayerRpe[r.player_name] = byPlayerRpe[r.player_name]||[]).push(r); });
+  RPE_REPORTS_CACHE.forEach(r=>{ (byPlayerRpe[normalizeNameKey(r.player_name)] = byPlayerRpe[normalizeNameKey(r.player_name)]||[]).push(r); });
   // Plantel completo: jugadores con datos GPS + los que se agregaron manualmente (todavía sin GPS cargado)
   const rosterExtra = await getRosterExtraNames();
   const allPlayers = mergePlayerNames(players, rosterExtra).filter(p=>!isGoalkeeper(p));
   const rowsData = allPlayers.map(p=>{
-    const reportsForPlayer = byPlayerRpe[p] || [];
+    const reportsForPlayer = byPlayerRpe[normalizeNameKey(p)] || [];
     const todayReport = reportsForPlayer.find(r=>r.fecha===dateStr);
     const {ratio, acute, chronic} = computeRpeACWR(reportsForPlayer, dateStr);
     const hora = todayReport && todayReport.updated_at ? new Date(todayReport.updated_at).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) : '—';
