@@ -5020,33 +5020,20 @@ function buildWeeklyLoadChart(){
     return;
   }
 
-  // plugin propio: dibuja la banda de zona óptima (0.80–1.30) + una marca corta de riesgo alto (1.50) y el valor sobre cada punto
+  // plugin propio: dibuja las líneas de referencia (0.80 / 1.30 / 1.50) y el valor sobre cada punto
   const acwrRefPlugin = {
     id: 'acwrDailyRef',
     afterDatasetsDraw(chart){
       const {ctx, chartArea, scales} = chart;
       if(!chartArea) return;
       const yScale = scales.y;
-
-      // banda translúcida para la zona óptima (0.80–1.30), en vez de dos líneas cruzando todo
       ctx.save();
-      const yTop = yScale.getPixelForValue(1.3);
-      const yBottom = yScale.getPixelForValue(0.8);
-      ctx.fillStyle = 'rgba(52,211,153,.07)';
-      ctx.fillRect(chartArea.left, yTop, chartArea.right - chartArea.left, yBottom - yTop);
-      ctx.restore();
-
-      // marca corta (no cruza todo el gráfico) para el umbral de riesgo alto (1.50), solo sobre el borde derecho
-      ctx.save();
-      const yRisk = yScale.getPixelForValue(1.5);
-      if(yRisk>=chartArea.top && yRisk<=chartArea.bottom){
-        const markLen = 46;
-        ctx.strokeStyle = '#FB7185'; ctx.lineWidth = 1.2; ctx.setLineDash([5,4]);
-        ctx.beginPath();
-        ctx.moveTo(chartArea.right - markLen, yRisk);
-        ctx.lineTo(chartArea.right, yRisk);
-        ctx.stroke();
-      }
+      [{v:0.8, color:'#34D399'},{v:1.3, color:'#34D399'},{v:1.5, color:'#FB7185'}].forEach(l=>{
+        const y = yScale.getPixelForValue(l.v);
+        if(y<chartArea.top || y>chartArea.bottom) return;
+        ctx.strokeStyle = l.color; ctx.lineWidth = 1.2; ctx.setLineDash([5,4]);
+        ctx.beginPath(); ctx.moveTo(chartArea.left,y); ctx.lineTo(chartArea.right,y); ctx.stroke();
+      });
       ctx.restore();
 
       const meta = chart.getDatasetMeta(0);
