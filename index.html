@@ -901,6 +901,19 @@
   <div id="rpePanelsGroup">
     <div class="panel team-only" style="margin-bottom:18px;">
       <div class="panel-head">
+        <h3>📈 Índice ACWR (RPE)</h3>
+        <span class="tag" id="rpeAcwrTag">carga aguda:crónica en base al RPE reportado</span>
+      </div>
+      <div class="weekly-chart-box" id="rpeAcwrScrollBox" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <div id="rpeAcwrInner" style="height:100%;">
+          <canvas id="rpeAcwrCanvas"></canvas>
+        </div>
+      </div>
+      <div class="tl-label" id="rpeAcwrLabel" style="text-align:center;padding:6px 0 0;">—</div>
+    </div>
+
+    <div class="panel team-only" style="margin-bottom:18px;">
+      <div class="panel-head">
         <h3 data-i18n="rpePlantel">RPE del plantel</h3>
         <span class="tag" data-i18n="rpePlantelTag">percepción de esfuerzo reportada por cada jugador</span>
       </div>
@@ -1925,6 +1938,10 @@ function resizeAllCharts(){
       buildWeeklyLoadChart(true);
     }catch(e){ console.warn('resize weeklyLoadChart falló:', e); }
     try{
+      if(rpeAcwrChartInstance){ rpeAcwrChartInstance.destroy(); rpeAcwrChartInstance=null; }
+      buildRpeAcwrChart();
+    }catch(e){ console.warn('resize rpeAcwrChartInstance falló:', e); }
+    try{
       if(teamTimelineChart){ teamTimelineChart.destroy(); teamTimelineChart=null; }
       buildTeamTimeline(true);
     }catch(e){ console.warn('resize teamTimelineChart falló:', e); }
@@ -2480,6 +2497,7 @@ async function buildRpeTeamList(){
   const {data,error} = await supabaseClient.from('rpe_reports').select('player_name,fecha,rpe,minutos,updated_at').eq('club',CURRENT_CLUB).order('fecha',{ascending:false});
   if(error){ box.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">No se pudo cargar el RPE del plantel.</div>`; return; }
   RPE_REPORTS_CACHE = data || [];
+  buildRpeAcwrChart();
   const byPlayerRpe = {};
   RPE_REPORTS_CACHE.forEach(r=>{ (byPlayerRpe[normalizeNameKey(r.player_name)] = byPlayerRpe[normalizeNameKey(r.player_name)]||[]).push(r); });
   const today = todayISO();
@@ -5080,6 +5098,131 @@ function buildWeeklyLoadChart(){
   });
   const tag = document.getElementById('weeklyLoadTag');
   if(tag) tag.textContent = `Promedio del plantel · ${allRatios.length} día${allRatios.length===1?'':'s'} cargado${allRatios.length===1?'':'s'}`;
+}
+
+// ---------- ACWR diario en base al RPE (mismo gráfico que el de GPS, pero con carga interna RPE×minutos) ----------
+let rpeAcwrChartInstance;
+function buildRpeAcwrChart(){
+  const canvas = document.getElementById('rpeAcwrCanvas');
+  if(!canvas) return;
+  const byPlayerRpe = {};
+  RPE_REPORTS_CACHE.forEach(r=>{ (byPlayerRpe[normalizeNameKey(r.player_name)] = byPlayerRpe[normalizeNameKey(r.player_name)]||[]).push(r); });
+  const rpePlayerNames = [...new Set(RPE_REPORTS_CACHE.map(r=>r.player_name))];
+  const dates = [...new Set(RPE_REPORTS_CACHE.map(r=>r.fecha))].sort();
+  if(!dates.length){
+    if(rpeAcwrChartInstance){ rpeAcwrChartInstance.destroy(); rpeAcwrChartInstance=null; }
+    const tag2 = document.getElementById('rpeAcwrTag');
+    if(tag2) tag2.textContent = 'Sin reportes de RPE cargados';
+    return;
+  }
+
+  // ACWR promedio del plantel (en base al RPE) para cada día con reportes cargados
+  const allRatios = dates.map(d=>{
+    const ratios = rpePlayerNames
+      .map(p=> computeRpeACWR(byPlayerRpe[normalizeNameKey(p)]||[], d).ratio)
+      .filter(r=> r!==null && r!==undefined && !isNaN(r));
+    const avgRatio = ratios.length ? ratios.reduce((a,b)=>a+b,0)/ratios.length : null;
+    const esPartido = categoryFilteredEvents().some(e=> e.fecha===d && e.tipo==='Partido');
+    return { fecha:d, ratio: avgRatio!==null ? Math.round(avgRatio*100)/100 : null, esPartido };
+  });
+
+  const labels = allRatios.map(r=> r.fecha.slice(5).split('-').reverse().join('/'));
+  const data = allRatios.map(r=> r.ratio);
+
+  const labelEl = document.getElementById('rpeAcwrLabel');
+  if(labelEl) labelEl.innerHTML = `<b>${allRatios.length}</b> día${allRatios.length===1?'':'s'} con RPE cargado${allRatios.length===1?'':'s'} · deslizá para ver el historial · <span style="color:#7C5CFC;">●</span> = partido`;
+
+  const scrollBox = document.getElementById('rpeAcwrScrollBox');
+  const inner = document.getElementById('rpeAcwrInner');
+  const minWidth = scrollBox ? scrollBox.clientWidth : 300;
+  const perDay = Math.max(48, Math.floor(minWidth / 10));
+  const wantedWidth = Math.max(minWidth, allRatios.length * perDay);
+  if(inner) inner.style.width = wantedWidth + 'px';
+
+  if(typeof Chart === 'undefined'){
+    canvas.parentElement.innerHTML = '<div style="color:var(--mist);font-family:\'IBM Plex Mono\';font-size:12px;padding:14px;text-align:center;">No se pudo cargar Chart.js (sin conexión).</div>';
+    return;
+  }
+
+  const rpeAcwrRefPlugin = {
+    id: 'rpeAcwrDailyRef',
+    afterDatasetsDraw(chart){
+      const {ctx, chartArea, scales} = chart;
+      if(!chartArea) return;
+      const yScale = scales.y;
+      ctx.save();
+      [{v:0.8, color:'#34D399'},{v:1.3, color:'#34D399'},{v:1.5, color:'#FB7185'}].forEach(l=>{
+        const y = yScale.getPixelForValue(l.v);
+        if(y<chartArea.top || y>chartArea.bottom) return;
+        ctx.strokeStyle = l.color; ctx.lineWidth = 1.2; ctx.setLineDash([5,4]);
+        ctx.beginPath(); ctx.moveTo(chartArea.left,y); ctx.lineTo(chartArea.right,y); ctx.stroke();
+      });
+      ctx.restore();
+
+      const meta = chart.getDatasetMeta(0);
+      ctx.save();
+      ctx.textAlign = 'center';
+      meta.data.forEach((point, idx)=>{
+        const v = chart.data.datasets[0].data[idx];
+        if(v===null || v===undefined) return;
+        const esPartido = allRatios[idx] && allRatios[idx].esPartido;
+        ctx.font = esPartido ? "700 12px 'IBM Plex Mono', monospace" : "600 11px 'IBM Plex Mono', monospace";
+        ctx.fillStyle = esPartido ? '#B794F6' : '#67E8F9';
+        ctx.fillText(v.toFixed(2), point.x, point.y - 12);
+      });
+      ctx.restore();
+    }
+  };
+
+  const ctx2 = canvas.getContext('2d');
+  const cfg2 = {
+    type:'line',
+    data:{ labels, datasets:[{
+      label:'ACWR promedio del equipo (RPE)',
+      data,
+      spanGaps:true,
+      borderColor:'#22D3EE',
+      backgroundColor:'rgba(34,211,238,.10)',
+      pointBackgroundColor: allRatios.map(r=> r.esPartido ? '#B794F6' : '#67E8F9'),
+      pointBorderColor: allRatios.map(r=> r.esPartido ? '#7C5CFC' : '#22D3EE'),
+      pointStyle: allRatios.map(r=> r.esPartido ? 'rectRot' : 'circle'),
+      pointRadius: allRatios.map(r=> r.esPartido ? 6.5 : 5),
+      pointHoverRadius: allRatios.map(r=> r.esPartido ? 8.5 : 7),
+      tension:.3,
+      fill:true,
+      borderWidth:2.2,
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      layout:{ padding:{ top:18 } },
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#1E1E58', borderColor:'#22D3EE', borderWidth:1, titleColor:'#67E8F9', bodyColor:'#E7E7FB',
+          callbacks:{
+            label:(ctx)=> ctx.raw===null?'Datos insuficientes':`ACWR (RPE) promedio: ${ctx.raw.toFixed(2)}`,
+            afterLabel:(ctx)=> allRatios[ctx.dataIndex] && allRatios[ctx.dataIndex].esPartido ? '⚽ Día de partido' : ''
+          }
+        }
+      },
+      scales:{
+        x:{ grid:{display:false}, ticks:{
+          color:(c)=> allRatios[c.index] && allRatios[c.index].esPartido ? '#B794F6' : '#9797C9',
+          font:(c)=> ({family:'IBM Plex Mono', size:9.5, weight: (allRatios[c.index] && allRatios[c.index].esPartido) ? '700' : '400'})
+        } },
+        y:{ min:0.5, max:2.1, grid:{color:'rgba(231,231,251,.06)'}, ticks:{color:'#9797C9', font:{family:'IBM Plex Mono', size:10}, stepSize:.2} }
+      }
+    },
+    plugins:[rpeAcwrRefPlugin]
+  };
+  if(rpeAcwrChartInstance){ rpeAcwrChartInstance.destroy(); }
+  rpeAcwrChartInstance = new Chart(ctx2, cfg2);
+  requestAnimationFrame(()=>{
+    if(rpeAcwrChartInstance) rpeAcwrChartInstance.resize();
+    if(scrollBox) scrollBox.scrollLeft = scrollBox.scrollWidth;
+  });
+  const tag2 = document.getElementById('rpeAcwrTag');
+  if(tag2) tag2.textContent = `Promedio del plantel (RPE) · ${allRatios.length} día${allRatios.length===1?'':'s'} cargado${allRatios.length===1?'':'s'}`;
 }
 
 // ---------- team-wide daily evolution (dist / hsr / pl) ----------
