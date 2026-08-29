@@ -20,6 +20,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
@@ -312,7 +314,14 @@
   .panel{
     background:linear-gradient(180deg,var(--pitch-800),var(--pitch-900));
     border:1px solid var(--line);border-radius:var(--r-card);
+    position:relative;
   }
+  .panel-dl-btn{
+    position:absolute;top:12px;right:16px;width:26px;height:26px;border-radius:6px;
+    border:1px solid var(--line-strong);background:rgba(255,255,255,.05);color:var(--gold-bright);
+    cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;z-index:5;
+  }
+  .panel-dl-btn:hover{background:var(--gold);color:var(--pitch-950);border-color:var(--gold);}
   .panel-head{
     display:flex;align-items:center;justify-content:space-between;
     padding:14px 18px;border-bottom:1px solid var(--line);
@@ -791,10 +800,12 @@
   </div>
 
   <div id="controlCargaView" style="display:none;">
+<div id="cargaAcwrGroup" style="position:relative;">
+<button type="button" class="panel-dl-btn" data-target="cargaAcwrGroup" data-nombre="Objetivo + ACWR + Alertas de carga" title="Descargar esta sección como imagen">⬇</button>
 <div class="panel team-only" style="margin-bottom:18px;">
-    <div class="panel-head" style="padding-right:34px;">
+    <div class="panel-head" style="padding-right:44px;">
       <h3>🎯 Objetivo próximo microciclo</h3>
-      <span class="tag" style="margin-right:14px;">margen: <input id="weeklyTargetPct" type="number" min="1" max="100" value="20" style="width:44px;padding:2px 4px;border-radius:5px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--gold-bright);font:12px 'IBM Plex Mono';outline:none;text-align:center;">%</span>
+      <span class="tag" style="margin-right:6px;">margen: <input id="weeklyTargetPct" type="number" min="1" max="100" value="20" style="width:44px;padding:2px 4px;border-radius:5px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--gold-bright);font:12px 'IBM Plex Mono';outline:none;text-align:center;">%</span>
     </div>
     <div id="weeklyTargetRecommendation" style="margin-bottom:12px;"></div>
     <div id="weeklyTargetBody" style="display:flex;gap:12px;flex-wrap:wrap;"></div>
@@ -833,8 +844,10 @@
     </div>
     <div class="acwr-body" id="acwrList"></div>
   </div>
+</div>
 
-<div class="panel team-only staff-ok" style="margin-top:18px;">
+<div class="panel team-only staff-ok" id="monotoniaPanel" style="margin-top:18px;">
+    <button type="button" class="panel-dl-btn" data-target="monotoniaPanel" data-nombre="Monotonia y Strain" title="Descargar esta sección como imagen">⬇</button>
     <div class="panel-head">
       <h3 data-i18n="monotoniaStrain">Monotonía y Strain · método Foster</h3>
       <span class="tag" data-i18n="monotoniaTag">última semana con datos · sobre Player Load</span>
@@ -842,7 +855,8 @@
     <div class="acwr-body" id="monotonyList"></div>
   </div>
 
-<div class="panel team-only" style="margin-top:18px;">
+<div class="panel team-only" id="cargaSemanalPanel" style="margin-top:18px;">
+    <button type="button" class="panel-dl-btn" data-target="cargaSemanalPanel" data-nombre="Carga semanal del plantel" title="Descargar esta sección como imagen">⬇</button>
     <div class="panel-head">
       <h3 data-i18n="cargaSemanal">Carga semanal del plantel</h3>
       <span class="tag" id="weeklyTag" data-i18n="cargaSemanalTag">Player Load total por semana</span>
@@ -863,6 +877,7 @@
 
   <div id="partidosView" style="display:none;">
 <div class="panel team-only">
+    <button type="button" class="panel-dl-btn" data-target="partidosView" data-nombre="Comparativo de partidos" title="Descargar esta sección como imagen">⬇</button>
     <div class="panel-head">
       <h3 data-i18n="comparativoPartidos">Comparativo de partidos</h3>
       <span class="tag" data-i18n="totalesEquipo">totales de equipo</span>
@@ -872,7 +887,8 @@
   </div>
 
   <div id="wellnessView" style="display:none;">
-    <div class="panel team-only" style="margin-bottom:18px;">
+    <div class="panel team-only" id="wellnessPlantelPanel" style="margin-bottom:18px;">
+      <button type="button" class="panel-dl-btn" data-target="wellnessPlantelPanel" data-nombre="Wellness del plantel" title="Descargar esta sección como imagen">⬇</button>
       <div class="panel-head">
         <h3>💚 Wellness del plantel</h3>
         <span class="tag">reporte diario · antes de entrenar</span>
@@ -902,6 +918,8 @@
 
   <div id="rpeView" style="display:none;">
   <div id="rpePanelsGroup">
+    <div id="rpeAcwrTeamGroup" style="position:relative;">
+    <button type="button" class="panel-dl-btn" data-target="rpeAcwrTeamGroup" data-nombre="ACWR RPE + RPE del plantel" title="Descargar esta sección como imagen">⬇</button>
     <div class="panel team-only" style="margin-bottom:18px;">
       <div class="panel-head">
         <h3>📈 Índice ACWR (RPE)</h3>
@@ -922,8 +940,10 @@
       </div>
       <div class="acwr-body" id="rpeTeamList"></div>
     </div>
+    </div>
 
-    <div class="panel team-only">
+    <div class="panel team-only" id="cargaInternaPanel">
+      <button type="button" class="panel-dl-btn" data-target="cargaInternaPanel" data-nombre="Carga interna RPE" title="Descargar esta sección como imagen">⬇</button>
       <div class="panel-head">
         <h3 data-i18n="cargaInterna">Carga interna (RPE)</h3>
         <span class="tag" data-i18n="cargaInternaTag">carga aguda : crónica basada en RPE × minutos</span>
@@ -983,6 +1003,8 @@
   </div>
   <div class="kpis team-only" id="kpiStrip"></div>
 
+  <div id="evolMicrocicloGroup" style="position:relative;">
+  <button type="button" class="panel-dl-btn" data-target="evolMicrocicloGroup" data-nombre="Evolucion del plantel + Microciclo" title="Descargar esta sección como imagen">⬇</button>
   <div class="panel team-only staff-ok" style="margin-bottom:18px;">
     <div class="panel-head">
       <h3 data-i18n="evolucionPlantel">Evolución del plantel</h3>
@@ -1030,6 +1052,7 @@
       <div id="microcycleTable"></div>
     </div>
   </div>
+  </div>
 
   <div class="panel" id="previewBar" style="display:none;margin-bottom:18px;">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -1069,7 +1092,8 @@
     </div>
 
     <!-- RIGHT COLUMN -->
-    <div style="display:flex;flex-direction:column;gap:18px;">
+    <div id="radarEvolGroup" style="display:flex;flex-direction:column;gap:18px;position:relative;">
+      <button type="button" class="panel-dl-btn" data-target="radarEvolGroup" data-nombre="Radar de Vuelo + Evolución" title="Descargar esta sección como imagen">⬇</button>
 
       <div class="panel">
         <div class="panel-head">
@@ -1159,7 +1183,8 @@
 
   
 
-  <div class="panel team-only" style="margin-bottom:18px;">
+  <div class="panel team-only" id="compararJugadoresPanel" style="margin-bottom:18px;">
+    <button type="button" class="panel-dl-btn" data-target="compararJugadoresPanel" data-nombre="Comparar jugadores" title="Descargar esta sección como imagen">⬇</button>
     <div class="panel-head">
       <h3 data-i18n="compararJugadores">Comparar jugadores</h3>
       <span class="tag" data-i18n="cabezaCabeza">cabeza a cabeza</span>
@@ -1180,7 +1205,8 @@
     </div>
   </div>
 
-  <div class="panel team-only" style="margin-bottom:18px;">
+  <div class="panel team-only" id="rankingPlantelPanel" style="margin-bottom:18px;">
+    <button type="button" class="panel-dl-btn" data-target="rankingPlantelPanel" data-nombre="Ranking del plantel" title="Descargar esta sección como imagen">⬇</button>
     <div class="panel-head">
       <h3 data-i18n="rankingPlantel">Ranking del plantel</h3>
       <span class="tag" id="lbMetricTag" data-i18n="promedioUltimas">promedio últimas sesiones</span>
@@ -1191,12 +1217,15 @@
   </div>
 
   <div class="panel team-only staff-ok" style="margin-bottom:18px;">
+    <button type="button" class="panel-dl-btn" data-target="recordsPersonalesPanel" data-nombre="Records personales" title="Descargar esta sección como imagen">⬇</button>
+    <div id="recordsPersonalesPanel">
     <div class="panel-head">
       <h3 data-i18n="recordsPersonales">Récords personales</h3>
       <span class="tag" data-i18n="actualizadoDesde">actualizado desde Base de Datos y Partidos</span>
     </div>
     <div class="rec-scroll rec-scroll-tall">
       <table class="rec-table" id="recTable"></table>
+    </div>
     </div>
   </div>
 
@@ -2140,6 +2169,56 @@ async function handleNameSubmit(event){
 }
 // ---------- RPE de sesión ----------
 function todayISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+// ---------- Descargar la pestaña actualmente visible como PDF ----------
+// ---------- Descargar cualquier sección del dashboard como imagen PNG ----------
+// Antes de la foto, expande temporalmente cualquier contenedor con scroll interno (records, gráficos
+// deslizables) para que la imagen salga completa, no solo la parte visible en pantalla.
+async function downloadElementAsImage(el, filename){
+  if(!el){ alert('No se encontró esa sección para descargar.'); return; }
+  if(typeof html2canvas === 'undefined'){ alert('No se pudo cargar la herramienta de descarga. Revisa tu conexión e intenta de nuevo.'); return; }
+
+  const candidatos = el.querySelectorAll('.rec-scroll, .weekly-chart-box, [id$="ScrollBox"]');
+  const originales = [];
+  candidatos.forEach(node=>{
+    originales.push({ node, overflow: node.style.overflow, overflowX: node.style.overflowX, overflowY: node.style.overflowY, maxHeight: node.style.maxHeight });
+    node.style.overflow = 'visible';
+    node.style.overflowX = 'visible';
+    node.style.overflowY = 'visible';
+    node.style.maxHeight = 'none';
+  });
+
+  try{
+    const canvas = await html2canvas(el, { backgroundColor: '#14143A', scale: 2, useCORS: true });
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }catch(err){
+    console.error('Error al descargar imagen:', err);
+    alert('No se pudo generar la imagen de esta sección.');
+  }finally{
+    originales.forEach(({node, overflow, overflowX, overflowY, maxHeight})=>{
+      node.style.overflow = overflow;
+      node.style.overflowX = overflowX;
+      node.style.overflowY = overflowY;
+      node.style.maxHeight = maxHeight;
+    });
+  }
+}
+// Ícono chico de descarga, para pegar en la esquina de cualquier panel/grupo de paneles.
+// targetId = id del contenedor a fotografiar · nombre = prefijo del archivo descargado.
+function downloadIconBtn(targetId, nombre){
+  return `<button type="button" class="panel-dl-btn" data-target="${targetId}" data-nombre="${nombre}" title="Descargar esta sección como imagen">⬇</button>`;
+}
+document.addEventListener('click', (e)=>{
+  const btn = e.target.closest('.panel-dl-btn');
+  if(!btn) return;
+  const target = document.getElementById(btn.dataset.target);
+  const filename = `${btn.dataset.nombre || 'Metrics Performance'} - ${CURRENT_CLUB||''} - ${todayISO()}.png`.replace(/[\/\\?%*:|"<>]/g, '-');
+  downloadElementAsImage(target, filename);
+});
+
 function dateToISO(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 // Si la ventana cruza medianoche (ej. 19:00 a 00:59) y estamos en el tramo de madrugada,
 // la sesión "pertenece" al día anterior (el del partido/entreno), no al calendario de hoy.
@@ -5020,7 +5099,7 @@ function buildWeeklyLoadChart(){
     return;
   }
 
-  // plugin propio: dibuja las líneas de referencia (0.80 / 1.30 / 1.50) y el valor sobre cada punto
+  // plugin propio: dibuja las bandas de referencia (0.80 / 1.30 / 1.50) y el valor sobre cada punto
   const acwrRefPlugin = {
     id: 'acwrDailyRef',
     afterDatasetsDraw(chart){
