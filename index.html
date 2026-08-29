@@ -4428,7 +4428,7 @@ function buildDataQuality(){
     return `<div class="acwr-row" data-p="${r.p}">
       <div class="rk">${i+1<10?'0':''}${i+1}</div>
       <div class="nm">${r.p}</div>
-      <div class="acwr-track" style="display:flex;align-items:center;color:var(--mist);font-size:11px;">${METRICS[r.metric].label} · ${dateStr} · ${r.detalle}</div>
+      <div class="acwr-track" style="display:flex;align-items:center;color:var(--mist);font-size:11px;background:none;opacity:1;">${METRICS[r.metric].label} · ${dateStr} · ${r.detalle}</div>
       <div class="acwr-ratio">${fmt(r.value, METRICS[r.metric].dec)}</div>
       <div><span class="acwr-badge" style="background:var(--bad);color:#14143A;">z=${r.z.toFixed(1)}</span></div>
     </div>`;
