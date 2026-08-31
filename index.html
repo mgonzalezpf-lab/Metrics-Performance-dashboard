@@ -804,8 +804,8 @@
 <button type="button" class="panel-dl-btn" data-target="cargaAcwrGroup" data-nombre="Objetivo + ACWR + Alertas de carga" title="Descargar esta sección como imagen">⬇</button>
 <div class="panel team-only" style="margin-bottom:18px;">
     <div class="panel-head" style="padding-right:44px;">
-      <h3>🎯 Objetivo próximo microciclo</h3>
-      <span class="tag" style="margin-right:6px;">margen: <input id="weeklyTargetPct" type="number" min="1" max="100" value="20" style="width:44px;padding:2px 4px;border-radius:5px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--gold-bright);font:12px 'IBM Plex Mono';outline:none;text-align:center;">%</span>
+      <h3 data-i18n="objetivoMicrociclo">🎯 Objetivo próximo microciclo</h3>
+      <span class="tag" style="margin-right:6px;"><span data-i18n="margenLabel">margen</span>: <input id="weeklyTargetPct" type="number" min="1" max="100" value="20" style="width:44px;padding:2px 4px;border-radius:5px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--gold-bright);font:12px 'IBM Plex Mono';outline:none;text-align:center;">%</span>
     </div>
     <div id="weeklyTargetRecommendation" style="margin-bottom:12px;"></div>
     <div id="weeklyTargetBody" style="display:flex;gap:12px;flex-wrap:wrap;"></div>
@@ -1024,12 +1024,12 @@
 
   <div class="panel team-only" style="margin-bottom:18px;">
     <div class="panel-head">
-      <h3>Microciclo (partido a partido)</h3>
-      <span class="tag">promedio diario · total por microciclo · intensidad vs prom. últimos 3 partidos</span>
+      <h3 data-i18n="microcicloTitulo">Microciclo (partido a partido)</h3>
+      <span class="tag" data-i18n="microcicloTag">promedio diario · total por microciclo · intensidad vs prom. últimos 3 partidos</span>
     </div>
     <div id="nextMatchWrap" style="position:relative;display:none;padding:0 18px 12px;gap:10px;flex-wrap:wrap;align-items:flex-start;">
       <div style="position:relative;">
-        <button id="nextMatchBtn" class="upload-btn" style="padding:7px 10px;">📅 Próximo partido</button>
+        <button id="nextMatchBtn" class="upload-btn" style="padding:7px 10px;">📅 <span data-i18n="proximoPartido">Próximo partido</span></button>
         <span id="nextMatchLabel" style="margin-left:8px;font-size:11.5px;color:var(--mist);font-family:'IBM Plex Mono';"></span>
         <div id="nextMatchForm" style="display:none;position:absolute;top:38px;left:0;background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:10px;padding:12px;z-index:50;min-width:230px;box-shadow:0 8px 24px rgba(0,0,0,.4);">
           <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:6px;">Fecha del próximo partido</label>
@@ -1039,7 +1039,7 @@
         </div>
       </div>
       <div style="position:relative;">
-        <button id="restDayBtn" class="upload-btn" style="padding:7px 10px;">🛌 Día Libre</button>
+        <button id="restDayBtn" class="upload-btn" style="padding:7px 10px;">🛌 <span data-i18n="diaLibre">Día Libre</span></button>
         <div id="restDayForm" style="display:none;position:absolute;top:38px;left:0;background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:10px;padding:12px;z-index:50;min-width:230px;box-shadow:0 8px 24px rgba(0,0,0,.4);">
           <label style="font-size:11px;color:var(--mist);display:block;margin-bottom:6px;">Fecha del día libre</label>
           <input id="restDayInput" type="date" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Mono';outline:none;margin-bottom:8px;box-sizing:border-box;">
@@ -1108,9 +1108,9 @@
           <div class="radar-side" id="radarSide"></div>
         </div>
         <div class="legend-row">
-          <span><span class="dot" style="background:var(--gold);"></span>Promedio del jugador</span>
-          <span><span class="dot" style="background:var(--mist);opacity:.6;"></span>Promedio del plantel</span>
-          <span><span class="dot" style="background:var(--maroon);"></span>Récord personal</span>
+          <span><span class="dot" style="background:var(--gold);"></span><span data-i18n="promedioJugador">Promedio del jugador</span></span>
+          <span><span class="dot" style="background:var(--mist);opacity:.6;"></span><span data-i18n="promedioDelPlantel">Promedio del plantel</span></span>
+          <span><span class="dot" style="background:var(--maroon);"></span><span data-i18n="recordPersonal">Récord personal</span></span>
         </div>
       </div>
 
@@ -1568,7 +1568,7 @@ function buildGkTimeline(player, metric, resetToLatest){
 
   if(typeof Chart === 'undefined'){
     const box = document.getElementById('gkTimelineChart')?.closest('.chart-box');
-    if(box) box.innerHTML = '<div style="color:var(--mist);font-family:\'IBM Plex Mono\';font-size:12px;padding:20px;text-align:center;">No se pudo cargar Chart.js (sin conexión).</div>';
+    if(box) box.innerHTML = `<div style="color:var(--mist);font-family:'IBM Plex Mono';font-size:12px;padding:20px;text-align:center;">${t('noSePudoChartjs')}</div>`;
     return;
   }
   const canvas = document.getElementById('gkTimelineChart');
@@ -1879,7 +1879,7 @@ function setupNextMatchBar(){
   const status = document.getElementById('nextMatchStatus');
   const label = document.getElementById('nextMatchLabel');
   const refreshLabel = ()=>{
-    label.textContent = NEXT_MATCH_DATE ? `próximo partido: ${NEXT_MATCH_DATE.split('-').reverse().join('/')}` : '';
+    label.textContent = NEXT_MATCH_DATE ? tf('proximoPartidoLabel', {d:NEXT_MATCH_DATE.split('-').reverse().join('/')}) : '';
   };
   refreshLabel();
   if(NEXT_MATCH_DATE) input.value = NEXT_MATCH_DATE;
@@ -2567,17 +2567,17 @@ function buildWellnessWidget(existing){
   };
 }
 function rpeAcwrStatus(ratio){
-  if(ratio===null) return {status:'insuf', label:'Datos insuf.', varName:'--mist'};
-  if(ratio<0.8) return {status:'low', label:'Carga baja', varName:'--low'};
-  if(ratio<1.3) return {status:'optimal', label:'Óptima', varName:'--good'};
-  if(ratio<1.5) return {status:'caution', label:'Precaución', varName:'--warn'};
-  return {status:'high', label:'Riesgo alto', varName:'--bad'};
+  if(ratio===null) return {status:'insuf', label:t('acwrInsuf'), varName:'--mist'};
+  if(ratio<0.8) return {status:'low', label:t('acwrLow'), varName:'--low'};
+  if(ratio<1.3) return {status:'optimal', label:t('acwrOptimal'), varName:'--good'};
+  if(ratio<1.5) return {status:'caution', label:t('acwrCaution'), varName:'--warn'};
+  return {status:'high', label:t('acwrHigh'), varName:'--bad'};
 }
 async function buildRpeTeamList(){
   const box = document.getElementById('rpeTeamList');
   if(!box) return;
   const {data,error} = await supabaseClient.from('rpe_reports').select('player_name,fecha,rpe,minutos,updated_at').eq('club',CURRENT_CLUB).order('fecha',{ascending:false});
-  if(error){ box.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">No se pudo cargar el RPE del plantel.</div>`; return; }
+  if(error){ box.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">${t('noSePudoRpePlantel')}</div>`; return; }
   RPE_REPORTS_CACHE = data || [];
   buildRpeAcwrChart();
   const byPlayerRpe = {};
@@ -2612,7 +2612,7 @@ async function buildGkRpeTeamList(){
   const box = document.getElementById('gkRpeTeamList');
   if(!box) return;
   const {data,error} = await supabaseClient.from('rpe_reports').select('player_name,fecha,rpe,minutos,updated_at').eq('club',CURRENT_CLUB).order('fecha',{ascending:false});
-  if(error){ box.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">No se pudo cargar el RPE de arqueros.</div>`; return; }
+  if(error){ box.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">${t('noSePudoRpeArqueros')}</div>`; return; }
   GK_RPE_REPORTS_CACHE = (data || []).filter(r => isGoalkeeper(r.player_name));
   const byPlayerRpe = {};
   GK_RPE_REPORTS_CACHE.forEach(r=>{ (byPlayerRpe[normalizeNameKey(r.player_name)] = byPlayerRpe[normalizeNameKey(r.player_name)]||[]).push(r); });
@@ -2666,10 +2666,10 @@ function buildGkRpeLoadTable(dateStr){
   const rowsHtml = rowsData.map(r=>{
     let ratioColor = 'var(--mist)', ratioLabel = '—';
     if(r.ratio!==null){
-      if(r.ratio<0.8){ ratioColor='var(--low)'; ratioLabel='Baja'; }
-      else if(r.ratio<1.3){ ratioColor='var(--good)'; ratioLabel='Óptima'; }
-      else if(r.ratio<1.5){ ratioColor='var(--warn)'; ratioLabel='Precaución'; }
-      else { ratioColor='var(--bad)'; ratioLabel='Riesgo alto'; }
+      if(r.ratio<0.8){ ratioColor='var(--low)'; ratioLabel=t('acwrLow'); }
+      else if(r.ratio<1.3){ ratioColor='var(--good)'; ratioLabel=t('acwrOptimal'); }
+      else if(r.ratio<1.5){ ratioColor='var(--warn)'; ratioLabel=t('acwrCaution'); }
+      else { ratioColor='var(--bad)'; ratioLabel=t('acwrHigh'); }
     }
     const isAdmin = myProfile && (myProfile.role==='admin' || myProfile.role==='owner');
     const minCell = r.todayReport
@@ -2696,7 +2696,7 @@ function buildGkRpeLoadTable(dateStr){
   const chronicAvg = avg(rowsData.map(r=>r.chronic).filter(v=>v!==null));
   const ratioAvg = avg(rowsData.map(r=>r.ratio).filter(v=>v!==null));
   const footerHtml = `<tr style="border-top:2px solid var(--line-strong);font-weight:700;">
-    <td class="metric-name" style="color:var(--gold-bright);">Promedio de arqueros</td>
+    <td class="metric-name" style="color:var(--gold-bright);">${t('gkPromedioArqueros')}</td>
     <td>—</td>
     <td>${rpeAvg!==null? rpeAvg.toFixed(1)+'/10' : '—'}</td>
     <td>${minAvg!==null? minAvg.toFixed(0) : '—'}</td>
@@ -2707,13 +2707,13 @@ function buildGkRpeLoadTable(dateStr){
   </tr>`;
   const isAdminGlobal = myProfile && (myProfile.role==='admin' || myProfile.role==='owner');
   const minHeaderCell = isAdminGlobal
-    ? `<th>Min <span style="display:inline-flex;align-items:center;gap:4px;margin-left:4px;white-space:nowrap;">
+    ? `<th>${t('colMin')} <span style="display:inline-flex;align-items:center;gap:4px;margin-left:4px;white-space:nowrap;">
          <input id="gkRpeMinBulkFill" type="number" min="0" max="240" placeholder="min" title="Escribe un valor y aplícalo a todas las filas" style="width:46px;padding:3px 5px;border-radius:5px;border:1px solid var(--gold);background:var(--pitch-950);color:var(--gold-bright);font:11px 'IBM Plex Mono';outline:none;">
          <button id="gkRpeMinBulkApplyBtn" type="button" title="Aplicar este valor a todos los arqueros" style="padding:3px 8px;border-radius:5px;border:1px solid var(--gold);background:var(--gold);color:var(--pitch-950);font:700 11px 'IBM Plex Mono';cursor:pointer;">✏️ Aplicar a todos</button>
        </span></th>`
-    : `<th>Min</th>`;
+    : `<th>${t('colMin')}</th>`;
   table.innerHTML = `<thead><tr>
-    <th>Jugador</th><th>Hora</th><th>RPE</th>${minHeaderCell}<th>C. Diaria</th><th>C. Aguda</th><th>C. Crónica</th><th>Ratio A:C</th>
+    <th>${t('colJugador')}</th><th>${t('colHora')}</th><th>${t('colRpe')}</th>${minHeaderCell}<th>${t('colCDiaria')}</th><th>${t('colCAguda')}</th><th>${t('colCCronica')}</th><th>${t('colRatioAC')}</th>
   </tr></thead><tbody>${rowsHtml}${footerHtml}</tbody>`;
   table.querySelectorAll('.gk-rpe-min-input').forEach(input=>{
     const save = async ()=>{
@@ -2770,7 +2770,7 @@ async function buildWellnessTeamList(fecha){
   const isToday = targetDate === todayISO();
   const {data,error} = await supabaseClient.from('wellness_reports').select('*').eq('club',CURRENT_CLUB).eq('fecha',targetDate);
   if(error){
-    tableBox.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">No se pudo cargar el Wellness del plantel.</div>`;
+    tableBox.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">${t('noSePudoWellness')}</div>`;
     return;
   }
   const reports = (data || []).filter(r=> matchesCurrentCategory(r.player_name)); // filtrado por categoría — antes se promediaba con reportes de TODAS las categorías del club
@@ -2789,19 +2789,19 @@ async function buildWellnessTeamList(fecha){
   const teamAvg = scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length) : null;
 
   if(kpiBox){
-    const diaLabel = isToday ? 'hoy' : targetDate.split('-').reverse().join('/');
+    const diaLabel = isToday ? t('hoy') : targetDate.split('-').reverse().join('/');
     kpiBox.innerHTML = `<div class="kpi-card">
-      <div class="kpi-label">Wellness promedio del plantel · ${diaLabel}</div>
+      <div class="kpi-label">${t('wellnessPromedioPlantel')} · ${diaLabel}</div>
       <div class="kpi-value">${teamAvg!==null ? teamAvg.toFixed(1) : '—'}<span style="font-size:14px;color:var(--mist);">/5</span></div>
-      <div class="kpi-sub">${reports.length} de ${allPlayers.length} jugadores reportaron ${diaLabel==='hoy'?'hoy':`el ${diaLabel}`}</div>
+      <div class="kpi-sub">${tf('jugadoresReportaron', {n:reports.length, t:allPlayers.length, d: diaLabel==='hoy'||isToday ? t('hoy') : tf('elDia',{d:diaLabel})})}</div>
     </div>`;
   }
 
   const conDolor = reports.filter(r=> (r.zonas_dolor||[]).length>0);
   if(alertBox){
-    const diaTxt = isToday ? 'hoy' : `el ${targetDate.split('-').reverse().join('/')}`;
+    const diaTxt = isToday ? t('hoy') : tf('elDia', {d:targetDate.split('-').reverse().join('/')});
     alertBox.innerHTML = !conDolor.length ? '' : `<div style="padding:12px 14px;background:rgba(251,113,133,.08);border:1px solid rgba(251,113,133,.3);border-radius:10px;margin-bottom:14px;">
-      <div style="font-size:12.5px;color:var(--bad);font-weight:700;margin-bottom:6px;">⚠️ ${conDolor.length} jugador${conDolor.length===1?'':'es'} reportó dolor ${diaTxt}</div>
+      <div style="font-size:12.5px;color:var(--bad);font-weight:700;margin-bottom:6px;">⚠️ ${tf('alertaDolor', {n:conDolor.length, d:diaTxt})}</div>
       ${conDolor.map(r=>`<div style="font-size:12px;color:var(--bone);margin-bottom:3px;">
         <b>${r.player_name}</b>: ${(r.zonas_dolor||[]).map(z=>`${BODY_ZONE_LABELS[z.zona]||z.zona} (${z.tipo})`).join(', ')}
       </div>`).join('')}
@@ -2819,10 +2819,10 @@ async function buildWellnessTeamList(fecha){
   const totalMuscularAvg = totalMuscularVals.length ? (totalMuscularVals.reduce((a,b)=>a+b,0)/totalMuscularVals.length) : null;
 
   tableBox.innerHTML = `<table class="mc-table">
-    <thead><tr><th>Jugador</th><th>Sueño</th><th>Fatiga</th><th>Dolor Musc.</th><th>Estrés</th><th>Ánimo</th><th>Score</th><th>Total Musc.</th><th>TQR</th><th>Zona de dolor</th><th>Observación</th></tr></thead>
+    <thead><tr><th>${t('colJugador')}</th><th>${t('colSueno')}</th><th>${t('colFatiga')}</th><th>${t('colDolorMusc')}</th><th>${t('colEstres')}</th><th>${t('colAnimo')}</th><th>${t('colScore')}</th><th>${t('colTotalMusc')}</th><th>${t('colTqr')}</th><th>${t('colZonaDolor')}</th><th>${t('colObservacion')}</th></tr></thead>
     <tbody>${allPlayers.map(p=>{
       const r = byPlayer[normalizeNameKey(p)];
-      if(!r) return `<tr><td><b>${p}</b></td><td colspan="10" style="color:var(--mist);">${isToday?'Sin reportar hoy':'Sin reportar ese día'}</td></tr>`;
+      if(!r) return `<tr><td><b>${p}</b></td><td colspan="10" style="color:var(--mist);">${isToday?t('sinReportarHoy'):t('sinReportarDia')}</td></tr>`;
       const sc = scoreOf(r);
       const tm = totalMuscularOf(r);
       const zonas = (r.zonas_dolor||[]).map(z=> BODY_ZONE_LABELS[z.zona]||z.zona).join(', ');
@@ -2841,7 +2841,7 @@ async function buildWellnessTeamList(fecha){
       </tr>`;
     }).join('')}</tbody>
     <tfoot><tr class="mc-total" style="border-top:2px solid var(--line-strong);">
-      <td><b>Promedio del plantel</b></td>
+      <td><b>${t('promedioDelPlantel')}</b></td>
       <td class="mono">${fmtAvg(avgCol('sueno'))}</td>
       <td class="mono">${fmtAvg(avgCol('fatiga'))}</td>
       <td class="mono">${fmtAvg(avgCol('dolor_muscular'))}</td>
@@ -3143,10 +3143,10 @@ async function buildRpeLoadTable(dateStr){
   const rowsHtml = rowsData.map(r=>{
     let ratioColor = 'var(--mist)', ratioLabel = '—';
     if(r.ratio!==null){
-      if(r.ratio<0.8){ ratioColor='var(--low)'; ratioLabel='Baja'; }
-      else if(r.ratio<1.3){ ratioColor='var(--good)'; ratioLabel='Óptima'; }
-      else if(r.ratio<1.5){ ratioColor='var(--warn)'; ratioLabel='Precaución'; }
-      else { ratioColor='var(--bad)'; ratioLabel='Riesgo alto'; }
+      if(r.ratio<0.8){ ratioColor='var(--low)'; ratioLabel=t('acwrLow'); }
+      else if(r.ratio<1.3){ ratioColor='var(--good)'; ratioLabel=t('acwrOptimal'); }
+      else if(r.ratio<1.5){ ratioColor='var(--warn)'; ratioLabel=t('acwrCaution'); }
+      else { ratioColor='var(--bad)'; ratioLabel=t('acwrHigh'); }
     }
     const isAdmin = myProfile && (myProfile.role==='admin' || myProfile.role==='owner');
     const minCell = r.todayReport
@@ -3173,7 +3173,7 @@ async function buildRpeLoadTable(dateStr){
   const chronicAvg = avg(rowsData.map(r=>r.chronic).filter(v=>v!==null));
   const ratioAvg = avg(rowsData.map(r=>r.ratio).filter(v=>v!==null));
   const footerHtml = `<tr style="border-top:2px solid var(--line-strong);font-weight:700;">
-    <td class="metric-name" style="color:var(--gold-bright);">Promedio del plantel</td>
+    <td class="metric-name" style="color:var(--gold-bright);">${t('promedioDelPlantel')}</td>
     <td>—</td>
     <td>${rpeAvg!==null? rpeAvg.toFixed(1)+'/10' : '—'}</td>
     <td>${minAvg!==null? minAvg.toFixed(0) : '—'}</td>
@@ -3184,13 +3184,13 @@ async function buildRpeLoadTable(dateStr){
   </tr>`;
   const isAdminGlobal = myProfile && (myProfile.role==='admin' || myProfile.role==='owner');
   const minHeaderCell = isAdminGlobal
-    ? `<th>Min <span style="display:inline-flex;align-items:center;gap:4px;margin-left:4px;white-space:nowrap;">
+    ? `<th>${t('colMin')} <span style="display:inline-flex;align-items:center;gap:4px;margin-left:4px;white-space:nowrap;">
          <input id="rpeMinBulkFill" type="number" min="0" max="240" placeholder="min" title="Escribe un valor y aplícalo a todas las filas" style="width:46px;padding:3px 5px;border-radius:5px;border:1px solid var(--gold);background:var(--pitch-950);color:var(--gold-bright);font:11px 'IBM Plex Mono';outline:none;">
          <button id="rpeMinBulkApplyBtn" type="button" title="Aplicar este valor a todos los jugadores" style="padding:3px 8px;border-radius:5px;border:1px solid var(--gold);background:var(--gold);color:var(--pitch-950);font:700 11px 'IBM Plex Mono';cursor:pointer;">✏️ Aplicar a todos</button>
        </span></th>`
-    : `<th>Min</th>`;
+    : `<th>${t('colMin')}</th>`;
   table.innerHTML = `<thead><tr>
-    <th>Jugador</th><th>Hora</th><th>RPE</th>${minHeaderCell}<th>C. Diaria</th><th>C. Aguda</th><th>C. Crónica</th><th>Ratio A:C</th>
+    <th>${t('colJugador')}</th><th>${t('colHora')}</th><th>${t('colRpe')}</th>${minHeaderCell}<th>${t('colCDiaria')}</th><th>${t('colCAguda')}</th><th>${t('colCCronica')}</th><th>${t('colRatioAC')}</th>
   </tr></thead><tbody>${rowsHtml}${footerHtml}</tbody>`;
   table.querySelectorAll('.rpe-min-input').forEach(input=>{
     const save = async ()=>{
@@ -3366,6 +3366,30 @@ const I18N = {
     gkSinDatos:'Todavía no hay datos de arqueros cargados.', gkSinSesiones:'Todavía no hay sesiones cargadas.', gkSinArqueros:'Todavía no hay arqueros cargados.',
     gkColJugador:'Jugador', gkColFecha:'Fecha', gkColSesion:'Sesión', gkColDist:'Dist. (m)', gkColVelMax:'Vel. máx (km/h)', gkColVelMax2:'Vel. máx',
     gkDistUltimaSesion:'Distancia última sesión', quienSos:'¿Quién eres?', rolJugador:'Jugador o arquero', rolStaff:'Staff (médico y técnico)', rolGkCoach:'Entrenador de arqueros', rolClubAdmin:'Administrador de un club nuevo',
+    kpiDistCiclo:'Distancia microciclo actual', kpiHsrCiclo:'HSR microciclo actual', kpiPlCiclo:'Player Load microciclo', kpiIntensidadSesion:'Intensidad sesión actual',
+    totalAcumulado:'total acumulado', desdeVs:'desde vs {r} ({d})', sinPartidoRef:'sin partido de referencia', sinCicloAnterior:'sin ciclo anterior para comparar',
+    dentroDe20:'✓ dentro del ±20%', fueraDe20:'⚠ fuera del ±20%', vsCicloAnterior:'vs ciclo anterior', sesionDelVsProm:'sesión del {d} · vs prom. últ. 3 partidos', sinDatos:'sin datos',
+    microcicloTitulo:'Microciclo (partido a partido)', microcicloTag:'promedio diario · total por microciclo · intensidad vs prom. últimos 3 partidos',
+    proximoPartido:'Próximo partido', proximoPartidoLabel:'próximo partido: {d}', diaLibre:'Día Libre', diaLibreMin:'Día libre',
+    cicloVs:'Ciclo vs {r} ({d})', bloqueSinPartido:'Bloque sin partido',
+    objetivoMicrociclo:'🎯 Objetivo próximo microciclo', margenLabel:'margen',
+    wellnessPromedioPlantel:'Wellness promedio del plantel', jugadoresReportaron:'{n} de {t} jugadores reportaron {d}', hoy:'hoy', elDia:'el {d}',
+    colJugador:'Jugador', colSueno:'Sueño', colFatiga:'Fatiga', colDolorMusc:'Dolor Musc.', colEstres:'Estrés', colAnimo:'Ánimo', colScore:'Score',
+    colTotalMusc:'Total Musc.', colTqr:'TQR', colZonaDolor:'Zona de dolor', colObservacion:'Observación', sinReportarHoy:'Sin reportar hoy', sinReportarDia:'Sin reportar ese día',
+    colHora:'Hora', colRpe:'RPE', colMin:'Min', colCDiaria:'C. Diaria', colCAguda:'C. Aguda', colCCronica:'C. Crónica', colRatioAC:'Ratio A:C', promedioDelPlantel:'Promedio del plantel',
+    partidoVs:'Partido vs {r}', cicloProximoPartido:'Ciclo → próximo partido ({d})', totalMicrociclo:'Total del microciclo', promAbrev:'prom.',
+    colFecha:'Fecha', colMD:'MD', colSesion:'Sesión', colDistProm:'Dist. prom. (m)', colHsrProm:'HSR prom. (m)', colPlProm:'PL prom.', colIntensidad:'Intensidad (%)',
+    totalPlantel:'Total del plantel', promedioPorJugador:'Promedio por jugador',
+    alertaDolor:'{n} jugador(es) reportó dolor {d}', promedioJugador:'Promedio del jugador', recordPersonal:'Récord personal', ultimaSesion:'Última sesión', playerLoadProm:'Player Load prom.',
+    diasCargados:'{n} día(s) cargado(s)', promedioPlantelRpe:'Promedio del plantel (RPE)', sinDatosCargados:'Sin datos cargados', sinReportesRpe:'Sin reportes de RPE cargados',
+    promedioDiarioPlantel:'promedio diario del plantel', clubesRegistradosCount:'{n} club(es) registrado(s)',
+    acwrLow:'Carga baja', acwrOptimal:'Óptima', acwrCaution:'Precaución', acwrHigh:'Riesgo alto', acwrInsuf:'Datos insuf.',
+    caidaMarcada:'Caída marcada — riesgo alto', caidaModerada:'Caída moderada — atención', caidaLeve:'Caída leve — normal', sinCaida:'Sin caída — rendimiento sostenido',
+    mmDistTotal:'Distancia total', mmHsr:'HSR', mmSprintDist:'Sprint distancia', mmSprintCount:'Sprint conteo', mmAccB23:'Acc B2-3', mmDesaB23:'Desa B2-3', mmRhie:'RHIE bouts', mmPlayerLoad:'Player Load', mmIndiceFatiga:'Índice de fatiga (2T vs 1T)',
+    sinValoresAtipicos:'Sin valores atípicos detectados — todos los datos están dentro de rangos esperados.',
+    noSePudoRpePlantel:'No se pudo cargar el RPE del plantel.', noSePudoRpeArqueros:'No se pudo cargar el RPE de arqueros.', noSePudoWellness:'No se pudo cargar el Wellness del plantel.',
+    noSePudoChartjs:'No se pudo cargar Chart.js (sin conexión).', noSePudoChartjsResto:'No se pudo cargar Chart.js (sin conexión). El resto del dashboard funciona con normalidad.',
+    sinDatosSuficientes:'Sin datos suficientes todavía',
   },
   en: {
     metrics:{dist:'Total Distance',hsr:'HSR',vel:'Max Speed',acc:'Acc',desa:'Dec',pl:'Player Load',sprint:'Sprint Distance',sprint_count:'Sprint Count'},
@@ -3409,6 +3433,30 @@ const I18N = {
     gkSinDatos:'No goalkeeper data loaded yet.', gkSinSesiones:'No sessions loaded yet.', gkSinArqueros:'No goalkeepers loaded yet.',
     gkColJugador:'Player', gkColFecha:'Date', gkColSesion:'Session', gkColDist:'Dist. (m)', gkColVelMax:'Max speed (km/h)', gkColVelMax2:'Max speed',
     gkDistUltimaSesion:'Distance last session', quienSos:'Who are you?', rolJugador:'Player or goalkeeper', rolStaff:'Staff (medical & technical)', rolGkCoach:'Goalkeeper coach', rolClubAdmin:'New club administrator',
+    kpiDistCiclo:'Current microcycle distance', kpiHsrCiclo:'Current microcycle HSR', kpiPlCiclo:'Microcycle Player Load', kpiIntensidadSesion:'Current session intensity',
+    totalAcumulado:'total accumulated', desdeVs:'since vs {r} ({d})', sinPartidoRef:'no reference match', sinCicloAnterior:'no previous cycle to compare',
+    dentroDe20:'✓ within ±20%', fueraDe20:'⚠ outside ±20%', vsCicloAnterior:'vs previous cycle', sesionDelVsProm:'session from {d} · vs avg. last 3 matches', sinDatos:'no data',
+    microcicloTitulo:'Microcycle (match to match)', microcicloTag:'daily average · total per microcycle · intensity vs avg. last 3 matches',
+    proximoPartido:'Next match', proximoPartidoLabel:'next match: {d}', diaLibre:'Day Off', diaLibreMin:'Day off',
+    cicloVs:'Cycle vs {r} ({d})', bloqueSinPartido:'Block without match',
+    objetivoMicrociclo:'🎯 Next microcycle target', margenLabel:'margin',
+    wellnessPromedioPlantel:'Squad average Wellness', jugadoresReportaron:'{n} of {t} players reported {d}', hoy:'today', elDia:'on {d}',
+    colJugador:'Player', colSueno:'Sleep', colFatiga:'Fatigue', colDolorMusc:'Muscle Pain', colEstres:'Stress', colAnimo:'Mood', colScore:'Score',
+    colTotalMusc:'Total Musc.', colTqr:'TQR', colZonaDolor:'Pain area', colObservacion:'Note', sinReportarHoy:'Not reported today', sinReportarDia:'Not reported that day',
+    colHora:'Time', colRpe:'RPE', colMin:'Min', colCDiaria:'Daily Load', colCAguda:'Acute Load', colCCronica:'Chronic Load', colRatioAC:'A:C Ratio', promedioDelPlantel:'Squad average',
+    partidoVs:'Match vs {r}', cicloProximoPartido:'Cycle → next match ({d})', totalMicrociclo:'Microcycle total', promAbrev:'avg.',
+    colFecha:'Date', colMD:'MD', colSesion:'Session', colDistProm:'Avg. Dist. (m)', colHsrProm:'Avg. HSR (m)', colPlProm:'Avg. PL', colIntensidad:'Intensity (%)',
+    totalPlantel:'Squad total', promedioPorJugador:'Average per player',
+    alertaDolor:'{n} player(s) reported pain {d}', promedioJugador:'Player average', recordPersonal:'Personal record', ultimaSesion:'Last session', playerLoadProm:'Avg. Player Load',
+    diasCargados:'{n} day(s) loaded', promedioPlantelRpe:'Squad average (RPE)', sinDatosCargados:'No data loaded', sinReportesRpe:'No RPE reports loaded',
+    promedioDiarioPlantel:'squad daily average', clubesRegistradosCount:'{n} club(s) registered',
+    acwrLow:'Low load', acwrOptimal:'Optimal', acwrCaution:'Caution', acwrHigh:'High risk', acwrInsuf:'Insuf. data',
+    caidaMarcada:'Marked drop — high risk', caidaModerada:'Moderate drop — attention', caidaLeve:'Slight drop — normal', sinCaida:'No drop — sustained performance',
+    mmDistTotal:'Total distance', mmHsr:'HSR', mmSprintDist:'Sprint distance', mmSprintCount:'Sprint count', mmAccB23:'Acc B2-3', mmDesaB23:'Dec B2-3', mmRhie:'RHIE bouts', mmPlayerLoad:'Player Load', mmIndiceFatiga:'Fatigue index (2H vs 1H)',
+    sinValoresAtipicos:'No outliers detected — all data is within expected ranges.',
+    noSePudoRpePlantel:'Could not load squad RPE.', noSePudoRpeArqueros:'Could not load goalkeeper RPE.', noSePudoWellness:'Could not load squad Wellness.',
+    noSePudoChartjs:'Could not load Chart.js (no connection).', noSePudoChartjsResto:'Could not load Chart.js (no connection). The rest of the dashboard works normally.',
+    sinDatosSuficientes:'Not enough data yet',
   },
   ar: {
     metrics:{dist:'المسافة الإجمالية',hsr:'الجري عالي السرعة',vel:'السرعة القصوى',acc:'تسارع',desa:'تباطؤ',pl:'حمل اللاعب',sprint:'مسافة السرعات القصوى',sprint_count:'عدد السرعات القصوى'},
@@ -3452,10 +3500,35 @@ const I18N = {
     gkSinDatos:'لا توجد بيانات حراس مرمى محمّلة بعد.', gkSinSesiones:'لا توجد حصص محمّلة بعد.', gkSinArqueros:'لا يوجد حراس مرمى محمّلون بعد.',
     gkColJugador:'اللاعب', gkColFecha:'التاريخ', gkColSesion:'الحصة', gkColDist:'المسافة (م)', gkColVelMax:'السرعة القصوى (كم/س)', gkColVelMax2:'السرعة القصوى',
     gkDistUltimaSesion:'مسافة آخر حصة', quienSos:'من أنت؟', rolJugador:'لاعب أو حارس مرمى', rolStaff:'الطاقم (طبي وفني)', rolGkCoach:'مدرب حراس المرمى', rolClubAdmin:'مسؤول نادٍ جديد',
+    kpiDistCiclo:'مسافة الدورة الجزئية الحالية', kpiHsrCiclo:'HSR الدورة الجزئية الحالية', kpiPlCiclo:'حمل اللاعب للدورة الجزئية', kpiIntensidadSesion:'شدة الحصة الحالية',
+    totalAcumulado:'الإجمالي المتراكم', desdeVs:'منذ مباراة ضد {r} ({d})', sinPartidoRef:'لا توجد مباراة مرجعية', sinCicloAnterior:'لا توجد دورة سابقة للمقارنة',
+    dentroDe20:'✓ ضمن ±20%', fueraDe20:'⚠ خارج ±20%', vsCicloAnterior:'مقابل الدورة السابقة', sesionDelVsProm:'حصة {d} · مقابل متوسط آخر 3 مباريات', sinDatos:'لا توجد بيانات',
+    microcicloTitulo:'الدورة الجزئية (من مباراة لأخرى)', microcicloTag:'المتوسط اليومي · الإجمالي لكل دورة جزئية · الشدة مقابل متوسط آخر 3 مباريات',
+    proximoPartido:'المباراة القادمة', proximoPartidoLabel:'المباراة القادمة: {d}', diaLibre:'يوم راحة', diaLibreMin:'يوم راحة',
+    cicloVs:'دورة ضد {r} ({d})', bloqueSinPartido:'فترة بدون مباراة',
+    objetivoMicrociclo:'🎯 هدف الدورة الجزئية القادمة', margenLabel:'الهامش',
+    wellnessPromedioPlantel:'متوسط Wellness للفريق', jugadoresReportaron:'{n} من {t} لاعبًا أبلغوا {d}', hoy:'اليوم', elDia:'يوم {d}',
+    colJugador:'اللاعب', colSueno:'النوم', colFatiga:'التعب', colDolorMusc:'ألم عضلي', colEstres:'التوتر', colAnimo:'المزاج', colScore:'النتيجة',
+    colTotalMusc:'إجمالي عضلي', colTqr:'TQR', colZonaDolor:'منطقة الألم', colObservacion:'ملاحظة', sinReportarHoy:'لم يبلّغ اليوم', sinReportarDia:'لم يبلّغ ذلك اليوم',
+    colHora:'الوقت', colRpe:'RPE', colMin:'الدقائق', colCDiaria:'الحمل اليومي', colCAguda:'الحمل الحاد', colCCronica:'الحمل المزمن', colRatioAC:'نسبة A:C', promedioDelPlantel:'متوسط الفريق',
+    partidoVs:'مباراة ضد {r}', cicloProximoPartido:'دورة ← المباراة القادمة ({d})', totalMicrociclo:'إجمالي الدورة الجزئية', promAbrev:'متوسط',
+    colFecha:'التاريخ', colMD:'MD', colSesion:'الحصة', colDistProm:'متوسط المسافة (م)', colHsrProm:'متوسط HSR (م)', colPlProm:'متوسط PL', colIntensidad:'الشدة (%)',
+    totalPlantel:'إجمالي الفريق', promedioPorJugador:'المتوسط لكل لاعب',
+    alertaDolor:'{n} لاعب(ين) أبلغوا عن ألم {d}', promedioJugador:'متوسط اللاعب', recordPersonal:'الرقم القياسي الشخصي', ultimaSesion:'آخر حصة', playerLoadProm:'متوسط Player Load',
+    diasCargados:'{n} يوم محمّل', promedioPlantelRpe:'متوسط الفريق (RPE)', sinDatosCargados:'لا توجد بيانات محمّلة', sinReportesRpe:'لا توجد تقارير RPE محمّلة',
+    promedioDiarioPlantel:'المتوسط اليومي للفريق', clubesRegistradosCount:'{n} نادٍ مسجّل',
+    acwrLow:'حمل منخفض', acwrOptimal:'مثالي', acwrCaution:'تنبيه', acwrHigh:'خطر مرتفع', acwrInsuf:'بيانات غير كافية',
+    caidaMarcada:'انخفاض ملحوظ — خطر مرتفع', caidaModerada:'انخفاض معتدل — انتباه', caidaLeve:'انخفاض طفيف — طبيعي', sinCaida:'لا يوجد انخفاض — أداء مستدام',
+    mmDistTotal:'المسافة الإجمالية', mmHsr:'HSR', mmSprintDist:'مسافة السرعات القصوى', mmSprintCount:'عدد السرعات القصوى', mmAccB23:'تسارع B2-3', mmDesaB23:'تباطؤ B2-3', mmRhie:'RHIE', mmPlayerLoad:'Player Load', mmIndiceFatiga:'مؤشر التعب (الشوط 2 مقابل 1)',
+    sinValoresAtipicos:'لم يتم رصد قيم شاذة — جميع البيانات ضمن النطاقات المتوقعة.',
+    noSePudoRpePlantel:'تعذّر تحميل RPE الفريق.', noSePudoRpeArqueros:'تعذّر تحميل RPE حراس المرمى.', noSePudoWellness:'تعذّر تحميل Wellness الفريق.',
+    noSePudoChartjs:'تعذّر تحميل Chart.js (بلا اتصال).', noSePudoChartjsResto:'تعذّر تحميل Chart.js (بلا اتصال). باقي اللوحة يعمل بشكل طبيعي.',
+    sinDatosSuficientes:'لا توجد بيانات كافية بعد',
   }
 };
 let currentLang = localStorage.getItem('dashboard_lang') || 'es';
 function t(key){ return (I18N[currentLang]&&I18N[currentLang][key]) || I18N.es[key] || key; }
+function tf(key, vars){ let s = t(key); Object.keys(vars||{}).forEach(k=>{ s = s.replace(`{${k}}`, vars[k]); }); return s; }
 function applyI18nStatic(){
   METRIC_ORDER.forEach(k=> METRICS[k].label = I18N[currentLang].metrics[k]);
   GK_METRIC_ORDER.forEach(k=> GK_METRICS[k].label = I18N[currentLang].gkMetrics[k]);
@@ -3481,6 +3554,10 @@ function setLang(lang){
     getMyTodayWellness().then(existing=> buildWellnessWidget(existing));
   }
   if(ACTIVE_EVENTS && ACTIVE_EVENTS.length){ renderAll(state.player); }
+  if(!(myProfile && myProfile.role==='player')){
+    const wellnessViewVisible = document.getElementById('wellnessView')?.style.display !== 'none';
+    if(wellnessViewVisible) buildWellnessTeamList(document.getElementById('wellnessDatePicker')?.value);
+  }
   // Arqueros: refrescar sus propias pestañas y vistas, independiente del flujo de jugadores de campo.
   if(GK_EVENTS && GK_EVENTS.length){
     buildGkTeamMetricTabs(); buildGkTeamTimeline();
@@ -3819,7 +3896,7 @@ function buildMicrocycleTable(){
       if(intensityPct!==null) intensityValues.push(intensityPct);
       const intensityColor = intensityPct===null ? '' : (intensityPct>100 ? 'color:var(--bad);' : intensityPct>=70 ? 'color:var(--gold-bright);' : 'color:var(--mist);');
 
-      const nombre = isRest ? 'Día libre' : (match ? `Partido vs ${match.detalle}` : (dayEvents[0]?.detalle || dayEvents[0]?.tipo || '—'));
+      const nombre = isRest ? t('diaLibreMin') : (match ? tf('partidoVs', {r:match.detalle}) : (dayEvents[0]?.detalle || dayEvents[0]?.tipo || '—'));
       const rowClass = isRest ? 'mc-rest' : (match ? 'mc-match' : '');
       const dateStr = d.split('-').reverse().join('/');
       let mdLabel = '—';
@@ -3839,17 +3916,17 @@ function buildMicrocycleTable(){
     }).join('');
     let cycleLabel;
     if(matchDate && byDate[matchDate] && byDate[matchDate].some(e=>e.tipo==='Partido')){
-      cycleLabel = `Ciclo vs ${byDate[matchDate].find(e=>e.tipo==='Partido').detalle} (${matchDate.split('-').reverse().join('/')})`;
+      cycleLabel = tf('cicloVs', {r:byDate[matchDate].find(e=>e.tipo==='Partido').detalle, d:matchDate.split('-').reverse().join('/')});
     } else if(matchIsManual){
-      cycleLabel = `Ciclo → próximo partido (${matchDate.split('-').reverse().join('/')})`;
+      cycleLabel = tf('cicloProximoPartido', {d:matchDate.split('-').reverse().join('/')});
     } else {
-      cycleLabel = 'Bloque sin partido';
+      cycleLabel = t('bloqueSinPartido');
     }
     const avgIntensity = intensityValues.length ? Math.round(intensityValues.reduce((a,b)=>a+b,0)/intensityValues.length) : null;
-    return `${dayRows}<tr class="mc-total"><td colspan="3">${cycleLabel} · Total del microciclo</td><td class="mono">${cycleTotal>0 ? fmt(Math.round(cycleTotal))+' m' : '—'}</td><td class="mono">${hsrTotal>0 ? fmt(Math.round(hsrTotal))+' m' : '—'}</td><td class="mono">${plTotal>0 ? fmt(Math.round(plTotal)) : '—'}</td><td class="mono">${avgIntensity===null ? '—' : avgIntensity+'% prom.'}</td></tr>`;
+    return `${dayRows}<tr class="mc-total"><td colspan="3">${cycleLabel} · ${t('totalMicrociclo')}</td><td class="mono">${cycleTotal>0 ? fmt(Math.round(cycleTotal))+' m' : '—'}</td><td class="mono">${hsrTotal>0 ? fmt(Math.round(hsrTotal))+' m' : '—'}</td><td class="mono">${plTotal>0 ? fmt(Math.round(plTotal)) : '—'}</td><td class="mono">${avgIntensity===null ? '—' : avgIntensity+'% '+t('promAbrev')}</td></tr>`;
   }).join('');
   box.innerHTML = `<table class="mc-table">
-    <thead><tr><th>Fecha</th><th>MD</th><th>Sesión</th><th>Dist. prom. (m)</th><th>HSR prom. (m)</th><th>PL prom.</th><th>Intensidad (%)</th></tr></thead>
+    <thead><tr><th>${t('colFecha')}</th><th>${t('colMD')}</th><th>${t('colSesion')}</th><th>${t('colDistProm')}</th><th>${t('colHsrProm')}</th><th>${t('colPlProm')}</th><th>${t('colIntensidad')}</th></tr></thead>
     <tbody>${bodyHtml}</tbody>
   </table>`;
 }
@@ -3860,8 +3937,8 @@ function buildWeeklyMicroTabs(){
   const box = document.getElementById('weeklyMicroTabs');
   if(!box) return;
   const opts = [
-    {key:'total', label:'Total del plantel'},
-    {key:'promedio', label:'Promedio por jugador'},
+    {key:'total', label:t('totalPlantel')},
+    {key:'promedio', label:t('promedioPorJugador')},
   ];
   box.innerHTML = opts.map(o=>`<div class="mtab ${o.key===state.weeklyMicroTab?'active':''}" data-k="${o.key}">${o.label}</div>`).join('');
   box.querySelectorAll('.mtab').forEach(el=>{
@@ -4067,7 +4144,7 @@ async function buildClubesList(){
     counts[r.club] = (counts[r.club]||0)+1;
   });
   const clubs = Object.keys(counts).sort((a,b)=>a.localeCompare(b));
-  if(tag) tag.textContent = `${clubs.length} club${clubs.length===1?'':'es'} registrado${clubs.length===1?'':'s'}`;
+  if(tag) tag.textContent = tf('clubesRegistradosCount', {n:clubs.length});
   if(!clubs.length){
     box.innerHTML = '<p style="padding:14px 18px;color:var(--mist);font-size:12.5px;">Todavía no hay clubes registrados.</p>';
     return;
@@ -4286,7 +4363,7 @@ function buildGkTeamTimeline(resetToLatest){
   const canvas = document.getElementById('gkTeamTimelineChart');
   if(!canvas) return;
   if(typeof Chart === 'undefined'){
-    canvas.parentElement.innerHTML = '<div style="color:var(--mist);font-family:\'IBM Plex Mono\';font-size:12px;padding:20px;text-align:center;">No se pudo cargar Chart.js (sin conexión).</div>';
+    canvas.parentElement.innerHTML = `<div style="color:var(--mist);font-family:'IBM Plex Mono';font-size:12px;padding:20px;text-align:center;">${t('noSePudoChartjs')}</div>`;
     return;
   }
   const m = state.gkTtMetric;
@@ -4359,7 +4436,7 @@ function buildGkACWR(){
       <div class="nm">${r.p}</div>
       <div class="acwr-track">${pct!==null?`<div class="acwr-marker" style="left:${pct}%"></div>`:''}</div>
       <div class="acwr-ratio">${r.ratio!==null? r.ratio.toFixed(2) : '—'}</div>
-      <div><span class="acwr-badge" style="background:var(${ACWR_VAR[r.status]});color:#14143A;">${ACWR_LABEL[r.status]}</span></div>
+      <div><span class="acwr-badge" style="background:var(${ACWR_VAR[r.status]});color:#14143A;">${acwrLabel(r.status)}</span></div>
     </div>`;
   }).join('');
   box.querySelectorAll('.acwr-row').forEach(el=>{
@@ -4423,7 +4500,7 @@ function buildDataQuality(){
   });
   flagged.sort((a,b)=> b.z-a.z);
   if(!flagged.length){
-    box.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">Sin valores atípicos detectados — todos los datos están dentro de rangos esperados.</div>`;
+    box.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">${t('sinValoresAtipicos')}</div>`;
     return;
   }
   box.innerHTML = flagged.slice(0,15).map((r,i)=>{
@@ -4495,7 +4572,7 @@ function buildWeeklyTarget(){
 
   const {cycles, byDate, lastCycleWasClosed} = computeMicrocycles(categoryFilteredEvents());
   if(!cycles.length){
-    body.innerHTML = `<div style="color:var(--mist);font-size:12px;">Sin datos suficientes todavía</div>`;
+    body.innerHTML = `<div style="color:var(--mist);font-size:12px;">${t('sinDatosSuficientes')}</div>`;
     return;
   }
   // Ciclos cerrados: si el último bloque quedó abierto (sin partido todavía), no cuenta para las cuentas.
@@ -4692,26 +4769,26 @@ function buildKPIs(){
   const cyclePL = getCyclePLComparison();
   const sessionIntensity = getCurrentSessionIntensity();
 
-  const cycleSub = lastMatch ? `desde vs ${lastMatch.rival} (${lastMatch.fecha.split('-').reverse().join('/')})` : 'sin partido de referencia';
+  const cycleSub = lastMatch ? tf('desdeVs', {r:lastMatch.rival, d:lastMatch.fecha.split('-').reverse().join('/')}) : t('sinPartidoRef');
 
-  let weeklySub = 'sin ciclo anterior para comparar';
+  let weeklySub = t('sinCicloAnterior');
   if(cyclePL && cyclePL.pctChange!==null){
     const signo = cyclePL.pctChange>=0 ? '+' : '';
     weeklySub = cyclePL.within20
-      ? `<b style="color:var(--good);">✓ dentro del ±20%</b> · ${signo}${cyclePL.pctChange}% vs ciclo anterior`
-      : `<b style="color:var(--bad);">⚠ fuera del ±20%</b> · ${signo}${cyclePL.pctChange}% vs ciclo anterior`;
+      ? `<b style="color:var(--good);">${t('dentroDe20')}</b> · ${signo}${cyclePL.pctChange}% ${t('vsCicloAnterior')}`
+      : `<b style="color:var(--bad);">${t('fueraDe20')}</b> · ${signo}${cyclePL.pctChange}% ${t('vsCicloAnterior')}`;
   }
 
   const kpis = [
-    {lbl:'Distancia microciclo actual', val: cycleDistTotal!==null ? fmt(cycleDistTotal) : '—', unit:'m',
-      sub: `total acumulado · ${cycleSub}`},
-    {lbl:'HSR microciclo actual', val: cycleHsrTotal!==null ? fmt(cycleHsrTotal) : '—', unit:'m',
-      sub: `total acumulado · ${cycleSub}`},
-    {lbl:'Player Load microciclo', val: cyclePL ? fmt(cyclePL.current) : '—', unit:'',
+    {lbl:t('kpiDistCiclo'), val: cycleDistTotal!==null ? fmt(cycleDistTotal) : '—', unit:'m',
+      sub: `${t('totalAcumulado')} · ${cycleSub}`},
+    {lbl:t('kpiHsrCiclo'), val: cycleHsrTotal!==null ? fmt(cycleHsrTotal) : '—', unit:'m',
+      sub: `${t('totalAcumulado')} · ${cycleSub}`},
+    {lbl:t('kpiPlCiclo'), val: cyclePL ? fmt(cyclePL.current) : '—', unit:'',
       sub: weeklySub},
     {lbl:t('kpiRecords'), val:todays.length, unit:'', sub: todays.length? `<b>${todays.map(x=>x.jugador.split(' ')[0]).slice(0,3).join(', ')}${todays.length>3?'…':''}</b>` : t('sinNuevos')},
-    {lbl:'Intensidad sesión actual', val: sessionIntensity && sessionIntensity.pct!==null ? sessionIntensity.pct : '—', unit: sessionIntensity && sessionIntensity.pct!==null ? '%' : '',
-      sub: sessionIntensity ? `sesión del ${sessionIntensity.fecha.split('-').reverse().join('/')} · vs prom. últ. 3 partidos` : 'sin datos'},
+    {lbl:t('kpiIntensidadSesion'), val: sessionIntensity && sessionIntensity.pct!==null ? sessionIntensity.pct : '—', unit: sessionIntensity && sessionIntensity.pct!==null ? '%' : '',
+      sub: sessionIntensity ? tf('sesionDelVsProm', {d:sessionIntensity.fecha.split('-').reverse().join('/')}) : t('sinDatos')},
   ];
   document.getElementById('kpiStrip').innerHTML = kpis.map(k=>`
     <div class="kpi">
@@ -4814,9 +4891,9 @@ function drawRadar(player){
   const sesionesJugador = byPlayer[player] || [];
   const ultimaSesion = sesionesJugador.length ? sesionesJugador[sesionesJugador.length-1] : null;
   side.innerHTML = `
-    <div class="rs-item gold"><div class="k">Última sesión${ultimaSesion?' · '+ultimaSesion.fecha.split('-').reverse().join('/'):''}</div><div class="v">${fmt(ultimaSesion?ultimaSesion.dist:0)}<span>m dist.</span></div></div>
-    <div class="rs-item gold"><div class="k">Player Load prom.</div><div class="v">${fmt(Math.round(pAvg.pl||0))}</div></div>
-    <div class="rs-item mist"><div class="k">Promedio del plantel</div><div class="v">${fmt(Math.round(squadAvg.dist))}<span>m dist.</span></div></div>
+    <div class="rs-item gold"><div class="k">${t('ultimaSesion')}${ultimaSesion?' · '+ultimaSesion.fecha.split('-').reverse().join('/'):''}</div><div class="v">${fmt(ultimaSesion?ultimaSesion.dist:0)}<span>m dist.</span></div></div>
+    <div class="rs-item gold"><div class="k">${t('playerLoadProm')}</div><div class="v">${fmt(Math.round(pAvg.pl||0))}</div></div>
+    <div class="rs-item mist"><div class="k">${t('promedioDelPlantel')}</div><div class="v">${fmt(Math.round(squadAvg.dist))}<span>m dist.</span></div></div>
   `;
 }
 
@@ -4861,7 +4938,7 @@ function buildTimeline(player, metric, resetToLatest){
   if(typeof Chart === 'undefined'){
     document.getElementById('timelinePlayerTag').textContent = player;
     const box = document.querySelector('.chart-box');
-    if(box) box.innerHTML = '<div style="color:var(--mist);font-family:\'IBM Plex Mono\';font-size:12px;padding:20px;text-align:center;">No se pudo cargar Chart.js (sin conexión). El resto del dashboard funciona con normalidad.</div>';
+    if(box) box.innerHTML = `<div style="color:var(--mist);font-family:'IBM Plex Mono';font-size:12px;padding:20px;text-align:center;">${t('noSePudoChartjsResto')}</div>`;
     return;
   }
   const labels = evs.map(e=>{
@@ -5001,7 +5078,7 @@ function buildLeaderboard(){
 function buildRecordsTable(){
   const lastDate = [...new Set(categoryFilteredEvents().map(e=>e.fecha))].sort().pop();
   const rows = RECORDS.slice().sort((a,b)=> a.jugador.localeCompare(b.jugador));
-  const head = `<tr><th>Jugador</th>${METRIC_ORDER.map(m=>`<th>${METRICS[m].label}</th>`).join('')}</tr>`;
+  const head = `<tr><th>${t('colJugador')}</th>${METRIC_ORDER.map(m=>`<th>${METRICS[m].label}</th>`).join('')}</tr>`;
   const body = rows.map(r=>{
     return `<tr data-p="${r.jugador}" style="cursor:pointer;">
       <td><b>${r.jugador}</b></td>
@@ -5027,10 +5104,10 @@ function buildRecordsTable(){
 
 // ---------- match comparison ----------
 function fatigaLabel(v){
-  if(v<=-8) return 'Caída marcada — riesgo alto';
-  if(v<=-4) return 'Caída moderada — atención';
-  if(v<0) return 'Caída leve — normal';
-  return 'Sin caída — rendimiento sostenido';
+  if(v<=-8) return t('caidaMarcada');
+  if(v<=-4) return t('caidaModerada');
+  if(v<0) return t('caidaLeve');
+  return t('sinCaida');
 }
 function diffBadge(diff){
   if(diff===null || diff===undefined || isNaN(diff)) return '';
@@ -5041,29 +5118,29 @@ function diffBadge(diff){
 function buildMatchGrid(){
   const box = document.getElementById('matchGrid');
   const entries = Object.entries(ACTIVE_TEAMTOTALS)
-    .filter(([name,t]) => !CURRENT_CATEGORY || !t.categoria || t.categoria===CURRENT_CATEGORY)
+    .filter(([name,row]) => !CURRENT_CATEGORY || !row.categoria || row.categoria===CURRENT_CATEGORY)
     .sort((a,b)=> (b[1].fecha||'').localeCompare(a[1].fecha||''));
-  box.innerHTML = entries.map(([name,t])=>{
-    const h = t.halves || {};
+  box.innerHTML = entries.map(([name,row])=>{
+    const h = row.halves || {};
     return `
     <div class="match-card">
       <h4>${name}</h4>
-      <div class="dt">${t.fecha.split('-').reverse().join('/')}</div>
-      <div class="mm-row"><span class="k">Distancia total</span><span class="v">${fmt(t.dist)} m${diffBadge(h.dist && h.dist.diff)}</span></div>
-      <div class="mm-row"><span class="k">HSR</span><span class="v">${fmt(t.hsr)} m${diffBadge(h.hsr && h.hsr.diff)}</span></div>
-      <div class="mm-row"><span class="k">Sprint distancia</span><span class="v">${fmt(t.sprint_dist)} m${diffBadge(h.sprint && h.sprint.diff)}</span></div>
-      <div class="mm-row"><span class="k">Sprint conteo</span><span class="v">${fmt(t.sprint_count)}${diffBadge(h.sprint_count && h.sprint_count.diff)}</span></div>
-      <div class="mm-row"><span class="k">Acc B2-3</span><span class="v">${fmt(t.acc)}${diffBadge(h.acc && h.acc.diff)}</span></div>
-      <div class="mm-row"><span class="k">Desa B2-3</span><span class="v">${fmt(t.desa)}${diffBadge(h.desa && h.desa.diff)}</span></div>
-      <div class="mm-row"><span class="k">RHIE bouts</span><span class="v">${fmt(t.rhie)}${diffBadge(h.rhie && h.rhie.diff)}</span></div>
-      <div class="mm-row"><span class="k">Player Load</span><span class="v">${fmt(t.pl)}${diffBadge(h.pl && h.pl.diff)}</span></div>
-      ${t.fatiga!==undefined && t.fatiga!==null ? `<div class="mm-row"><span class="k">Índice de fatiga (2T vs 1T)</span><span class="v" style="color:${t.fatiga<=-8?'var(--bad)':t.fatiga<=-4?'var(--warn)':'var(--good)'};">${t.fatiga>0?'+':''}${fmt(t.fatiga,1)}% <span style="font-size:10.5px;font-weight:400;opacity:.85;">(${fatigaLabel(t.fatiga)})</span></span></div>` : ''}
+      <div class="dt">${row.fecha.split('-').reverse().join('/')}</div>
+      <div class="mm-row"><span class="k">${t('mmDistTotal')}</span><span class="v">${fmt(row.dist)} m${diffBadge(h.dist && h.dist.diff)}</span></div>
+      <div class="mm-row"><span class="k">${t('mmHsr')}</span><span class="v">${fmt(row.hsr)} m${diffBadge(h.hsr && h.hsr.diff)}</span></div>
+      <div class="mm-row"><span class="k">${t('mmSprintDist')}</span><span class="v">${fmt(row.sprint_dist)} m${diffBadge(h.sprint && h.sprint.diff)}</span></div>
+      <div class="mm-row"><span class="k">${t('mmSprintCount')}</span><span class="v">${fmt(row.sprint_count)}${diffBadge(h.sprint_count && h.sprint_count.diff)}</span></div>
+      <div class="mm-row"><span class="k">${t('mmAccB23')}</span><span class="v">${fmt(row.acc)}${diffBadge(h.acc && h.acc.diff)}</span></div>
+      <div class="mm-row"><span class="k">${t('mmDesaB23')}</span><span class="v">${fmt(row.desa)}${diffBadge(h.desa && h.desa.diff)}</span></div>
+      <div class="mm-row"><span class="k">${t('mmRhie')}</span><span class="v">${fmt(row.rhie)}${diffBadge(h.rhie && h.rhie.diff)}</span></div>
+      <div class="mm-row"><span class="k">${t('mmPlayerLoad')}</span><span class="v">${fmt(row.pl)}${diffBadge(h.pl && h.pl.diff)}</span></div>
+      ${row.fatiga!==undefined && row.fatiga!==null ? `<div class="mm-row"><span class="k">${t('mmIndiceFatiga')}</span><span class="v" style="color:${row.fatiga<=-8?'var(--bad)':row.fatiga<=-4?'var(--warn)':'var(--good)'};">${row.fatiga>0?'+':''}${fmt(row.fatiga,1)}% <span style="font-size:10.5px;font-weight:400;opacity:.85;">(${fatigaLabel(row.fatiga)})</span></span></div>` : ''}
     </div>`;
   }).join('');
 }
 
 // ---------- ACWR panel ----------
-const ACWR_LABEL = {low:'Carga baja', optimal:'Óptima', caution:'Precaución', high:'Riesgo alto', insuf:'Datos insuf.'};
+function acwrLabel(status){ const map={low:'acwrLow',optimal:'acwrOptimal',caution:'acwrCaution',high:'acwrHigh',insuf:'acwrInsuf'}; return t(map[status]); }
 const ACWR_VAR = {low:'--low', optimal:'--good', caution:'--warn', high:'--bad', insuf:'--mist'};
 function buildACWR(){
   const dates = [...new Set(categoryFilteredEvents().map(e=>e.fecha))].sort();
@@ -5080,7 +5157,7 @@ function buildACWR(){
       <div class="nm">${r.p}</div>
       <div class="acwr-track">${pct!==null?`<div class="acwr-marker" style="left:${pct}%"></div>`:''}</div>
       <div class="acwr-ratio">${r.ratio!==null? r.ratio.toFixed(2) : '—'}</div>
-      <div><span class="acwr-badge" style="background:var(${ACWR_VAR[r.status]});color:#14143A;">${ACWR_LABEL[r.status]}</span></div>
+      <div><span class="acwr-badge" style="background:var(${ACWR_VAR[r.status]});color:#14143A;">${acwrLabel(r.status)}</span></div>
     </div>`;
   }).join('');
   box.querySelectorAll('.acwr-row').forEach(el=> el.addEventListener('click',()=>selectPlayer(el.dataset.p)));
@@ -5095,7 +5172,7 @@ function buildWeeklyLoadChart(){
   if(!dates.length){
     if(weeklyLoadChart){ weeklyLoadChart.destroy(); weeklyLoadChart=null; }
     const tag = document.getElementById('weeklyLoadTag');
-    if(tag) tag.textContent = 'Sin datos cargados';
+    if(tag) tag.textContent = t('sinDatosCargados');
     return;
   }
 
@@ -5125,7 +5202,7 @@ function buildWeeklyLoadChart(){
   if(inner) inner.style.width = wantedWidth + 'px';
 
   if(typeof Chart === 'undefined'){
-    canvas.parentElement.innerHTML = '<div style="color:var(--mist);font-family:\'IBM Plex Mono\';font-size:12px;padding:14px;text-align:center;">No se pudo cargar Chart.js (sin conexión).</div>';
+    canvas.parentElement.innerHTML = `<div style="color:var(--mist);font-family:'IBM Plex Mono';font-size:12px;padding:14px;text-align:center;">${t('noSePudoChartjs')}</div>`;
     return;
   }
 
@@ -5215,7 +5292,7 @@ function buildWeeklyLoadChart(){
     if(scrollBox) scrollBox.scrollLeft = scrollBox.scrollWidth;
   });
   const tag = document.getElementById('weeklyLoadTag');
-  if(tag) tag.textContent = `Promedio del plantel · ${allRatios.length} día${allRatios.length===1?'':'s'} cargado${allRatios.length===1?'':'s'}`;
+  if(tag) tag.textContent = `${t('promedioDelPlantel')} · ${tf('diasCargados',{n:allRatios.length})}`;
 }
 
 // ---------- ACWR diario en base al RPE (mismo gráfico que el de GPS, pero con carga interna RPE×minutos) ----------
@@ -5230,7 +5307,7 @@ function buildRpeAcwrChart(){
   if(!dates.length){
     if(rpeAcwrChartInstance){ rpeAcwrChartInstance.destroy(); rpeAcwrChartInstance=null; }
     const tag2 = document.getElementById('rpeAcwrTag');
-    if(tag2) tag2.textContent = 'Sin reportes de RPE cargados';
+    if(tag2) tag2.textContent = t('sinReportesRpe');
     return;
   }
 
@@ -5258,7 +5335,7 @@ function buildRpeAcwrChart(){
   if(inner) inner.style.width = wantedWidth + 'px';
 
   if(typeof Chart === 'undefined'){
-    canvas.parentElement.innerHTML = '<div style="color:var(--mist);font-family:\'IBM Plex Mono\';font-size:12px;padding:14px;text-align:center;">No se pudo cargar Chart.js (sin conexión).</div>';
+    canvas.parentElement.innerHTML = `<div style="color:var(--mist);font-family:'IBM Plex Mono';font-size:12px;padding:14px;text-align:center;">${t('noSePudoChartjs')}</div>`;
     return;
   }
 
@@ -5340,7 +5417,7 @@ function buildRpeAcwrChart(){
     if(scrollBox) scrollBox.scrollLeft = scrollBox.scrollWidth;
   });
   const tag2 = document.getElementById('rpeAcwrTag');
-  if(tag2) tag2.textContent = `Promedio del plantel (RPE) · ${allRatios.length} día${allRatios.length===1?'':'s'} cargado${allRatios.length===1?'':'s'}`;
+  if(tag2) tag2.textContent = `${t('promedioPlantelRpe')} · ${tf('diasCargados',{n:allRatios.length})}`;
 }
 
 // ---------- team-wide daily evolution (dist / hsr / pl) ----------
@@ -5425,12 +5502,12 @@ function buildTeamTimeline(resetToLatest){
     }
   }
   const tag = document.getElementById('teamTimelineTag');
-  if(tag) tag.textContent = `${METRICS[state.ttMetric].label} · promedio diario del plantel`;
+  if(tag) tag.textContent = `${METRICS[state.ttMetric].label} · ${t('promedioDiarioPlantel')}`;
 
   const canvas = document.getElementById('teamTimelineChart');
   if(!canvas) return;
   if(typeof Chart === 'undefined'){
-    canvas.parentElement.innerHTML = '<div style="color:var(--mist);font-family:\'IBM Plex Mono\';font-size:12px;padding:20px;text-align:center;">No se pudo cargar Chart.js (sin conexión). El resto del dashboard funciona con normalidad.</div>';
+    canvas.parentElement.innerHTML = `<div style="color:var(--mist);font-family:'IBM Plex Mono';font-size:12px;padding:20px;text-align:center;">${t('noSePudoChartjsResto')}</div>`;
     return;
   }
   const m = state.ttMetric;
@@ -5919,7 +5996,7 @@ async function handleCatapultCSV(file){
     document.getElementById('csvImportFecha').value = parsed.fecha || '';
     document.getElementById('csvImportTipo').value = 'Entreno';
     const catEl = document.getElementById('csvImportCategoria');
-    if(catEl) catEl.value = CURRENT_CATEGORY || ''; // si ya estás viendo una categoría puntual, la propone de entrada
+    if(catEl) catEl.value = CURRENT_CATEGORY || ''; // si hay una categoría puntual seleccionada, se propone de entrada
     document.getElementById('csvImportRival').value = '';
     document.getElementById('csvImportDetalle').value = '';
     document.getElementById('csvImportStatus').textContent = '';
