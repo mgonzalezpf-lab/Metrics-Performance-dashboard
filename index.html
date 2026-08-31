@@ -3803,15 +3803,18 @@ function buildMicrocycleTable(){
       const distAvg = avgField(dayEvents,'dist');
       const hsrAvg = avgField(dayEvents,'hsr');
       const plAvg = avgField(dayEvents,'pl');
+      const mminAvg = avgMPerMin(dayEvents);
       if(distAvg!==null) cycleTotal += distAvg;
       if(hsrAvg!==null) hsrTotal += hsrAvg;
       if(plAvg!==null) plTotal += plAvg;
 
       // Intensidad compuesta: promedio de los % de cada métrica disponible ese día, contra el último partido jugado.
+      // Mismas 4 métricas que el KPI "Intensidad sesión actual" (dist, HSR, PL y m/min), para que ambos números coincidan.
       const pcts = [];
       if(distAvg!==null && lastMatch && lastMatch.avgDist) pcts.push(distAvg/lastMatch.avgDist*100);
       if(hsrAvg!==null && lastMatch && lastMatch.avgHsr) pcts.push(hsrAvg/lastMatch.avgHsr*100);
       if(plAvg!==null && lastMatch && lastMatch.avgPl) pcts.push(plAvg/lastMatch.avgPl*100);
+      if(mminAvg!==null && lastMatch && lastMatch.avgMMin) pcts.push(mminAvg/lastMatch.avgMMin*100);
       const intensityPct = pcts.length ? Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length) : null;
       if(intensityPct!==null) intensityValues.push(intensityPct);
       const intensityColor = intensityPct===null ? '' : (intensityPct>100 ? 'color:var(--bad);' : intensityPct>=70 ? 'color:var(--gold-bright);' : 'color:var(--mist);');
