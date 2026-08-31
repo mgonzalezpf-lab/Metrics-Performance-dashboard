@@ -756,7 +756,7 @@
         <h3>🧤 <span data-i18n="alertasCarga">Alertas de carga · ACWR</span></h3>
         <span class="tag" data-i18n="acwrTag">agudo (7 días) : crónico (28 días) · sobre Player Load</span>
       </div>
-      <div class="acwr-note">Ratio entre la carga de los últimos <b>7 días</b> y el promedio semanal de los últimos <b>28 días</b>. Con poco historial cargado el número es orientativo. No reemplaza el criterio del cuerpo técnico ni médico.</div>
+      <div class="acwr-note" data-i18n-html="acwrNoteCorta">Ratio entre la carga de los últimos <b>7 días</b> y el promedio semanal de los últimos <b>28 días</b>. Con poco historial cargado el número es orientativo. No reemplaza el criterio del cuerpo técnico ni médico.</div>
       <div class="acwr-legend">
         <span><span class="dot" style="background:var(--low);"></span>&lt;0.8 carga baja</span>
         <span><span class="dot" style="background:var(--good);"></span>0.8–1.3 zona óptima</span>
@@ -835,7 +835,7 @@
       <h3 data-i18n="alertasCarga">Alertas de carga · ACWR</h3>
       <span class="tag" data-i18n="acwrTag">agudo (7 días) : crónico (28 días) · sobre Player Load</span>
     </div>
-    <div class="acwr-note">Ratio entre la carga de los últimos <b>7 días</b> y el promedio semanal de los últimos <b>28 días</b>. Con poco historial cargado el número es orientativo — se vuelve más confiable a medida que se suman sesiones. No reemplaza el criterio del cuerpo técnico ni médico.</div>
+    <div class="acwr-note" data-i18n-html="acwrNoteLarga">Ratio entre la carga de los últimos <b>7 días</b> y el promedio semanal de los últimos <b>28 días</b>. Con poco historial cargado el número es orientativo — se vuelve más confiable a medida que se suman sesiones. No reemplaza el criterio del cuerpo técnico ni médico.</div>
     <div class="acwr-legend">
       <span><span class="dot" style="background:var(--low);"></span>&lt;0.8 carga baja</span>
       <span><span class="dot" style="background:var(--good);"></span>0.8–1.3 zona óptima</span>
@@ -1149,9 +1149,9 @@
         <div class="radar-side" id="gkRadarSide"></div>
       </div>
       <div class="legend-row">
-        <span><span class="dot" style="background:var(--gold);"></span>Promedio del arquero</span>
-        <span><span class="dot" style="background:var(--mist);opacity:.6;"></span>Promedio de arqueros</span>
-        <span><span class="dot" style="background:var(--maroon);"></span>Récord personal</span>
+        <span><span class="dot" style="background:var(--gold);"></span><span data-i18n="gkPromedioArquero">Promedio del arquero</span></span>
+        <span><span class="dot" style="background:var(--mist);opacity:.6;"></span><span data-i18n="gkPromedioArqueros">Promedio de arqueros</span></span>
+        <span><span class="dot" style="background:var(--maroon);"></span><span data-i18n="recordPersonal">Récord personal</span></span>
       </div>
     </div>
     <div class="panel" style="margin-bottom:18px;">
@@ -1520,9 +1520,9 @@ function drawGkRadar(player){
   const side = document.getElementById('gkRadarSide');
   if(side){
     side.innerHTML = `
-      <div class="rs-item gold"><div class="k">Promedio arquero (últ. 5)</div><div class="v">${fmt(Math.round(pAvg.dist||0))}<span>m dist.</span></div></div>
-      <div class="rs-item gold"><div class="k">Player Load prom.</div><div class="v">${fmt(Math.round(pAvg.pl||0))}</div></div>
-      <div class="rs-item mist"><div class="k">Promedio de arqueros</div><div class="v">${fmt(Math.round(gkSquadAvg.dist||0))}<span>m dist.</span></div></div>
+      <div class="rs-item gold"><div class="k">${t('gkPromedioUlt5')}</div><div class="v">${fmt(Math.round(pAvg.dist||0))}<span>m dist.</span></div></div>
+      <div class="rs-item gold"><div class="k">${t('playerLoadProm')}</div><div class="v">${fmt(Math.round(pAvg.pl||0))}</div></div>
+      <div class="rs-item mist"><div class="k">${t('gkPromedioArqueros')}</div><div class="v">${fmt(Math.round(gkSquadAvg.dist||0))}<span>m dist.</span></div></div>
     `;
   }
 }
@@ -1556,10 +1556,10 @@ function buildGkTimeline(player, metric, resetToLatest){
   const evs = allEvs.slice(state.gkTlOffset, state.gkTlOffset + TIMELINE_WINDOW);
   const tlLabelEl = document.getElementById('gkTlLabel');
   if(tlLabelEl){
-    if(!allEvs.length){ tlLabelEl.innerHTML = 'Sin sesiones cargadas'; }
+    if(!allEvs.length){ tlLabelEl.innerHTML = t('sinSesionesCargadas'); }
     else{
       const from = state.gkTlOffset+1, to = Math.min(allEvs.length, state.gkTlOffset+TIMELINE_WINDOW);
-      tlLabelEl.innerHTML = `Sesiones <b>${from}–${to}</b> de <b>${allEvs.length}</b>`;
+      tlLabelEl.innerHTML = tf('sesionesXaYdeZ',{from,to,total:allEvs.length});
     }
   }
 
@@ -1639,7 +1639,7 @@ function buildGkPlayerView(playerName){
   const tableBox = document.getElementById('gkPlayerTable');
   const radarTitle = document.getElementById('gkRadarTitle');
   if(!kpiBox || !tableBox) return;
-  if(radarTitle) radarTitle.textContent = `🧤 Radar de Vuelo · ${playerName}`;
+  if(radarTitle) radarTitle.textContent = `${t('gkRadarVuelo')} · ${playerName}`;
   drawGkRadar(playerName);
   buildGkMetricTabs(playerName);
   buildGkTimeline(playerName, state.gkMetric, true);
@@ -1857,10 +1857,10 @@ function setupAddPlayerBar(){
     status.textContent = 'Agregando…';
     const {error} = await supabaseClient.from('roster_players').insert({club:CURRENT_CLUB, player_name:name, is_goalkeeper:isGkCheckbox.checked, categoria: categoriaSelect.value || null});
     if(error){
-      status.textContent = error.code==='23505' ? 'Ese nombre ya está en la lista.' : 'No se pudo agregar: '+error.message;
+      status.textContent = error.code==='23505' ? t('nombreYaEnLista') : tf('noSePudoGuardar',{e:error.message});
       return;
     }
-    status.textContent = `✅ "${name}" agregado. Ya puede crear su cuenta y elegirlo.`;
+    status.textContent = tf('nombreAgregado', {n:name});
     input.value='';
     isGkCheckbox.checked = false;
     categoriaSelect.value = '';
@@ -1886,13 +1886,13 @@ function setupNextMatchBar(){
   btn.onclick = ()=>{ form.style.display = form.style.display==='block' ? 'none' : 'block'; };
   document.getElementById('nextMatchSubmit').onclick = async ()=>{
     const dateVal = input.value;
-    if(!dateVal){ status.textContent='Elige una fecha.'; return; }
-    status.textContent = 'Guardando…';
+    if(!dateVal){ status.textContent=t('eligeUnaFecha'); return; }
+    status.textContent = t('guardando');
     const {error} = await supabaseClient.from('app_settings')
       .upsert({club:CURRENT_CLUB, key:'next_match_date', value:dateVal, updated_at:new Date().toISOString()}, {onConflict:'club,key'});
-    if(error){ status.textContent = 'No se pudo guardar: ' + error.message; return; }
+    if(error){ status.textContent = tf('noSePudoGuardar',{e:error.message}); return; }
     NEXT_MATCH_DATE = dateVal;
-    status.textContent = '✅ Fecha guardada.';
+    status.textContent = t('fechaGuardada');
     refreshLabel();
     buildMicrocycleTable();
   };
@@ -1911,11 +1911,11 @@ function setupRestDayBar(){
   btn.onclick = ()=>{ form.style.display = form.style.display==='block' ? 'none' : 'block'; };
   document.getElementById('restDaySubmit').onclick = async ()=>{
     const dateVal = input.value;
-    if(!dateVal){ status.textContent='Elige una fecha.'; return; }
+    if(!dateVal){ status.textContent=t('eligeUnaFecha'); return; }
     const yaHayDatos = ACTIVE_EVENTS.some(e=>e.fecha===dateVal);
-    if(yaHayDatos){ status.textContent='Ya hay una sesión cargada ese día — elige otra fecha.'; return; }
-    if(!players.length){ status.textContent='No hay jugadores cargados todavía.'; return; }
-    status.textContent = 'Guardando…';
+    if(yaHayDatos){ status.textContent=t('sesionYaCargadaEseDia'); return; }
+    if(!players.length){ status.textContent=t('noHayJugadoresCargados'); return; }
+    status.textContent = t('guardando');
     const nuevosEventos = players.map(p=>({
       fecha:dateVal, jugador:p, tipo:'Entreno', detalle:'Día libre',
       dist:null, hsr:null, vel:null, acc:null, desa:null, pl:null, min:null,
@@ -1929,11 +1929,11 @@ function setupRestDayBar(){
       saveData(ACTIVE_EVENTS, ACTIVE_TEAMTOTALS);
       deriveAll(ACTIVE_EVENTS);
       renderAll(prevPlayer);
-      status.textContent = '✅ Día libre marcado.';
+      status.textContent = t('diaLibreMarcado');
       input.value = '';
       setTimeout(()=>{ form.style.display='none'; status.textContent=''; }, 1500);
     }catch(err){
-      status.textContent = 'No se pudo guardar: ' + err.message;
+      status.textContent = tf('noSePudoGuardar',{e:err.message});
     }
   };
   document.addEventListener('click',(e)=>{ if(!form.contains(e.target) && e.target!==btn) form.style.display='none'; });
@@ -2134,11 +2134,11 @@ function showPendingScreen(role){
     };
     return;
   }
-  title.textContent = 'Cuenta creada';
+  title.textContent = t('cuentaCreada');
   const roleLabel = role==='pending_club' ? 'Administrador de un nuevo club' : (role==='pending_gk_coach' ? 'Entrenador de arqueros' : 'Staff (médico y técnico)');
   const approver = role==='pending_club' ? 'OWNER (Matías González)' : 'el administrador de tu club';
   if(role==='rejected_club'){
-    msg.textContent = 'La solicitud para crear este club fue rechazada. Si piensas que es un error, contacta al OWNER (Matías González).';
+    msg.textContent = t('solicitudRechazada');
   } else {
     msg.textContent = role==='pending_club'
       ? `La solicitud del club fue creada correctamente. Necesita la aprobación del OWNER (Matías González) antes de activar el club y asignarte como administrador.`
@@ -2153,14 +2153,14 @@ function showPendingScreen(role){
 async function handleNameSubmit(event){
   event.preventDefault();
   const name=document.getElementById('nameSelect').value;
-  if(!name){ document.getElementById('nameMessage').textContent='Selecciona un nombre válido.'; return; }
+  if(!name){ document.getElementById('nameMessage').textContent=t('seleccionaNombreValido'); return; }
   try{
     await claimPlayerName(name);
     myProfile = await getMyProfile();
     document.getElementById('nameScreen').style.display='none';
     await startDashboard();
   }catch(error){
-    document.getElementById('nameMessage').textContent = 'Ese nombre ya fue tomado por otra cuenta, elige otro.';
+    document.getElementById('nameMessage').textContent = t('nombreYaTomado');
     const taken = await getTakenPlayerNames();
     const rosterExtra = await getRosterExtraNames();
     const allNames = [...new Set([...ACTIVE_EVENTS.map(e=>e.jugador), ...rosterExtra])].sort();
@@ -2343,13 +2343,13 @@ function buildRpeWidget(existing){
   });
   submitBtn.onclick = async ()=>{
     if(selected===null) return;
-    submitBtn.disabled = true; status.textContent = 'Guardando…';
+    submitBtn.disabled = true; status.textContent = t('guardando');
     scale.querySelectorAll('.rpe-btn').forEach(b=> b.disabled = true);
     try{
       await submitRpe(selected);
       buildRpeWidget({rpe:selected});
     }catch(error){
-      status.textContent = 'No se pudo guardar: ' + error.message;
+      status.textContent = tf('noSePudoGuardar',{e:error.message});
       scale.querySelectorAll('.rpe-btn').forEach(b=> b.disabled = false);
       submitBtn.disabled = false;
     }
@@ -2549,7 +2549,7 @@ function buildWellnessWidget(existing){
   if(btnBack) btnBack.addEventListener('click', ()=>{ wellnessState.view='back'; redrawBodyMap(); });
 
   submitBtn.onclick = async ()=>{
-    submitBtn.disabled = true; status.textContent = 'Guardando…';
+    submitBtn.disabled = true; status.textContent = t('guardando');
     try{
       const obsEl = document.getElementById('wellnessObs');
       await submitWellness({
@@ -2561,7 +2561,7 @@ function buildWellnessWidget(existing){
       const nuevo = await getMyTodayWellness();
       buildWellnessWidget(nuevo);
     }catch(error){
-      status.textContent = 'No se pudo guardar: ' + error.message;
+      status.textContent = tf('noSePudoGuardar',{e:error.message});
       submitBtn.disabled = false;
     }
   };
@@ -2745,7 +2745,7 @@ async function saveAllGkRpeMinutes(){
   if(!inputs.length){ return; }
   const originalLabel = btn.textContent;
   btn.disabled = true;
-  btn.textContent = 'Guardando…';
+  btn.textContent = t('guardando');
   const updates = Array.from(inputs).map(input=>{
     const val = input.value===''? null : Number(input.value);
     return supabaseClient.from('rpe_reports').update({minutos:val, updated_at:new Date().toISOString()})
@@ -3010,10 +3010,10 @@ function setupRpeWindowBar(){
   document.getElementById('rpeWindowSubmit').onclick = async ()=>{
     const startVal = startInput.value, endVal = endInput.value;
     if(!startVal || !endVal){ status.textContent = 'Completa las dos horas.'; return; }
-    status.textContent = 'Guardando…';
+    status.textContent = t('guardando');
     const {error} = await supabaseClient.from('app_settings')
       .upsert({club:CURRENT_CLUB, key:'rpe_window', value:JSON.stringify({start:startVal, end:endVal}), updated_at:new Date().toISOString()}, {onConflict:'club,key'});
-    if(error){ status.textContent = 'No se pudo guardar: ' + error.message; return; }
+    if(error){ status.textContent = tf('noSePudoGuardar',{e:error.message}); return; }
     RPE_WINDOW_START = startVal; RPE_WINDOW_END = endVal;
     status.textContent = '✅ Horario guardado.';
     refreshLabel();
@@ -3099,10 +3099,10 @@ function setupWellnessWindowBar(){
   document.getElementById('wellnessWindowSubmit').onclick = async ()=>{
     const startVal = startInput.value, endVal = endInput.value;
     if(!startVal || !endVal){ status.textContent = 'Completa las dos horas.'; return; }
-    status.textContent = 'Guardando…';
+    status.textContent = t('guardando');
     const {error} = await supabaseClient.from('app_settings')
       .upsert({club:CURRENT_CLUB, key:'wellness_window', value:JSON.stringify({start:startVal, end:endVal}), updated_at:new Date().toISOString()}, {onConflict:'club,key'});
-    if(error){ status.textContent = 'No se pudo guardar: ' + error.message; return; }
+    if(error){ status.textContent = tf('noSePudoGuardar',{e:error.message}); return; }
     WELLNESS_WINDOW_START = startVal; WELLNESS_WINDOW_END = endVal;
     status.textContent = '✅ Horario guardado.';
     refreshLabel();
@@ -3223,7 +3223,7 @@ async function saveAllRpeMinutes(){
   if(!inputs.length){ return; }
   const originalLabel = btn.textContent;
   btn.disabled = true;
-  btn.textContent = 'Guardando…';
+  btn.textContent = t('guardando');
   const updates = Array.from(inputs).map(input=>{
     const val = input.value===''? null : Number(input.value);
     return supabaseClient.from('rpe_reports').update({minutos:val, updated_at:new Date().toISOString()})
@@ -3387,6 +3387,33 @@ const I18N = {
     caidaMarcada:'Caída marcada — riesgo alto', caidaModerada:'Caída moderada — atención', caidaLeve:'Caída leve — normal', sinCaida:'Sin caída — rendimiento sostenido',
     mmDistTotal:'Distancia total', mmHsr:'HSR', mmSprintDist:'Sprint distancia', mmSprintCount:'Sprint conteo', mmAccB23:'Acc B2-3', mmDesaB23:'Desa B2-3', mmRhie:'RHIE bouts', mmPlayerLoad:'Player Load', mmIndiceFatiga:'Índice de fatiga (2T vs 1T)',
     sinValoresAtipicos:'Sin valores atípicos detectados — todos los datos están dentro de rangos esperados.',
+    mtDistancia:'Distancia', mtPlayerLoad:'Player Load', sinCiclosCerrados:'Sin ciclos cerrados todavía',
+    objetivoEsteCiclo:'objetivo de este ciclo ({d}d)', objetivoProximoCiclo:'objetivo próximo ciclo ({d}d aprox.)',
+    rangoConMargen:'rango {min}–{max}{u} (±{pct}%)', cumplidoCheck:'✓ cumplido', fueraCheck:'⚠ fuera',
+    ultimoCicloResumen:'último ciclo ({d}d): {v}{u} ({s}{pct}%)', enCursoLabel:'● En curso ({d}d):', acumuladoLabel:'acumulado',
+    ritmoLabel:' · ritmo {arrow}{pct}%', vsObjetivo:'vs objetivo',
+    porArribaTexto:'El ritmo de este ciclo en curso (día {d}) ya viene por encima del objetivo en {m} — conviene bajar la intensidad de las próximas sesiones antes de que cierre el ciclo.',
+    porAbajoTexto:'El ritmo de este ciclo en curso (día {d}) viene por debajo en {m} — hay margen para sumar algo más de carga en lo que queda de la semana.',
+    sinMicrocicloTexto:'📋 Todavía no cerró un microciclo para comparar. Por ahora, apunta al plantel a los rangos de abajo esta semana.',
+    bajaLaCargaTexto:'⚠ <b>Baja la carga esta semana.</b> {m} se pasó del margen seguro en el último ciclo (hasta {pct}%). Recomendado: no subir el volumen hasta volver a estar dentro del rango, para no acumular riesgo de lesión.',
+    progresarTexto:'📉 <b>Se puede progresar de a poco esta semana.</b> {m} quedó por debajo del margen en el último ciclo — no hay urgencia, pero conviene evitar un salto brusco: subir gradual hacia el objetivo.',
+    mantenerTexto:'✓ <b>Se puede mantener o subir levemente la carga esta semana.</b> El último ciclo se mantuvo dentro del margen seguro en todas las métricas.',
+    acwrNoteCorta:'Ratio entre la carga de los últimos <b>7 días</b> y el promedio semanal de los últimos <b>28 días</b>. Con poco historial cargado el número es orientativo. No reemplaza el criterio del cuerpo técnico ni médico.',
+    acwrNoteLarga:'Ratio entre la carga de los últimos <b>7 días</b> y el promedio semanal de los últimos <b>28 días</b>. Con poco historial cargado el número es orientativo — se vuelve más confiable a medida que se suman sesiones. No reemplaza el criterio del cuerpo técnico ni médico.',
+    diasCargadosScrollHint:'{n} día(s) cargado(s) · desliza para ver el historial · ● = partido',
+    diasRpeCargadosScrollHint:'{n} día(s) con RPE cargado(s) · desliza para ver el historial · ● = partido',
+    sinRecordRef:'sin récord de referencia', pctDelRecordTope:'{pct}% del récord · tope {v}', recordTag:'RÉCORD',
+    sinSesionesCargadas:'Sin sesiones cargadas', sesionesXaYdeZ:'Sesiones <b>{from}–{to}</b> de <b>{total}</b>', sinDatosTooltip:'Sin datos', gkPromedioUlt5:'Promedio arquero (últ. 5)',
+    noSePudoGuardar:'No se pudo guardar: {e}', guardando:'Guardando…', eligeUnaFecha:'Elige una fecha.',
+    nombreYaEnLista:'Ese nombre ya está en la lista.', fechaGuardada:'✅ Fecha guardada.',
+    sesionYaCargadaEseDia:'Ya hay una sesión cargada ese día — elige otra fecha.', noHayJugadoresCargados:'No hay jugadores cargados todavía.',
+    solicitudRechazada:'La solicitud para crear este club fue rechazada. Si piensas que es un error, contacta al OWNER (Matías González).',
+    reintentar:'⚠️ Reintentar', cargandoClubes:'Cargando clubes…', sinClubesRegistrados:'Todavía no hay clubes registrados.',
+    recordSuperadoBanner:'🔥 ¡Récord superado en {m}! {n} alcanzó un nuevo máximo personal en la última sesión.',
+    sinJugadoresComparar:'Sin jugadores todavía para comparar.', radarVueloSinJugadores:'sin jugadores todavía',
+    faltaLaFecha:'Falta la fecha.', passwordActualizada:'¡Listo! Tu contraseña se actualizó. Inicia sesión de nuevo.', diaLibreMarcado:'✅ Día libre marcado.',
+    nombreYaTomado:'Ese nombre ya fue tomado por otra cuenta, elige otro.', noHayDatosParaCargar:'No hay datos para cargar.', faltaNombreRival:'Falta el nombre del rival.',
+    nombreAgregado:'✅ "{n}" agregado. Ya puede crear su cuenta y elegirlo.', cuentaCreada:'Cuenta creada', seleccionaNombreValido:'Selecciona un nombre válido.',
     noSePudoRpePlantel:'No se pudo cargar el RPE del plantel.', noSePudoRpeArqueros:'No se pudo cargar el RPE de arqueros.', noSePudoWellness:'No se pudo cargar el Wellness del plantel.',
     noSePudoChartjs:'No se pudo cargar Chart.js (sin conexión).', noSePudoChartjsResto:'No se pudo cargar Chart.js (sin conexión). El resto del dashboard funciona con normalidad.',
     sinDatosSuficientes:'Sin datos suficientes todavía',
@@ -3454,6 +3481,33 @@ const I18N = {
     caidaMarcada:'Marked drop — high risk', caidaModerada:'Moderate drop — attention', caidaLeve:'Slight drop — normal', sinCaida:'No drop — sustained performance',
     mmDistTotal:'Total distance', mmHsr:'HSR', mmSprintDist:'Sprint distance', mmSprintCount:'Sprint count', mmAccB23:'Acc B2-3', mmDesaB23:'Dec B2-3', mmRhie:'RHIE bouts', mmPlayerLoad:'Player Load', mmIndiceFatiga:'Fatigue index (2H vs 1H)',
     sinValoresAtipicos:'No outliers detected — all data is within expected ranges.',
+    mtDistancia:'Distance', mtPlayerLoad:'Player Load', sinCiclosCerrados:'No closed cycles yet',
+    objetivoEsteCiclo:'target for this cycle ({d}d)', objetivoProximoCiclo:'target for next cycle ({d}d approx.)',
+    rangoConMargen:'range {min}–{max}{u} (±{pct}%)', cumplidoCheck:'✓ met', fueraCheck:'⚠ off target',
+    ultimoCicloResumen:'last cycle ({d}d): {v}{u} ({s}{pct}%)', enCursoLabel:'● In progress ({d}d):', acumuladoLabel:'accumulated',
+    ritmoLabel:' · pace {arrow}{pct}%', vsObjetivo:'vs target',
+    porArribaTexto:'The pace of this current cycle (day {d}) is already above target in {m} — consider lowering the intensity of the next sessions before the cycle closes.',
+    porAbajoTexto:'The pace of this current cycle (day {d}) is below target in {m} — there is room to add a bit more load for the rest of the week.',
+    sinMicrocicloTexto:'📋 No microcycle has closed yet to compare. For now, aim the squad at the ranges below this week.',
+    bajaLaCargaTexto:'⚠ <b>Lower the load this week.</b> {m} went past the safe margin in the last cycle (up to {pct}%). Recommended: do not increase volume until back within range, to avoid accumulating injury risk.',
+    progresarTexto:'📉 <b>You can progress gradually this week.</b> {m} stayed below the margin in the last cycle — no urgency, but avoid a sharp jump: increase gradually toward the target.',
+    mantenerTexto:'✓ <b>You can maintain or slightly increase the load this week.</b> The last cycle stayed within the safe margin across all metrics.',
+    acwrNoteCorta:'Ratio between the load of the last <b>7 days</b> and the weekly average of the last <b>28 days</b>. With little history loaded the number is indicative. It does not replace the judgment of the medical and technical staff.',
+    acwrNoteLarga:'Ratio between the load of the last <b>7 days</b> and the weekly average of the last <b>28 days</b>. With little history loaded the number is indicative — it becomes more reliable as more sessions are added. It does not replace the judgment of the medical and technical staff.',
+    diasCargadosScrollHint:'{n} day(s) loaded · swipe to see history · ● = match',
+    diasRpeCargadosScrollHint:'{n} day(s) with RPE loaded · swipe to see history · ● = match',
+    sinRecordRef:'no reference record', pctDelRecordTope:'{pct}% of record · cap {v}', recordTag:'RECORD',
+    sinSesionesCargadas:'No sessions loaded', sesionesXaYdeZ:'Sessions <b>{from}–{to}</b> of <b>{total}</b>', sinDatosTooltip:'No data', gkPromedioUlt5:'Goalkeeper average (last 5)',
+    noSePudoGuardar:'Could not save: {e}', guardando:'Saving…', eligeUnaFecha:'Choose a date.',
+    nombreYaEnLista:'That name is already on the list.', fechaGuardada:'✅ Date saved.',
+    sesionYaCargadaEseDia:'There is already a session loaded that day — choose another date.', noHayJugadoresCargados:'No players loaded yet.',
+    solicitudRechazada:'The request to create this club was rejected. If you think this is a mistake, contact the OWNER (Matías González).',
+    reintentar:'⚠️ Retry', cargandoClubes:'Loading clubs…', sinClubesRegistrados:'No clubs registered yet.',
+    recordSuperadoBanner:'🔥 Record broken in {m}! {n} reached a new personal best in the last session.',
+    sinJugadoresComparar:'No players yet to compare.', radarVueloSinJugadores:'no players yet',
+    faltaLaFecha:'Date is missing.', passwordActualizada:'Done! Your password was updated. Log in again.', diaLibreMarcado:'✅ Rest day marked.',
+    nombreYaTomado:'That name has already been taken by another account, choose another.', noHayDatosParaCargar:'No data to load.', faltaNombreRival:'Opponent name is missing.',
+    nombreAgregado:'✅ "{n}" added. They can now create their account and select it.', cuentaCreada:'Account created', seleccionaNombreValido:'Select a valid name.',
     noSePudoRpePlantel:'Could not load squad RPE.', noSePudoRpeArqueros:'Could not load goalkeeper RPE.', noSePudoWellness:'Could not load squad Wellness.',
     noSePudoChartjs:'Could not load Chart.js (no connection).', noSePudoChartjsResto:'Could not load Chart.js (no connection). The rest of the dashboard works normally.',
     sinDatosSuficientes:'Not enough data yet',
@@ -3521,6 +3575,33 @@ const I18N = {
     caidaMarcada:'انخفاض ملحوظ — خطر مرتفع', caidaModerada:'انخفاض معتدل — انتباه', caidaLeve:'انخفاض طفيف — طبيعي', sinCaida:'لا يوجد انخفاض — أداء مستدام',
     mmDistTotal:'المسافة الإجمالية', mmHsr:'HSR', mmSprintDist:'مسافة السرعات القصوى', mmSprintCount:'عدد السرعات القصوى', mmAccB23:'تسارع B2-3', mmDesaB23:'تباطؤ B2-3', mmRhie:'RHIE', mmPlayerLoad:'Player Load', mmIndiceFatiga:'مؤشر التعب (الشوط 2 مقابل 1)',
     sinValoresAtipicos:'لم يتم رصد قيم شاذة — جميع البيانات ضمن النطاقات المتوقعة.',
+    mtDistancia:'المسافة', mtPlayerLoad:'Player Load', sinCiclosCerrados:'لا توجد دورات مغلقة بعد',
+    objetivoEsteCiclo:'هدف هذه الدورة ({d} يوم)', objetivoProximoCiclo:'هدف الدورة القادمة (~{d} يوم)',
+    rangoConMargen:'النطاق {min}–{max}{u} (±{pct}%)', cumplidoCheck:'✓ محقق', fueraCheck:'⚠ خارج النطاق',
+    ultimoCicloResumen:'الدورة الأخيرة ({d} يوم): {v}{u} ({s}{pct}%)', enCursoLabel:'● قيد التنفيذ ({d} يوم):', acumuladoLabel:'متراكم',
+    ritmoLabel:' · الوتيرة {arrow}{pct}%', vsObjetivo:'مقابل الهدف',
+    porArribaTexto:'وتيرة هذه الدورة الجارية (اليوم {d}) تجاوزت الهدف بالفعل في {m} — يُنصح بخفض شدة الحصص القادمة قبل إغلاق الدورة.',
+    porAbajoTexto:'وتيرة هذه الدورة الجارية (اليوم {d}) أقل من الهدف في {m} — هناك مجال لزيادة الحمل قليلاً في باقي الأسبوع.',
+    sinMicrocicloTexto:'📋 لم تُغلق أي دورة جزئية بعد للمقارنة. في الوقت الحالي، وجّه الفريق نحو النطاقات أدناه هذا الأسبوع.',
+    bajaLaCargaTexto:'⚠ <b>خفّض الحمل هذا الأسبوع.</b> تجاوز {m} الهامش الآمن في الدورة الأخيرة (حتى {pct}%). يُنصح بعدم رفع الحجم حتى العودة ضمن النطاق، لتفادي تراكم خطر الإصابة.',
+    progresarTexto:'📉 <b>يمكن التقدم تدريجيًا هذا الأسبوع.</b> بقي {m} دون الهامش في الدورة الأخيرة — لا داعي للاستعجال، لكن يُفضّل تجنّب قفزة حادة: ارفع تدريجيًا نحو الهدف.',
+    mantenerTexto:'✓ <b>يمكن الحفاظ على الحمل أو رفعه قليلاً هذا الأسبوع.</b> بقيت الدورة الأخيرة ضمن الهامش الآمن في جميع المؤشرات.',
+    acwrNoteCorta:'النسبة بين حمل آخر <b>7 أيام</b> والمتوسط الأسبوعي لآخر <b>28 يومًا</b>. مع قلة البيانات المحمّلة يكون الرقم إرشاديًا. لا يغني عن تقدير الطاقم الطبي والفني.',
+    acwrNoteLarga:'النسبة بين حمل آخر <b>7 أيام</b> والمتوسط الأسبوعي لآخر <b>28 يومًا</b>. مع قلة البيانات المحمّلة يكون الرقم إرشاديًا — ويصبح أكثر دقة مع تراكم الحصص. لا يغني عن تقدير الطاقم الطبي والفني.',
+    diasCargadosScrollHint:'{n} يوم محمّل · مرر لرؤية السجل · ● = مباراة',
+    diasRpeCargadosScrollHint:'{n} يوم بـ RPE محمّل · مرر لرؤية السجل · ● = مباراة',
+    sinRecordRef:'لا يوجد رقم قياسي مرجعي', pctDelRecordTope:'{pct}% من الرقم القياسي · الحد الأقصى {v}', recordTag:'رقم قياسي',
+    sinSesionesCargadas:'لا توجد حصص محمّلة', sesionesXaYdeZ:'الحصص <b>{from}–{to}</b> من <b>{total}</b>', sinDatosTooltip:'لا توجد بيانات', gkPromedioUlt5:'متوسط الحارس (آخر 5)',
+    noSePudoGuardar:'تعذّر الحفظ: {e}', guardando:'جارٍ الحفظ…', eligeUnaFecha:'اختر تاريخًا.',
+    nombreYaEnLista:'هذا الاسم موجود بالفعل في القائمة.', fechaGuardada:'✅ تم حفظ التاريخ.',
+    sesionYaCargadaEseDia:'توجد حصة محمّلة في ذلك اليوم بالفعل — اختر تاريخًا آخر.', noHayJugadoresCargados:'لا يوجد لاعبون محمّلون بعد.',
+    solicitudRechazada:'تم رفض طلب إنشاء هذا النادي. إذا كنت تعتقد أن هذا خطأ، تواصل مع المالك (ماتياس غونزاليس غاليندو).',
+    reintentar:'⚠️ إعادة المحاولة', cargandoClubes:'جارٍ تحميل الأندية…', sinClubesRegistrados:'لا توجد أندية مسجّلة بعد.',
+    recordSuperadoBanner:'🔥 تم تحطيم الرقم القياسي في {m}! حقق {n} رقمًا شخصيًا جديدًا في آخر حصة.',
+    sinJugadoresComparar:'لا يوجد لاعبون بعد للمقارنة.', radarVueloSinJugadores:'لا يوجد لاعبون بعد',
+    faltaLaFecha:'التاريخ مفقود.', passwordActualizada:'تم! تم تحديث كلمة المرور. سجّل الدخول مجددًا.', diaLibreMarcado:'✅ تم تحديد يوم الراحة.',
+    nombreYaTomado:'هذا الاسم مُستخدم بالفعل من حساب آخر، اختر اسمًا آخر.', noHayDatosParaCargar:'لا توجد بيانات لتحميلها.', faltaNombreRival:'اسم الخصم مفقود.',
+    nombreAgregado:'✅ تمت إضافة "{n}". يمكنه الآن إنشاء حسابه واختياره.', cuentaCreada:'تم إنشاء الحساب', seleccionaNombreValido:'اختر اسمًا صالحًا.',
     noSePudoRpePlantel:'تعذّر تحميل RPE الفريق.', noSePudoRpeArqueros:'تعذّر تحميل RPE حراس المرمى.', noSePudoWellness:'تعذّر تحميل Wellness الفريق.',
     noSePudoChartjs:'تعذّر تحميل Chart.js (بلا اتصال).', noSePudoChartjsResto:'تعذّر تحميل Chart.js (بلا اتصال). باقي اللوحة يعمل بشكل طبيعي.',
     sinDatosSuficientes:'لا توجد بيانات كافية بعد',
@@ -3533,6 +3614,7 @@ function applyI18nStatic(){
   METRIC_ORDER.forEach(k=> METRICS[k].label = I18N[currentLang].metrics[k]);
   GK_METRIC_ORDER.forEach(k=> GK_METRICS[k].label = I18N[currentLang].gkMetrics[k]);
   document.querySelectorAll('[data-i18n]').forEach(el=>{ el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-html]').forEach(el=>{ el.innerHTML = t(el.dataset.i18nHtml); });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{ el.placeholder = t(el.dataset.i18nPlaceholder); });
   document.querySelectorAll('[data-i18n-title]').forEach(el=>{ el.title = t(el.dataset.i18nTitle); });
   const authTitle = document.getElementById('authTitle');
@@ -4097,12 +4179,12 @@ async function buildPendingClubsPanel(){
   box.querySelectorAll('[data-approve-club]').forEach(btn=>btn.onclick=async()=>{
     btn.disabled=true; btn.textContent='Aprobando…';
     try{ await approveNewClub(btn.dataset.approveClub); await buildPendingClubsPanel(); await buildClubesList(); }
-    catch(e){ console.error(e); btn.disabled=false; btn.textContent='⚠️ Reintentar'; }
+    catch(e){ console.error(e); btn.disabled=false; btn.textContent=t('reintentar'); }
   });
   box.querySelectorAll('[data-reject-club]').forEach(btn=>btn.onclick=async()=>{
     btn.disabled=true; btn.textContent='Rechazando…';
     try{ await rejectNewClub(btn.dataset.rejectClub); await buildPendingClubsPanel(); }
-    catch(e){ console.error(e); btn.disabled=false; btn.textContent='⚠️ Reintentar'; }
+    catch(e){ console.error(e); btn.disabled=false; btn.textContent=t('reintentar'); }
   });
 }
 
@@ -4131,7 +4213,7 @@ async function buildClubesList(){
   const box = document.getElementById('clubesList');
   const tag = document.getElementById('clubesCountTag');
   if(!box) return;
-  box.innerHTML = '<p style="padding:14px 18px;color:var(--mist);font-size:12.5px;">Cargando clubes…</p>';
+  box.innerHTML = `<p style="padding:14px 18px;color:var(--mist);font-size:12.5px;">${t('cargandoClubes')}</p>`;
   const {data, error} = await supabaseClient.from('player_profiles').select('club,role');
   if(error){
     box.innerHTML = '<p style="padding:14px 18px;color:var(--mist);font-size:12.5px;">No se pudieron cargar los clubes.</p>';
@@ -4146,7 +4228,7 @@ async function buildClubesList(){
   const clubs = Object.keys(counts).sort((a,b)=>a.localeCompare(b));
   if(tag) tag.textContent = tf('clubesRegistradosCount', {n:clubs.length});
   if(!clubs.length){
-    box.innerHTML = '<p style="padding:14px 18px;color:var(--mist);font-size:12.5px;">Todavía no hay clubes registrados.</p>';
+    box.innerHTML = `<p style="padding:14px 18px;color:var(--mist);font-size:12.5px;">${t('sinClubesRegistrados')}</p>`;
     return;
   }
   // Features (GPS / RPE+Wellness) de cada club, para pintar los toggles
@@ -4271,11 +4353,11 @@ function buildGkLeaderboard(){
 
   box.innerHTML = rows.map((r,i)=>{
     const barPct = r.pct===null ? 0 : Math.max(3, Math.min(100, r.pct));
-    const pctLabel = r.pct===null ? 'sin récord de referencia' : `${fmt(r.pct,0)}% del récord · tope ${fmt(r.recVal,GK_METRICS[m].dec)}`;
+    const pctLabel = r.pct===null ? t('sinRecordRef') : tf('pctDelRecordTope',{pct:fmt(r.pct,0), v:fmt(r.recVal,GK_METRICS[m].dec)});
     return `
     <div class="lb-row" data-p="${r.p}" style="cursor:pointer;">
       <div class="rk">${i+1<10?'0':''}${i+1}</div>
-      <div class="nm">${r.p}${r.isRecordNow?'<span class="lb-record-tag">RÉCORD</span>':''}</div>
+      <div class="nm">${r.p}${r.isRecordNow?`<span class="lb-record-tag">${t('recordTag')}</span>`:''}</div>
       <div class="lb-bar-track"><div class="lb-bar-fill ${r.isRecordNow?'is-record':''}" style="width:${barPct}%"></div></div>
       <div class="num">${r.lastVal!==null&&r.lastVal!==undefined? fmt(r.lastVal, GK_METRICS[m].dec):'—'}<span class="pct ${r.isRecordNow?'is-record':''}">${pctLabel}</span></div>
     </div>`;
@@ -4351,10 +4433,10 @@ function buildGkTeamTimeline(resetToLatest){
   const evs = allEvs.slice(state.gkTtOffset, state.gkTtOffset + TIMELINE_WINDOW);
   const label = document.getElementById('gkTtLabel');
   if(label){
-    if(!allEvs.length) label.innerHTML = 'Sin sesiones cargadas';
+    if(!allEvs.length) label.innerHTML = t('sinSesionesCargadas');
     else{
       const from = state.gkTtOffset+1, to = Math.min(allEvs.length, state.gkTtOffset+TIMELINE_WINDOW);
-      label.innerHTML = `Sesiones <b>${from}–${to}</b> de <b>${allEvs.length}</b>`;
+      label.innerHTML = tf('sesionesXaYdeZ',{from,to,total:allEvs.length});
     }
   }
   const tag = document.getElementById('gkTeamTimelineTag');
@@ -4406,7 +4488,7 @@ function buildGkTeamTimeline(resetToLatest){
               const sub = e.detalle ? (e.tipo==='Partido' ? ('vs '+e.detalle) : e.detalle) : '';
               return sub ? `${dateStr} · ${sub}` : dateStr;
             },
-            label:(ctx)=> ctx.raw===null||ctx.raw===undefined ? 'Sin datos' : `${GK_METRICS[m].label}: ${fmt(ctx.raw, GK_METRICS[m].dec)}${GK_METRICS[m].unit?(' '+GK_METRICS[m].unit):''}`
+            label:(ctx)=> ctx.raw===null||ctx.raw===undefined ? t('sinDatosTooltip') : `${GK_METRICS[m].label}: ${fmt(ctx.raw, GK_METRICS[m].dec)}${GK_METRICS[m].unit?(' '+GK_METRICS[m].unit):''}`
           }
         }
       },
@@ -4628,9 +4710,9 @@ function buildWeeklyTarget(){
   }
 
   const metrics = [
-    {key:'dist', label:'Distancia', unit:'m'},
+    {key:'dist', label:t('mtDistancia'), unit:'m'},
     {key:'hsr', label:'HSR', unit:'m'},
-    {key:'pl', label:'Player Load', unit:''},
+    {key:'pl', label:t('mtPlayerLoad'), unit:''},
   ];
 
   const checks = []; // {label, diffPct, within} de cada métrica, para armar la recomendación general
@@ -4641,13 +4723,13 @@ function buildWeeklyTarget(){
     if(baselineDaily===null){
       return `<div class="kpi" style="flex:1;min-width:150px;">
         <div class="lbl">${m.label}</div>
-        <div class="sub">Sin ciclos cerrados todavía</div>
+        <div class="sub">${t('sinCiclosCerrados')}</div>
       </div>`;
     }
     // El objetivo se escala a la duración REAL (o esperada) del ciclo, no a una semana fija de 7 días.
     // Así un ciclo corto (post-racha de partidos, 3-4 días) muestra un objetivo acorde a esos días,
     // en vez de un número inflado como si fuera una semana completa.
-    const targetLabel = currentOpenCycle ? `objetivo de este ciclo (${cicloDias}d)` : `objetivo próximo ciclo (${cicloDias}d aprox.)`;
+    const targetLabel = currentOpenCycle ? tf('objetivoEsteCiclo',{d:cicloDias}) : tf('objetivoProximoCiclo',{d:cicloDias});
     const objetivoCiclo = baselineDaily * cicloDias;
     const min = Math.round(objetivoCiclo * (1 - pct/100));
     const max = Math.round(objetivoCiclo * (1 + pct/100));
@@ -4663,8 +4745,8 @@ function buildWeeklyTarget(){
         const within = Math.abs(diffPct) <= pct;
         checks.push({label:m.label, diffPct, within});
         checkHtml = `<div class="sub" style="margin-top:4px;">
-          <span style="color:${within?'var(--good)':'var(--bad)'};font-weight:700;">${within?'✓ cumplido':'⚠ fuera'}</span>
-          último ciclo (${justClosedCycle.length}d): ${fmt(Math.round(actualTotal))}${m.unit} (${diffPct>=0?'+':''}${diffPct}%)
+          <span style="color:${within?'var(--good)':'var(--bad)'};font-weight:700;">${within?t('cumplidoCheck'):t('fueraCheck')}</span>
+          ${tf('ultimoCicloResumen',{d:justClosedCycle.length, v:fmt(Math.round(actualTotal)), u:m.unit, s:diffPct>=0?'+':'', pct:diffPct})}
         </div>`;
       }
     }
@@ -4681,8 +4763,8 @@ function buildWeeklyTarget(){
         const colorRitmo = dentro ? 'var(--good)' : (ritmoPct>0 ? 'var(--bad)' : 'var(--warn)');
         const flechaRitmo = ritmoPct>=0 ? '▲' : '▼';
         liveHtml = `<div class="sub" style="margin-top:4px;padding-top:4px;border-top:1px dashed var(--line-strong);">
-          <span style="color:var(--gold-bright);">● En curso (${currentOpenCycle.length}d):</span> ${fmt(Math.round(actualSoFar))}${m.unit} acumulado
-          <span style="color:${colorRitmo};font-weight:700;"> · ritmo ${flechaRitmo}${Math.abs(ritmoPct)}%</span> vs objetivo
+          <span style="color:var(--gold-bright);">${tf('enCursoLabel',{d:currentOpenCycle.length})}</span> ${fmt(Math.round(actualSoFar))}${m.unit} ${t('acumuladoLabel')}
+          <span style="color:${colorRitmo};font-weight:700;">${tf('ritmoLabel',{arrow:flechaRitmo, pct:Math.abs(ritmoPct)})}</span> ${t('vsObjetivo')}
         </div>`;
       }
     }
@@ -4690,7 +4772,7 @@ function buildWeeklyTarget(){
     return `<div class="kpi" style="flex:1;min-width:170px;">
       <div class="lbl">${m.label}</div>
       <div class="val" style="font-size:24px;">${fmt(Math.round(objetivoCiclo))}<small>${m.unit}</small></div>
-      <div class="sub">${targetLabel} · rango ${fmt(min)}–${fmt(max)}${m.unit} (±${pct}%)</div>
+      <div class="sub">${targetLabel} · ${tf('rangoConMargen',{min:fmt(min), max:fmt(max), u:m.unit, pct})}</div>
       ${checkHtml}
       ${liveHtml}
     </div>`;
@@ -4706,14 +4788,14 @@ function buildWeeklyTarget(){
       const porArriba = liveChecks.filter(c=>!c.dentro && c.ritmoPct>0);
       const porAbajo = liveChecks.filter(c=>!c.dentro && c.ritmoPct<0);
       if(porArriba.length){
-        liveNote = ` <span style="color:var(--bad);">El ritmo de este ciclo en curso (día ${currentOpenCycle.length}) ya viene por encima del objetivo en ${porArriba.map(c=>c.label).join(', ')} — conviene bajar la intensidad de las próximas sesiones antes de que cierre el ciclo.</span>`;
+        liveNote = ` <span style="color:var(--bad);">${tf('porArribaTexto',{d:currentOpenCycle.length, m:porArriba.map(c=>c.label).join(', ')})}</span>`;
       } else if(porAbajo.length){
-        liveNote = ` <span style="color:var(--warn);">El ritmo de este ciclo en curso (día ${currentOpenCycle.length}) viene por debajo en ${porAbajo.map(c=>c.label).join(', ')} — hay margen para sumar algo más de carga en lo que queda de la semana.</span>`;
+        liveNote = ` <span style="color:var(--warn);">${tf('porAbajoTexto',{d:currentOpenCycle.length, m:porAbajo.map(c=>c.label).join(', ')})}</span>`;
       }
     }
     if(!checks.length){
       recBox.innerHTML = `<div style="padding:10px 14px;background:rgba(255,255,255,.03);border:1px solid var(--line-strong);border-radius:8px;font-size:12.5px;color:var(--mist);line-height:1.5;">
-        📋 Todavía no cerró un microciclo para comparar. Por ahora, apunta al plantel a los rangos de abajo esta semana.${liveNote}
+        ${t('sinMicrocicloTexto')}${liveNote}
       </div>`;
     } else {
       const excedidos = checks.filter(c=>!c.within && c.diffPct>0); // se pasó por arriba (sobrecarga)
@@ -4721,13 +4803,13 @@ function buildWeeklyTarget(){
       let color, texto;
       if(excedidos.length){
         color = 'var(--bad)';
-        texto = `⚠ <b>Baja la carga esta semana.</b> ${excedidos.map(c=>c.label).join(', ')} se pasó del margen seguro en el último ciclo (hasta ${Math.max(...excedidos.map(c=>c.diffPct))}%). Recomendado: no subir el volumen hasta volver a estar dentro del rango, para no acumular riesgo de lesión.`;
+        texto = tf('bajaLaCargaTexto', {m:excedidos.map(c=>c.label).join(', '), pct:Math.max(...excedidos.map(c=>c.diffPct))});
       } else if(bajaron.length){
         color = 'var(--warn)';
-        texto = `📉 <b>Se puede progresar de a poco esta semana.</b> ${bajaron.map(c=>c.label).join(', ')} quedó por debajo del margen en el último ciclo — no hay urgencia, pero conviene evitar un salto brusco: subir gradual hacia el objetivo.`;
+        texto = tf('progresarTexto', {m:bajaron.map(c=>c.label).join(', ')});
       } else {
         color = 'var(--good)';
-        texto = `✓ <b>Se puede mantener o subir levemente la carga esta semana.</b> El último ciclo se mantuvo dentro del margen seguro en todas las métricas.`;
+        texto = t('mantenerTexto');
       }
       recBox.innerHTML = `<div style="padding:10px 14px;background:rgba(255,255,255,.03);border:1px solid ${color};border-radius:8px;font-size:12.5px;color:var(--bone);line-height:1.5;">${texto}${liveNote}</div>`;
     }
@@ -4928,10 +5010,10 @@ function buildTimeline(player, metric, resetToLatest){
   const evs = allEvs.slice(state.tlOffset, state.tlOffset + TIMELINE_WINDOW);
   const tlLabelEl = document.getElementById('tlLabel');
   if(tlLabelEl){
-    if(!allEvs.length){ tlLabelEl.innerHTML = 'Sin sesiones cargadas'; }
+    if(!allEvs.length){ tlLabelEl.innerHTML = t('sinSesionesCargadas'); }
     else{
       const from = state.tlOffset+1, to = Math.min(allEvs.length, state.tlOffset+TIMELINE_WINDOW);
-      tlLabelEl.innerHTML = `Sesiones <b>${from}–${to}</b> de <b>${allEvs.length}</b>`;
+      tlLabelEl.innerHTML = tf('sesionesXaYdeZ',{from,to,total:allEvs.length});
     }
   }
 
@@ -5049,7 +5131,7 @@ function buildLeaderboard(){
     if(breakers.length){
       const names = breakers.map(r=>r.p.split(' ')[0]).join(', ');
       banner.style.display = 'block';
-      banner.innerHTML = `🔥 ¡Récord superado en ${METRICS[m].label}! ${names} alcanzó${breakers.length>1?'ron':''} un nuevo máximo personal en la última sesión.`;
+      banner.innerHTML = tf('recordSuperadoBanner', {m:METRICS[m].label, n:names});
     } else {
       banner.style.display = 'none';
     }
@@ -5060,11 +5142,11 @@ function buildLeaderboard(){
   box.innerHTML = rows.map((r,i)=>{
     const barPct = r.pct===null ? 0 : Math.max(3, Math.min(100, r.pct));
     const overTh = threshold!==undefined && r.lastVal!==null && r.lastVal!==undefined && r.lastVal>threshold;
-    const pctLabel = r.pct===null ? 'sin récord de referencia' : `${fmt(r.pct,0)}% del récord · tope ${fmt(r.recVal,METRICS[m].dec)}`;
+    const pctLabel = r.pct===null ? t('sinRecordRef') : tf('pctDelRecordTope',{pct:fmt(r.pct,0), v:fmt(r.recVal,METRICS[m].dec)});
     return `
     <div class="lb-row ${r.p===state.player?'active':''}" data-p="${r.p}">
       <div class="rk">${i+1<10?'0':''}${i+1}</div>
-      <div class="nm">${r.p}${r.isRecordNow?'<span class="lb-record-tag">RÉCORD</span>':''}</div>
+      <div class="nm">${r.p}${r.isRecordNow?`<span class="lb-record-tag">${t('recordTag')}</span>`:''}</div>
       <div class="lb-bar-track"><div class="lb-bar-fill ${r.isRecordNow?'is-record':''} ${overTh?'over-th':''}" style="width:${barPct}%"></div></div>
       <div class="num ${overTh?'over-th':''}">${r.lastVal!==null&&r.lastVal!==undefined? fmt(r.lastVal, METRICS[m].dec):'—'}<span class="pct ${r.isRecordNow?'is-record':''}">${pctLabel}</span></div>
     </div>`;
@@ -5190,7 +5272,7 @@ function buildWeeklyLoadChart(){
   const data = allRatios.map(r=> r.ratio);
 
   const wlLabelEl = document.getElementById('wlLabel');
-  if(wlLabelEl) wlLabelEl.innerHTML = `<b>${allRatios.length}</b> día${allRatios.length===1?'':'s'} cargado${allRatios.length===1?'':'s'} · deslizá para ver el historial · <span style="color:#7C5CFC;">●</span> = partido`;
+  if(wlLabelEl) wlLabelEl.innerHTML = tf('diasCargadosScrollHint', {n:`<b>${allRatios.length}</b>`}).replace('●', '<span style="color:#7C5CFC;">●</span>');
 
   // Ancho dinámico: se calcula para que en reposo (sin scroll) entren ~10 días en pantalla,
   // y el resto quede disponible deslizando hacia la izquierda.
@@ -5325,7 +5407,7 @@ function buildRpeAcwrChart(){
   const data = allRatios.map(r=> r.ratio);
 
   const labelEl = document.getElementById('rpeAcwrLabel');
-  if(labelEl) labelEl.innerHTML = `<b>${allRatios.length}</b> día${allRatios.length===1?'':'s'} con RPE cargado${allRatios.length===1?'':'s'} · deslizá para ver el historial · <span style="color:#7C5CFC;">●</span> = partido`;
+  if(labelEl) labelEl.innerHTML = tf('diasRpeCargadosScrollHint', {n:`<b>${allRatios.length}</b>`}).replace('●', '<span style="color:#7C5CFC;">●</span>');
 
   const scrollBox = document.getElementById('rpeAcwrScrollBox');
   const inner = document.getElementById('rpeAcwrInner');
@@ -5495,10 +5577,10 @@ function buildTeamTimeline(resetToLatest){
   const evs = allEvs.slice(state.ttOffset, state.ttOffset + TIMELINE_WINDOW);
   const label = document.getElementById('ttLabel');
   if(label){
-    if(!allEvs.length) label.innerHTML = 'Sin sesiones cargadas';
+    if(!allEvs.length) label.innerHTML = t('sinSesionesCargadas');
     else{
       const from = state.ttOffset+1, to = Math.min(allEvs.length, state.ttOffset+TIMELINE_WINDOW);
-      label.innerHTML = `Sesiones <b>${from}–${to}</b> de <b>${allEvs.length}</b>`;
+      label.innerHTML = tf('sesionesXaYdeZ',{from,to,total:allEvs.length});
     }
   }
   const tag = document.getElementById('teamTimelineTag');
@@ -5550,7 +5632,7 @@ function buildTeamTimeline(resetToLatest){
               const sub = e.detalle ? (e.tipo==='Partido' ? ('vs '+e.detalle) : e.detalle) : '';
               return sub ? `${dateStr} · ${sub}` : dateStr;
             },
-            label:(ctx)=> ctx.raw===null||ctx.raw===undefined ? 'Sin datos' : `${METRICS[m].label}: ${fmt(ctx.raw, METRICS[m].dec)}${METRICS[m].unit?(' '+METRICS[m].unit):''}`
+            label:(ctx)=> ctx.raw===null||ctx.raw===undefined ? t('sinDatosTooltip') : `${METRICS[m].label}: ${fmt(ctx.raw, METRICS[m].dec)}${METRICS[m].unit?(' '+METRICS[m].unit):''}`
           }
         }
       },
@@ -5605,7 +5687,7 @@ function buildCompare(){
   const table = document.getElementById('compareTable');
   if(!pA || !pB || !playerAvg[pA] || !playerAvg[pB]){
     if(legend) legend.innerHTML = '';
-    if(table) table.innerHTML = `<tbody><tr><td style="padding:14px 0;color:var(--mist);font-size:12.5px;" colspan="3">Sin jugadores todavía para comparar.</td></tr></tbody>`;
+    if(table) table.innerHTML = `<tbody><tr><td style="padding:14px 0;color:var(--mist);font-size:12.5px;" colspan="3">${t('sinJugadoresComparar')}</td></tr></tbody>`;
     return;
   }
   if(legend) legend.innerHTML = `
@@ -5642,7 +5724,7 @@ function selectPlayer(p){
   document.querySelectorAll('.p-item').forEach(el=>el.classList.toggle('active', el.dataset.p===p));
   document.querySelectorAll('.lb-row').forEach(el=>el.classList.toggle('active', el.dataset.p===p));
   document.querySelectorAll('.acwr-row').forEach(el=>el.classList.toggle('active', el.dataset.p===p));
-  document.getElementById('radarTitle').textContent = p ? `Radar de Vuelo · ${p}` : 'Radar de Vuelo · sin jugadores todavía';
+  document.getElementById('radarTitle').textContent = p ? `${t('radarVuelo')} · ${p}` : `${t('radarVuelo')} · ${t('radarVueloSinJugadores')}`;
   drawRadar(p);
   buildTimeline(p, state.metric, true);
 }
@@ -6045,17 +6127,17 @@ function setupCsvImportModal(){
 
 async function confirmCatapultImport(){
   const status = document.getElementById('csvImportStatus');
-  if(!pendingCatapultData){ status.textContent = 'No hay datos para cargar.'; return; }
+  if(!pendingCatapultData){ status.textContent = t('noHayDatosParaCargar'); return; }
   const tipo = document.getElementById('csvImportTipo').value;
   const rival = document.getElementById('csvImportRival').value.trim();
   const detalle = document.getElementById('csvImportDetalle').value.trim();
   const fecha = document.getElementById('csvImportFecha').value;
   const categoriaEl = document.getElementById('csvImportCategoria');
   const categoriaSeleccionada = categoriaEl ? (categoriaEl.value || null) : null;
-  if(!fecha){ status.textContent = 'Falta la fecha.'; return; }
-  if(tipo==='Partido' && !rival){ status.textContent = 'Falta el nombre del rival.'; return; }
+  if(!fecha){ status.textContent = t('faltaLaFecha'); return; }
+  if(tipo==='Partido' && !rival){ status.textContent = t('faltaNombreRival'); return; }
 
-  status.textContent = 'Guardando…';
+  status.textContent = t('guardando');
   try{
     const detalleFinal = tipo==='Partido' ? rival : (detalle || 'Entreno');
     const nuevosEventos = pendingCatapultData.bySession
@@ -6119,7 +6201,7 @@ async function confirmCatapultImport(){
     showStatus(`Datos de Catapult cargados ✓ ${nuevosEventos.length} jugadores${gkMsg} · ${fecha.split('-').reverse().join('/')}`, 'ok');
   }catch(err){
     console.error(err);
-    status.textContent = 'No se pudo guardar: ' + err.message;
+    status.textContent = tf('noSePudoGuardar',{e:err.message});
   }
 }
 
@@ -6145,12 +6227,12 @@ async function init(){
     event.preventDefault();
     const recoveryMessage = document.getElementById('recoveryMessage');
     const newPassword = document.getElementById('recoveryPassword').value;
-    recoveryMessage.textContent = 'Guardando…'; recoveryMessage.className='auth-message';
+    recoveryMessage.textContent = t('guardando'); recoveryMessage.className='auth-message';
     const {error} = await supabaseClient.auth.updateUser({password:newPassword});
     if(error){ recoveryMessage.textContent = error.message; recoveryMessage.className='auth-message error'; return; }
     await supabaseClient.auth.signOut();
     history.replaceState(null,'',window.location.pathname);
-    recoveryMessage.textContent = '¡Listo! Tu contraseña se actualizó. Inicia sesión de nuevo.';
+    recoveryMessage.textContent = t('passwordActualizada');
     recoveryMessage.className='auth-message ok';
     setTimeout(()=>{
       document.getElementById('recoveryScreen').style.display='none';
