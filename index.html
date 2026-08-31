@@ -5072,8 +5072,8 @@ function buildTimeline(player, metric, resetToLatest){
     },
     plugins:[matchValueLabelPlugin(evs, (v)=>fmt(v, METRICS[metric].dec))]
   };
-  if(timelineChart){ timelineChart.data = cfg.data; timelineChart.options = cfg.options; timelineChart.update(); }
-  else{ timelineChart = new Chart(ctx, cfg); requestAnimationFrame(()=>{ if(timelineChart) timelineChart.resize(); }); }
+  if(timelineChart){ timelineChart.destroy(); } // se recrea siempre (no solo .data/.options) para que el plugin de etiquetas de partido no quede pegado a sesiones/métrica viejas
+  timelineChart = new Chart(ctx, cfg); requestAnimationFrame(()=>{ if(timelineChart) timelineChart.resize(); });
   document.getElementById('timelinePlayerTag').textContent = player || '—';
 }
 
@@ -5674,8 +5674,8 @@ function buildTeamTimeline(resetToLatest){
     },
     plugins:[matchValueLabelPlugin(evs, (v)=>fmt(v, METRICS[m].dec))]
   };
-  if(teamTimelineChart){ teamTimelineChart.data = cfg.data; teamTimelineChart.options = cfg.options; teamTimelineChart.update(); }
-  else{ teamTimelineChart = new Chart(ctx, cfg); requestAnimationFrame(()=>{ if(teamTimelineChart) teamTimelineChart.resize(); }); }
+  if(teamTimelineChart){ teamTimelineChart.destroy(); } // idem: se recrea siempre para que el plugin de etiquetas de partido no quede con datos/decimales de la métrica anterior
+  teamTimelineChart = new Chart(ctx, cfg); requestAnimationFrame(()=>{ if(teamTimelineChart) teamTimelineChart.resize(); });
 }
 
 // ---------- compare (head-to-head) ----------
