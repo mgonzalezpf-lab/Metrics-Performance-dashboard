@@ -3780,7 +3780,7 @@ function buildMicrocycleTable(){
   if(!box) return;
   const {cycles, byDate, lastCycleWasClosed} = computeMicrocycles(categoryFilteredEvents());
   if(!cycles.length){ box.innerHTML=''; return; }
-  const lastMatch = getLastMatchInfo(ACTIVE_EVENTS); // referencia fija: último partido REALMENTE jugado
+  const lastMatch = getLastMatchInfo(categoryFilteredEvents()); // mismo filtro de categoría que el resto de la tabla y que el KPI "Intensidad sesión actual", para que ambos números coincidan
   const last4 = cycles.slice(-4); // últimos 4 microciclos, para no saturar la pantalla
   const bodyHtml = last4.map((datesArr, i)=>{
     // Buscamos el partido de este ciclo para poder contar los días hacia/desde él (MD-5, MD-4... MD, MD+1...)
@@ -4456,6 +4456,33 @@ function getWeeklyFieldComparison(field='pl'){
 }
 function getWeeklyPLComparison(){ return getWeeklyFieldComparison('pl'); }
 
+// Player Load por microciclo (partido a partido), no por semana calendario: compara el promedio diario
+// del ciclo actual (en curso) contra el del ciclo anterior ya cerrado, así ciclos cortos/largos no se distorsionan entre sí.
+function getCyclePLComparison(){
+  const {cycles, byDate} = computeMicrocycles(categoryFilteredEvents());
+  if(!cycles.length) return null;
+  const sumCycle = (datesArr)=>{
+    let total = 0, count = 0;
+    datesArr.forEach(d=>{
+      const withVal = (byDate[d]||[]).filter(e=> e.pl!==null && e.pl!==undefined && !isNaN(e.pl));
+      if(withVal.length){ total += withVal.reduce((a,e)=>a+e.pl,0)/withVal.length; count++; }
+    });
+    return { total, days: count };
+  };
+  const current = sumCycle(cycles[cycles.length-1]);
+  const prevArr = cycles.length>=2 ? cycles[cycles.length-2] : null;
+  const prev = prevArr ? sumCycle(prevArr) : null;
+  const currentPerDay = current.days ? current.total/current.days : null;
+  const prevPerDay = (prev && prev.days) ? prev.total/prev.days : null;
+  const pctChange = (currentPerDay!==null && prevPerDay!==null && prevPerDay>0) ? ((currentPerDay-prevPerDay)/prevPerDay*100) : null;
+  return {
+    current: Math.round(current.total),
+    prev: prev ? Math.round(prev.total) : null,
+    pctChange: pctChange!==null ? Math.round(pctChange) : null,
+    within20: pctChange!==null ? Math.abs(pctChange)<=20 : null,
+  };
+}
+
 // ---------- Objetivo para el próximo microciclo: rango de Distancia/HSR/Player Load según el promedio de los últimos 3 ciclos ----------
 function buildWeeklyTarget(){
   const body = document.getElementById('weeklyTargetBody');
@@ -4659,17 +4686,17 @@ function buildKPIs(){
   const lastMatch = getLastMatchInfo(catEvents);
   const cycleDistTotal = computeCurrentCycleTotal('dist');
   const cycleHsrTotal = computeCurrentCycleTotal('hsr');
-  const weeklyPL = getWeeklyPLComparison();
+  const cyclePL = getCyclePLComparison();
   const sessionIntensity = getCurrentSessionIntensity();
 
   const cycleSub = lastMatch ? `desde vs ${lastMatch.rival} (${lastMatch.fecha.split('-').reverse().join('/')})` : 'sin partido de referencia';
 
-  let weeklySub = 'sin semana anterior para comparar';
-  if(weeklyPL && weeklyPL.pctChange!==null){
-    const signo = weeklyPL.pctChange>=0 ? '+' : '';
-    weeklySub = weeklyPL.within20
-      ? `<b style="color:var(--good);">✓ dentro del ±20%</b> · ${signo}${weeklyPL.pctChange}% vs sem. anterior`
-      : `<b style="color:var(--bad);">⚠ fuera del ±20%</b> · ${signo}${weeklyPL.pctChange}% vs sem. anterior`;
+  let weeklySub = 'sin ciclo anterior para comparar';
+  if(cyclePL && cyclePL.pctChange!==null){
+    const signo = cyclePL.pctChange>=0 ? '+' : '';
+    weeklySub = cyclePL.within20
+      ? `<b style="color:var(--good);">✓ dentro del ±20%</b> · ${signo}${cyclePL.pctChange}% vs ciclo anterior`
+      : `<b style="color:var(--bad);">⚠ fuera del ±20%</b> · ${signo}${cyclePL.pctChange}% vs ciclo anterior`;
   }
 
   const kpis = [
@@ -4677,7 +4704,7 @@ function buildKPIs(){
       sub: `total acumulado · ${cycleSub}`},
     {lbl:'HSR microciclo actual', val: cycleHsrTotal!==null ? fmt(cycleHsrTotal) : '—', unit:'m',
       sub: `total acumulado · ${cycleSub}`},
-    {lbl:'Player Load semanal', val: weeklyPL ? fmt(weeklyPL.current) : '—', unit:'',
+    {lbl:'Player Load microciclo', val: cyclePL ? fmt(cyclePL.current) : '—', unit:'',
       sub: weeklySub},
     {lbl:t('kpiRecords'), val:todays.length, unit:'', sub: todays.length? `<b>${todays.map(x=>x.jugador.split(' ')[0]).slice(0,3).join(', ')}${todays.length>3?'…':''}</b>` : t('sinNuevos')},
     {lbl:'Intensidad sesión actual', val: sessionIntensity && sessionIntensity.pct!==null ? sessionIntensity.pct : '—', unit: sessionIntensity && sessionIntensity.pct!==null ? '%' : '',
