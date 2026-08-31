@@ -3940,7 +3940,7 @@ function buildMicrocycleTable(){
   const {cycles, byDate, lastCycleWasClosed} = computeMicrocycles(categoryFilteredEvents());
   if(!cycles.length){ box.innerHTML=''; return; }
   const lastMatch = getLastMatchInfo(categoryFilteredEvents()); // mismo filtro de categoría que el resto de la tabla y que el KPI "Intensidad sesión actual", para que ambos números coincidan
-  const last4 = cycles.slice(-4); // últimos 4 microciclos, para no saturar la pantalla
+  const last4 = cycles; // todos los microciclos disponibles (la tabla ya tiene scroll vertical propio)
   const bodyHtml = last4.map((datesArr, i)=>{
     // Buscamos el partido de este ciclo para poder contar los días hacia/desde él (MD-5, MD-4... MD, MD+1...)
     let matchDate = datesArr.find(d=> (byDate[d]||[]).some(e=>e.tipo==='Partido'));
