@@ -2674,7 +2674,7 @@ function buildGkRpeLoadTable(dateStr){
     const isAdmin = myProfile && (myProfile.role==='admin' || myProfile.role==='owner');
     const minCell = r.todayReport
       ? (isAdmin
-          ? `<input type="number" min="0" max="240" class="gk-rpe-min-input" data-player="${r.p}" data-fecha="${dateStr}" value="${r.minVal!==null?r.minVal:''}" placeholder="—" style="width:56px;padding:5px 6px;border-radius:6px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:12px 'IBM Plex Mono';outline:none;">`
+          ? `<input type="number" min="0" max="240" class="gk-rpe-min-input" data-player="${r.todayReport.player_name}" data-fecha="${dateStr}" value="${r.minVal!==null?r.minVal:''}" placeholder="—" style="width:56px;padding:5px 6px;border-radius:6px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:12px 'IBM Plex Mono';outline:none;">`
           : `<span style="color:var(--bone);">${r.minVal!==null? r.minVal : '—'}</span>`)
       : `<span style="color:var(--mist);">—</span>`;
     return `<tr>
@@ -2773,7 +2773,7 @@ async function buildWellnessTeamList(fecha){
     tableBox.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">No se pudo cargar el Wellness del plantel.</div>`;
     return;
   }
-  const reports = data || [];
+  const reports = (data || []).filter(r=> matchesCurrentCategory(r.player_name)); // filtrado por categoría — antes se promediaba con reportes de TODAS las categorías del club
   const byPlayer = {};
   reports.forEach(r=> byPlayer[normalizeNameKey(r.player_name)] = r);
 
@@ -3151,7 +3151,7 @@ async function buildRpeLoadTable(dateStr){
     const isAdmin = myProfile && (myProfile.role==='admin' || myProfile.role==='owner');
     const minCell = r.todayReport
       ? (isAdmin
-          ? `<input type="number" min="0" max="240" class="rpe-min-input" data-player="${r.p}" data-fecha="${dateStr}" value="${r.minVal!==null?r.minVal:''}" placeholder="—" style="width:56px;padding:5px 6px;border-radius:6px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:12px 'IBM Plex Mono';outline:none;">`
+          ? `<input type="number" min="0" max="240" class="rpe-min-input" data-player="${r.todayReport.player_name}" data-fecha="${dateStr}" value="${r.minVal!==null?r.minVal:''}" placeholder="—" style="width:56px;padding:5px 6px;border-radius:6px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:12px 'IBM Plex Mono';outline:none;">`
           : `<span style="color:var(--bone);">${r.minVal!==null? r.minVal : '—'}</span>`)
       : `<span style="color:var(--mist);">—</span>`;
     return `<tr>
@@ -3876,7 +3876,7 @@ function buildWeeklyMicrocycle(){
   const canvas = document.getElementById('weeklyMicroChart');
   if(!canvas || typeof Chart==='undefined') return;
   const weekMap = {};
-  ACTIVE_EVENTS.forEach(e=>{
+  categoryFilteredEvents().forEach(e=>{
     const monday = isoDate(getMonday(e.fecha));
     if(!weekMap[monday]) weekMap[monday] = {pl:0, dist:0, jugadores:new Set()};
     if(e.pl!==null && !isNaN(e.pl)) weekMap[monday].pl += e.pl;
@@ -5349,7 +5349,7 @@ let teamTimelineChart;
 let teamDailySeries = [];
 function computeTeamDailySeries(){
   const map = {};
-  ACTIVE_EVENTS.forEach(e=>{
+  categoryFilteredEvents().forEach(e=>{
     if(!map[e.fecha]) map[e.fecha] = { fecha:e.fecha, tipos:new Set(), dist:[], hsr:[], vel:[], pl:[], acc:[], desa:[], sprint:[], sprint_count:[], detalles:{} };
     const rec = map[e.fecha];
     rec.tipos.add(e.tipo);
