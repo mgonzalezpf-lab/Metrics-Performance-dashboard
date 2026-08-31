@@ -4005,6 +4005,10 @@ function buildMicrocycleTable(){
       cycleLabel = t('bloqueSinPartido');
     }
     const avgIntensity = intensityValues.length ? Math.round(intensityValues.reduce((a,b)=>a+b,0)/intensityValues.length) : null;
+    // Si el ciclo no tiene ningún dato real (por ejemplo, es solo un día libre suelto sin entrenos ni partido),
+    // no tiene sentido mostrar la fila de total con puros guiones — se omite directamente.
+    const tieneDatos = cycleTotal>0 || hsrTotal>0 || plTotal>0 || (matchDate && byDate[matchDate] && byDate[matchDate].some(e=>e.tipo==='Partido'));
+    if(!tieneDatos) return dayRows;
     return `${dayRows}<tr class="mc-total"><td colspan="3">${cycleLabel} · ${t('totalMicrociclo')}</td><td class="mono">${cycleTotal>0 ? fmt(Math.round(cycleTotal))+' m' : '—'}</td><td class="mono">${hsrTotal>0 ? fmt(Math.round(hsrTotal))+' m' : '—'}</td><td class="mono">${plTotal>0 ? fmt(Math.round(plTotal)) : '—'}</td><td class="mono">${avgIntensity===null ? '—' : avgIntensity+'% '+t('promAbrev')}</td></tr>`;
   }).join('');
   box.innerHTML = `<table class="mc-table">
