@@ -1643,7 +1643,7 @@ function buildGkPlayerView(playerName){
   drawGkRadar(playerName);
   buildGkMetricTabs(playerName);
   buildGkTimeline(playerName, state.gkMetric, true);
-  const mySessions = GK_EVENTS.filter(e=>e.jugador===playerName).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  const mySessions = GK_EVENTS.filter(e=>normalizeNameKey(e.jugador)===normalizeNameKey(playerName)).sort((a,b)=>a.fecha.localeCompare(b.fecha));
   if(!mySessions.length){
     kpiBox.innerHTML = '';
     tableBox.innerHTML = `<p style="padding:14px 18px;color:var(--mist);font-size:12.5px;">${t('gkSinSesiones')}</p>`;
@@ -3259,7 +3259,7 @@ async function startDashboard(){
   if(myProfile && myProfile.role==='player'){
     deriveAll(ACTIVE_EVENTS); // primero calcula la escala real del equipo completo...
     TEAM_SQUAD_MAX = {...squadMax}; TEAM_SQUAD_AVG = {...squadAvg};
-    ACTIVE_EVENTS = ACTIVE_EVENTS.filter(e=>e.jugador===myProfile.player_name); // ...y recién ahí filtra por privacidad
+    ACTIVE_EVENTS = ACTIVE_EVENTS.filter(e=>normalizeNameKey(e.jugador)===normalizeNameKey(myProfile.player_name)); // ...y recién ahí filtra por privacidad (comparación normalizada: ignora tildes/mayúsculas/espacios, para que una diferencia de tipeo entre el nombre de cuenta y el CSV de GPS no le esconda los datos al jugador)
     applyPlayerModeUI();
     const existingRpe = await getMyTodayRpe();
     buildRpeWidget(existingRpe);
@@ -3700,7 +3700,7 @@ function categoryFilteredEvents(){
   return ACTIVE_EVENTS.filter(e=> matchesCurrentCategory(e.jugador));
 }
 function isGoalkeeper(playerName){
-  return GK_EVENTS.some(e=>e.jugador===playerName) || ROSTER_GK_NAMES.includes(playerName);
+  return GK_EVENTS.some(e=>normalizeNameKey(e.jugador)===normalizeNameKey(playerName)) || ROSTER_GK_NAMES.some(n=>normalizeNameKey(n)===normalizeNameKey(playerName));
 }
 
 let players=[], byPlayer={}, playerAvg={}, squadMax={}, squadAvg={}, RECORDS=[], recordByPlayer={};
