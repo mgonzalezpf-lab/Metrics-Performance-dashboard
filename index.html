@@ -565,7 +565,7 @@
     </div>
     <div id="authRoleWrap" style="display:none;">
       <label for="authClubName" data-i18n="nombreClub" class="i18n-text">Nombre del club</label>
-      <input id="authClubName" type="text" autocomplete="organization" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Sans';outline:none;margin-bottom:10px;box-sizing:border-box;" placeholder="Ej: Al Saqer FC">
+      <input id="authClubName" type="text" autocomplete="organization" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Sans';outline:none;margin-bottom:10px;box-sizing:border-box;">
       <label for="authRoleSelect" data-i18n="quienSos" class="i18n-text">¿Quién eres?</label>
       <select id="authRoleSelect" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Sans';outline:none;margin-bottom:10px;">
         <option value="player" data-i18n="rolJugador">Jugador o arquero</option>
@@ -2063,7 +2063,7 @@ async function handleAuthSubmit(event){
     });
     if(result.error){ authMessage(result.error.message,'error'); return; }
     if(!result.data.session){
-      authMessage('Revisa tu correo y confirma el acceso antes de iniciar sesión.','ok');
+      authMessage(t('cuentaCreadaReintentar'),'ok');
       return;
     }
     await routeAfterLogin();
@@ -3337,7 +3337,7 @@ const I18N = {
     metrics:{dist:'Distancia Total',hsr:'HSR',vel:'Vel. Máxima',acc:'Acc',desa:'Desa',pl:'Player Load',sprint:'Sprint Distancia',sprint_count:'Sprint Conteo'},
     authTitleLogin:'Acceso al dashboard', authTitleSignup:'Crear acceso',
     authDescLogin:'Inicia sesión para consultar y actualizar los datos del equipo.',
-    authDescSignup:'Registra tu email y contraseña. Te llegará un correo para confirmar el acceso.',
+    authDescSignup:'Registra tu email y contraseña para crear tu acceso.',
     email:'Email', password:'Contraseña', repetirPassword:'Repetir contraseña', ingresar:'Ingresar', crearAcceso:'Crear mi acceso', crearCuenta:'Crear cuenta', yaTengoAcceso:'Ya tengo acceso',
     olvidasteContrasena:'¿Olvidaste tu contraseña?', credit:'Por Matías González Galindo — Head of Physical Performance',
     nuevaContrasena:'Nueva contraseña', nuevaContrasenaDesc:'Escribe tu nueva contraseña para terminar de recuperar tu acceso.',
@@ -3425,6 +3425,7 @@ const I18N = {
     sinJugadoresComparar:'Sin jugadores todavía para comparar.', radarVueloSinJugadores:'sin jugadores todavía',
     faltaLaFecha:'Falta la fecha.', passwordActualizada:'¡Listo! Tu contraseña se actualizó. Inicia sesión de nuevo.', diaLibreMarcado:'✅ Día libre marcado.',
     nombreYaTomado:'Ese nombre ya fue tomado por otra cuenta, elige otro.', noHayDatosParaCargar:'No hay datos para cargar.', faltaNombreRival:'Falta el nombre del rival.',
+    cuentaCreadaReintentar:'Tu cuenta fue creada. Si no ingresas automáticamente, actualiza la página e intenta iniciar sesión.',
     nombreAgregado:'✅ "{n}" agregado. Ya puede crear su cuenta y elegirlo.', cuentaCreada:'Cuenta creada', seleccionaNombreValido:'Selecciona un nombre válido.',
     noSePudoRpePlantel:'No se pudo cargar el RPE del plantel.', noSePudoRpeArqueros:'No se pudo cargar el RPE de arqueros.', noSePudoWellness:'No se pudo cargar el Wellness del plantel.',
     noSePudoChartjs:'No se pudo cargar Chart.js (sin conexión).', noSePudoChartjsResto:'No se pudo cargar Chart.js (sin conexión). El resto del dashboard funciona con normalidad.',
@@ -3434,7 +3435,7 @@ const I18N = {
     metrics:{dist:'Total Distance',hsr:'HSR',vel:'Max Speed',acc:'Acc',desa:'Dec',pl:'Player Load',sprint:'Sprint Distance',sprint_count:'Sprint Count'},
     authTitleLogin:'Dashboard access', authTitleSignup:'Create access',
     authDescLogin:'Log in to view and update the team data.',
-    authDescSignup:'Register your email and password. You will receive a confirmation email.',
+    authDescSignup:'Register your email and password to create your access.',
     email:'Email', password:'Password', repetirPassword:'Repeat password', ingresar:'Log in', crearAcceso:'Create my account', crearCuenta:'Create account', yaTengoAcceso:'I already have an account',
     olvidasteContrasena:'Forgot your password?', credit:'By Matías González Galindo — Head of Physical Performance',
     nuevaContrasena:'New password', nuevaContrasenaDesc:'Enter your new password to finish recovering your access.',
@@ -3522,6 +3523,7 @@ const I18N = {
     sinJugadoresComparar:'No players yet to compare.', radarVueloSinJugadores:'no players yet',
     faltaLaFecha:'Date is missing.', passwordActualizada:'Done! Your password was updated. Log in again.', diaLibreMarcado:'✅ Rest day marked.',
     nombreYaTomado:'That name has already been taken by another account, choose another.', noHayDatosParaCargar:'No data to load.', faltaNombreRival:'Opponent name is missing.',
+    cuentaCreadaReintentar:'Your account was created. If you are not signed in automatically, refresh the page and try logging in.',
     nombreAgregado:'✅ "{n}" added. They can now create their account and select it.', cuentaCreada:'Account created', seleccionaNombreValido:'Select a valid name.',
     noSePudoRpePlantel:'Could not load squad RPE.', noSePudoRpeArqueros:'Could not load goalkeeper RPE.', noSePudoWellness:'Could not load squad Wellness.',
     noSePudoChartjs:'Could not load Chart.js (no connection).', noSePudoChartjsResto:'Could not load Chart.js (no connection). The rest of the dashboard works normally.',
@@ -3531,7 +3533,7 @@ const I18N = {
     metrics:{dist:'المسافة الإجمالية',hsr:'الجري عالي السرعة',vel:'السرعة القصوى',acc:'تسارع',desa:'تباطؤ',pl:'حمل اللاعب',sprint:'مسافة السرعات القصوى',sprint_count:'عدد السرعات القصوى'},
     authTitleLogin:'الدخول إلى لوحة التحكم', authTitleSignup:'إنشاء حساب',
     authDescLogin:'سجّل الدخول للاطلاع على بيانات الفريق وتحديثها.',
-    authDescSignup:'سجّل بريدك الإلكتروني وكلمة المرور. سيصلك بريد لتأكيد الدخول.',
+    authDescSignup:'سجّل بريدك الإلكتروني وكلمة المرور لإنشاء حسابك.',
     email:'البريد الإلكتروني', password:'كلمة المرور', repetirPassword:'تأكيد كلمة المرور', ingresar:'دخول', crearAcceso:'إنشاء حسابي', crearCuenta:'إنشاء الحساب', yaTengoAcceso:'لدي حساب بالفعل',
     olvidasteContrasena:'هل نسيت كلمة المرور؟', credit:'بواسطة ماتياس غونزاليس غاليندو — مسؤول الأداء البدني',
     nuevaContrasena:'كلمة مرور جديدة', nuevaContrasenaDesc:'اكتب كلمة المرور الجديدة لإتمام استعادة حسابك.',
@@ -3619,6 +3621,7 @@ const I18N = {
     sinJugadoresComparar:'لا يوجد لاعبون بعد للمقارنة.', radarVueloSinJugadores:'لا يوجد لاعبون بعد',
     faltaLaFecha:'التاريخ مفقود.', passwordActualizada:'تم! تم تحديث كلمة المرور. سجّل الدخول مجددًا.', diaLibreMarcado:'✅ تم تحديد يوم الراحة.',
     nombreYaTomado:'هذا الاسم مُستخدم بالفعل من حساب آخر، اختر اسمًا آخر.', noHayDatosParaCargar:'لا توجد بيانات لتحميلها.', faltaNombreRival:'اسم الخصم مفقود.',
+    cuentaCreadaReintentar:'تم إنشاء حسابك. إذا لم يتم تسجيل دخولك تلقائيًا، حدّث الصفحة وحاول تسجيل الدخول.',
     nombreAgregado:'✅ تمت إضافة "{n}". يمكنه الآن إنشاء حسابه واختياره.', cuentaCreada:'تم إنشاء الحساب', seleccionaNombreValido:'اختر اسمًا صالحًا.',
     noSePudoRpePlantel:'تعذّر تحميل RPE الفريق.', noSePudoRpeArqueros:'تعذّر تحميل RPE حراس المرمى.', noSePudoWellness:'تعذّر تحميل Wellness الفريق.',
     noSePudoChartjs:'تعذّر تحميل Chart.js (بلا اتصال).', noSePudoChartjsResto:'تعذّر تحميل Chart.js (بلا اتصال). باقي اللوحة يعمل بشكل طبيعي.',
