@@ -1375,6 +1375,7 @@ function showNamePicker(availableNames){
   document.getElementById('authScreen').style.display='none';
   const screen=document.getElementById('nameScreen');
   screen.style.display='flex';
+  ensureAuthBgLogo(screen);
   const select=document.getElementById('nameSelect');
   select.innerHTML = availableNames.length
     ? availableNames.map(n=>`<option value="${n}">${n}</option>`).join('')
@@ -2134,6 +2135,7 @@ function showPendingScreen(role){
     title.textContent = 'Club suspendido';
     msg.textContent = `El acceso de "${CURRENT_CLUB}" está temporalmente suspendido. Contacta al OWNER (Matías González) para reactivarlo — tus datos siguen guardados y vas a poder seguir usando el dashboard normalmente en cuanto se reactive.`;
     screen.style.display='flex';
+    ensureAuthBgLogo(screen);
     document.getElementById('pendingLogoutBtn').onclick = async ()=>{
       await supabaseClient.auth.signOut();
       location.reload();
@@ -2151,6 +2153,7 @@ function showPendingScreen(role){
       : `Tu cuenta fue creada correctamente como "${roleLabel}". Necesita la aprobación de ${approver} antes de poder acceder al panel.`;
   }
   screen.style.display='flex';
+  ensureAuthBgLogo(screen);
   document.getElementById('pendingLogoutBtn').onclick = async ()=>{
     await supabaseClient.auth.signOut();
     location.reload();
@@ -6292,7 +6295,9 @@ async function init(){
   const {data:{session}} = await supabaseClient.auth.getSession();
   if(isRecovery && session){
     document.getElementById('authScreen').style.display='none';
-    document.getElementById('recoveryScreen').style.display='flex';
+    const recoveryScreen = document.getElementById('recoveryScreen');
+    recoveryScreen.style.display='flex';
+    ensureAuthBgLogo(recoveryScreen);
   } else if(session){
     await routeAfterLogin();
   }
@@ -6383,18 +6388,22 @@ init();
 </script>
 
 <script>
-  // Logo grande de fondo (sin el nombre del club/app) en las pantallas de acceso, para que nunca
-  // se transparente el dashboard de atrás — reusa el mismo PNG que ya está en #authLogo, sin duplicar el base64.
-  (function(){
+  // Logo grande de fondo (sin el nombre del club/app), tipo marca de agua muy tenue, en las pantallas de acceso.
+  // Se crea SOLO para la pantalla que realmente se muestra (no las 4 de una), para no pagar el costo
+  // de decodificar/escalar la imagen 4 veces en la carga inicial cuando casi siempre se ve solo una.
+  window.ensureAuthBgLogo = function(screenEl){
+    if(!screenEl || screenEl.querySelector('.auth-bg-logo')) return;
     const src = document.getElementById('authLogo') ? document.getElementById('authLogo').src : null;
     if(!src) return;
-    document.querySelectorAll('.auth-screen').forEach(screen=>{
-      const bg = document.createElement('div');
-      bg.className = 'auth-bg-logo';
-      bg.style.backgroundImage = `url(${src})`;
-      screen.insertBefore(bg, screen.firstChild);
-    });
-  })();
+    const bg = document.createElement('div');
+    bg.className = 'auth-bg-logo';
+    bg.style.backgroundImage = `url(${src})`;
+    screenEl.insertBefore(bg, screenEl.firstChild);
+  };
+  document.addEventListener('DOMContentLoaded', ()=>{
+    const authScreen = document.getElementById('authScreen');
+    if(authScreen && authScreen.style.display !== 'none') window.ensureAuthBgLogo(authScreen);
+  });
 </script>
 
 </body>
