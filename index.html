@@ -1193,6 +1193,11 @@
       <select id="compareA"></select>
       <span class="vs">VS</span>
       <select id="compareB"></select>
+      <select id="compareModeSelect" style="margin-left:auto;">
+        <option value="avg5" data-i18n="cmpModoProm5">Promedio (últ. 5)</option>
+        <option value="last" data-i18n="cmpModoUltimaSesion">Última sesión</option>
+        <option value="record" data-i18n="cmpModoRecord">Récord personal</option>
+      </select>
     </div>
     <div class="compare-grid">
       <div>
@@ -3342,6 +3347,9 @@ const I18N = {
     evolucionSesion:'Evolución por sesión', tusSprints:'Tus Sprints (>25 km/h)', sprintTag:'distancia recorrida a máxima velocidad', alertasCarga:'Alertas de carga · ACWR', acwrTag:'agudo (7 días) : crónico (28 días) · sobre Player Load',
     promedioPlantel:'Promedio del plantel · un dato por día', diasAnteriores:'Días anteriores', diasSiguientes:'Días siguientes',
     compararJugadores:'Comparar jugadores', cabezaCabeza:'cabeza a cabeza', rankingPlantel:'Ranking del plantel',
+    cmpModoProm5:'Promedio (últ. 5)', cmpModoUltimaSesion:'Última sesión', cmpModoRecord:'Récord personal',
+    cmpColMetricaProm5:'Métrica (prom. últ. 5)', cmpColMetricaUltimaSesion:'Métrica (última sesión)', cmpColMetricaRecord:'Métrica (récord personal)',
+    cmpSinUltimaSesion:'sin sesiones', cmpSinRecord:'sin récord',
     promedioUltimas:'promedio últimas sesiones', recordsPersonales:'Récords personales', actualizadoDesde:'actualizado desde Base de Datos y Partidos',
     comparativoPartidos:'Comparativo de partidos', totalesEquipo:'totales de equipo',
     kpiSesiones:'Sesiones cargadas', kpiDistancia:'Distancia total plantel', kpiPlayerLoad:'Player Load promedio',
@@ -3436,6 +3444,9 @@ const I18N = {
     evolucionSesion:'Session evolution', tusSprints:'Your Sprints (>25 km/h)', sprintTag:'distance covered at top speed', alertasCarga:'Load alerts · ACWR', acwrTag:'acute (7 days) : chronic (28 days) · over Player Load',
     promedioPlantel:'Squad average · one data point per day', diasAnteriores:'Previous days', diasSiguientes:'Next days',
     compararJugadores:'Compare players', cabezaCabeza:'head to head', rankingPlantel:'Squad ranking',
+    cmpModoProm5:'Average (last 5)', cmpModoUltimaSesion:'Last session', cmpModoRecord:'Personal record',
+    cmpColMetricaProm5:'Metric (avg. last 5)', cmpColMetricaUltimaSesion:'Metric (last session)', cmpColMetricaRecord:'Metric (personal record)',
+    cmpSinUltimaSesion:'no sessions', cmpSinRecord:'no record',
     promedioUltimas:'average of last sessions', recordsPersonales:'Personal records', actualizadoDesde:'updated from Database and Matches',
     comparativoPartidos:'Match comparison', totalesEquipo:'team totals',
     kpiSesiones:'Sessions loaded', kpiDistancia:'Squad total distance', kpiPlayerLoad:'Average Player Load',
@@ -3530,6 +3541,9 @@ const I18N = {
     evolucionSesion:'التطور خلال الحصة', tusSprints:'سرعاتك القصوى (>25 كم/س)', sprintTag:'المسافة المقطوعة بأقصى سرعة', alertasCarga:'تنبيهات الحمل · ACWR', acwrTag:'حاد (7 أيام) : مزمن (28 يومًا) · حسب حمل اللاعب',
     promedioPlantel:'متوسط الفريق · قيمة واحدة لكل يوم', diasAnteriores:'الأيام السابقة', diasSiguientes:'الأيام التالية',
     compararJugadores:'مقارنة اللاعبين', cabezaCabeza:'وجهًا لوجه', rankingPlantel:'تصنيف الفريق',
+    cmpModoProm5:'المتوسط (آخر 5)', cmpModoUltimaSesion:'آخر حصة', cmpModoRecord:'الرقم القياسي الشخصي',
+    cmpColMetricaProm5:'المؤشر (متوسط آخر 5)', cmpColMetricaUltimaSesion:'المؤشر (آخر حصة)', cmpColMetricaRecord:'المؤشر (الرقم القياسي الشخصي)',
+    cmpSinUltimaSesion:'لا توجد حصص', cmpSinRecord:'لا يوجد رقم قياسي',
     promedioUltimas:'متوسط آخر الحصص', recordsPersonales:'الأرقام القياسية الشخصية', actualizadoDesde:'محدّث من قاعدة البيانات والمباريات',
     comparativoPartidos:'مقارنة المباريات', totalesEquipo:'إجماليات الفريق',
     kpiSesiones:'الحصص المسجلة', kpiDistancia:'إجمالي مسافة الفريق', kpiPlayerLoad:'متوسط حمل اللاعب',
@@ -5731,15 +5745,35 @@ function buildCompare(){
     <span><span class="dot" style="background:var(--gold);"></span>${pA}</span>
     <span><span class="dot" style="background:var(--teal);"></span>${pB}</span>`;
   if(!table) return;
+  const modeSel = document.getElementById('compareModeSelect');
+  const mode = modeSel ? modeSel.value : 'avg5';
+  // Según el modo, saca el valor de cada métrica de una fuente distinta: promedio de las últimas 5 sesiones,
+  // la sesión más reciente cargada, o el récord personal histórico de esa métrica.
+  const valorDe = (p, m) => {
+    if(mode==='last'){
+      const evs = byPlayer[p];
+      if(!evs || !evs.length) return null;
+      const v = evs[evs.length-1][m];
+      return (v===null || v===undefined) ? null : v;
+    }
+    if(mode==='record'){
+      const rec = recordByPlayer[p];
+      return (rec && rec[m]) ? rec[m].valor : null;
+    }
+    return playerAvg[p][m] || 0;
+  };
+  const sinDatosLabel = mode==='last' ? t('cmpSinUltimaSesion') : (mode==='record' ? t('cmpSinRecord') : null);
   const rows = METRIC_ORDER.map(m=>{
-    const vA = playerAvg[pA][m]||0, vB = playerAvg[pB][m]||0;
+    const rawA = valorDe(pA, m), rawB = valorDe(pB, m);
+    const vA = rawA || 0, vB = rawB || 0;
     return `<tr>
       <td class="metric-name">${METRICS[m].label}</td>
-      <td class="${vA>vB?'lead':''}">${fmt(vA,METRICS[m].dec)}</td>
-      <td class="${vB>vA?'leadB':''}">${fmt(vB,METRICS[m].dec)}</td>
+      <td class="${vA>vB?'lead':''}">${(rawA===null && sinDatosLabel) ? sinDatosLabel : fmt(vA,METRICS[m].dec)}</td>
+      <td class="${vB>vA?'leadB':''}">${(rawB===null && sinDatosLabel) ? sinDatosLabel : fmt(vB,METRICS[m].dec)}</td>
     </tr>`;
   }).join('');
-  table.innerHTML = `<thead><tr><th>Métrica (prom. últ. 5)</th><th>${pA}</th><th>${pB}</th></tr></thead><tbody>${rows}</tbody>`;
+  const headerKey = mode==='last' ? 'cmpColMetricaUltimaSesion' : (mode==='record' ? 'cmpColMetricaRecord' : 'cmpColMetricaProm5');
+  table.innerHTML = `<thead><tr><th>${t(headerKey)}</th><th>${pA}</th><th>${pB}</th></tr></thead><tbody>${rows}</tbody>`;
 }
 function populateCompareSelects(){
   const a = document.getElementById('compareA');
@@ -5753,6 +5787,8 @@ function populateCompareSelects(){
   b.value = players.includes(prevB) ? prevB : (players[1]||players[0]);
   a.onchange = buildCompare;
   b.onchange = buildCompare;
+  const modeSel = document.getElementById('compareModeSelect');
+  if(modeSel) modeSel.onchange = buildCompare;
 }
 
 // ---------- selection ----------
