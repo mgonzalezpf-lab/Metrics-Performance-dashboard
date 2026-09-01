@@ -1815,12 +1815,12 @@ function mergePlayerNames(conDatos, extra){
   });
   return [...map.values()].sort();
 }
-// Botón de "Actualizar datos" — visible solo para admin/owner. Se decide acá,
-// no en init(), porque init() corre al cargar la página, antes de saber quién inició sesión.
+// Botón de "Actualizar datos" — visible solo para admin/owner, Y solo si el club tiene GPS habilitado
+// (si el club solo tiene RPE+Wellness contratado, no tiene sentido mostrarle el botón de subir CSV de GPS).
 function setupUploadButtons(){
   const uploadBtn = document.getElementById('uploadBtn');
   const isAdminOrOwner = myProfile && (myProfile.role==='admin' || myProfile.role==='owner');
-  if(uploadBtn) uploadBtn.style.display = isAdminOrOwner ? 'inline-block' : 'none';
+  if(uploadBtn) uploadBtn.style.display = (isAdminOrOwner && CLUB_FEATURES.gps) ? 'inline-block' : 'none';
 }
 // Selector de categoría (fútbol base con varias categorías, ej: U16/U18/U20, dentro del mismo club) —
 // visible solo para admin/owner. Cambiar la categoría vuelve a calcular todo el dashboard filtrado a esa categoría.
