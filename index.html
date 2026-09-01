@@ -4289,7 +4289,12 @@ async function buildClubesList(){
 async function switchToClub(clubName){
   if(clubName === CURRENT_CLUB){ switchAdminTab('jugadores'); return; }
   CURRENT_CLUB = clubName;
-  try{ await loadRemoteData(); }catch(error){ console.warn(error); }
+  try{
+    await loadRemoteData();
+  }catch(error){
+    console.error('switchToClub: loadRemoteData falló', error);
+    alert(`No se pudieron cargar los datos de "${clubName}": ${error.message || error}. El dashboard puede quedar vacío hasta que reintentes.`);
+  }
   await loadNextMatchDate();
   await loadRpeWindow();
   await loadWellnessWindow();
