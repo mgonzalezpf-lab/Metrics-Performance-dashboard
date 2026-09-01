@@ -3347,9 +3347,9 @@ const I18N = {
     evolucionSesion:'Evolución por sesión', tusSprints:'Tus Sprints (>25 km/h)', sprintTag:'distancia recorrida a máxima velocidad', alertasCarga:'Alertas de carga · ACWR', acwrTag:'agudo (7 días) : crónico (28 días) · sobre Player Load',
     promedioPlantel:'Promedio del plantel · un dato por día', diasAnteriores:'Días anteriores', diasSiguientes:'Días siguientes',
     compararJugadores:'Comparar jugadores', cabezaCabeza:'cabeza a cabeza', rankingPlantel:'Ranking del plantel',
-    cmpModoProm5:'Promedio (últ. 5)', cmpModoUltimaSesion:'Última sesión', cmpModoRecord:'Récord personal',
-    cmpColMetricaProm5:'Métrica (prom. últ. 5)', cmpColMetricaUltimaSesion:'Métrica (última sesión)', cmpColMetricaRecord:'Métrica (récord personal)',
-    cmpSinUltimaSesion:'sin sesiones', cmpSinRecord:'sin récord',
+    cmpModoProm5:'Promedio (últ. 5)', cmpModoUltimaSesion:'Último partido', cmpModoRecord:'Récord personal',
+    cmpColMetricaProm5:'Métrica (prom. últ. 5)', cmpColMetricaUltimaSesion:'Métrica (último partido)', cmpColMetricaRecord:'Métrica (récord personal)',
+    cmpSinUltimaSesion:'sin partidos', cmpSinRecord:'sin récord',
     promedioUltimas:'promedio últimas sesiones', recordsPersonales:'Récords personales', actualizadoDesde:'actualizado desde Base de Datos y Partidos',
     comparativoPartidos:'Comparativo de partidos', totalesEquipo:'totales de equipo',
     kpiSesiones:'Sesiones cargadas', kpiDistancia:'Distancia total plantel', kpiPlayerLoad:'Player Load promedio',
@@ -3444,9 +3444,9 @@ const I18N = {
     evolucionSesion:'Session evolution', tusSprints:'Your Sprints (>25 km/h)', sprintTag:'distance covered at top speed', alertasCarga:'Load alerts · ACWR', acwrTag:'acute (7 days) : chronic (28 days) · over Player Load',
     promedioPlantel:'Squad average · one data point per day', diasAnteriores:'Previous days', diasSiguientes:'Next days',
     compararJugadores:'Compare players', cabezaCabeza:'head to head', rankingPlantel:'Squad ranking',
-    cmpModoProm5:'Average (last 5)', cmpModoUltimaSesion:'Last session', cmpModoRecord:'Personal record',
-    cmpColMetricaProm5:'Metric (avg. last 5)', cmpColMetricaUltimaSesion:'Metric (last session)', cmpColMetricaRecord:'Metric (personal record)',
-    cmpSinUltimaSesion:'no sessions', cmpSinRecord:'no record',
+    cmpModoProm5:'Average (last 5)', cmpModoUltimaSesion:'Last match', cmpModoRecord:'Personal record',
+    cmpColMetricaProm5:'Metric (avg. last 5)', cmpColMetricaUltimaSesion:'Metric (last match)', cmpColMetricaRecord:'Metric (personal record)',
+    cmpSinUltimaSesion:'no matches', cmpSinRecord:'no record',
     promedioUltimas:'average of last sessions', recordsPersonales:'Personal records', actualizadoDesde:'updated from Database and Matches',
     comparativoPartidos:'Match comparison', totalesEquipo:'team totals',
     kpiSesiones:'Sessions loaded', kpiDistancia:'Squad total distance', kpiPlayerLoad:'Average Player Load',
@@ -3541,9 +3541,9 @@ const I18N = {
     evolucionSesion:'التطور خلال الحصة', tusSprints:'سرعاتك القصوى (>25 كم/س)', sprintTag:'المسافة المقطوعة بأقصى سرعة', alertasCarga:'تنبيهات الحمل · ACWR', acwrTag:'حاد (7 أيام) : مزمن (28 يومًا) · حسب حمل اللاعب',
     promedioPlantel:'متوسط الفريق · قيمة واحدة لكل يوم', diasAnteriores:'الأيام السابقة', diasSiguientes:'الأيام التالية',
     compararJugadores:'مقارنة اللاعبين', cabezaCabeza:'وجهًا لوجه', rankingPlantel:'تصنيف الفريق',
-    cmpModoProm5:'المتوسط (آخر 5)', cmpModoUltimaSesion:'آخر حصة', cmpModoRecord:'الرقم القياسي الشخصي',
-    cmpColMetricaProm5:'المؤشر (متوسط آخر 5)', cmpColMetricaUltimaSesion:'المؤشر (آخر حصة)', cmpColMetricaRecord:'المؤشر (الرقم القياسي الشخصي)',
-    cmpSinUltimaSesion:'لا توجد حصص', cmpSinRecord:'لا يوجد رقم قياسي',
+    cmpModoProm5:'المتوسط (آخر 5)', cmpModoUltimaSesion:'آخر مباراة', cmpModoRecord:'الرقم القياسي الشخصي',
+    cmpColMetricaProm5:'المؤشر (متوسط آخر 5)', cmpColMetricaUltimaSesion:'المؤشر (آخر مباراة)', cmpColMetricaRecord:'المؤشر (الرقم القياسي الشخصي)',
+    cmpSinUltimaSesion:'لا توجد مباريات', cmpSinRecord:'لا يوجد رقم قياسي',
     promedioUltimas:'متوسط آخر الحصص', recordsPersonales:'الأرقام القياسية الشخصية', actualizadoDesde:'محدّث من قاعدة البيانات والمباريات',
     comparativoPartidos:'مقارنة المباريات', totalesEquipo:'إجماليات الفريق',
     kpiSesiones:'الحصص المسجلة', kpiDistancia:'إجمالي مسافة الفريق', kpiPlayerLoad:'متوسط حمل اللاعب',
@@ -5753,7 +5753,9 @@ function buildCompare(){
     if(mode==='last'){
       const evs = byPlayer[p];
       if(!evs || !evs.length) return null;
-      const v = evs[evs.length-1][m];
+      const partidos = evs.filter(e=>e.tipo==='Partido');
+      if(!partidos.length) return null;
+      const v = partidos[partidos.length-1][m]; // ya vienen ordenados por fecha ascendente, así que el último es el más reciente
       return (v===null || v===undefined) ? null : v;
     }
     if(mode==='record'){
