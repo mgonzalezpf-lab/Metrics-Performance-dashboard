@@ -103,8 +103,9 @@
   .rpe-status-msg.locked{padding:10px 14px;border-radius:8px;border:1px solid var(--bad);background:rgba(251,113,133,.1);color:var(--bad);font-weight:600;}
   .upload-status.ok{color:var(--good);}
   .upload-status.error{color:var(--bad);}
-  .auth-screen{position:fixed;inset:0;z-index:100;background:rgba(20,20,58,.96);display:flex;align-items:center;justify-content:center;padding:22px;}
-  .auth-card{width:min(420px,100%);padding:30px;border:1px solid var(--line-strong);border-radius:18px;background:linear-gradient(180deg,var(--pitch-800),var(--pitch-900));box-shadow:0 24px 80px rgba(0,0,0,.35);}
+  .auth-screen{position:fixed;inset:0;z-index:100;background:var(--pitch-950);display:flex;align-items:center;justify-content:center;padding:22px;overflow:hidden;}
+  .auth-bg-logo{position:absolute;inset:0;background-repeat:no-repeat;background-position:center;background-size:min(140vw,1100px) auto;opacity:.14;pointer-events:none;z-index:0;}
+  .auth-card{position:relative;z-index:1;width:min(420px,100%);padding:30px;border:1px solid var(--line-strong);border-radius:18px;background:linear-gradient(180deg,var(--pitch-800),var(--pitch-900));box-shadow:0 24px 80px rgba(0,0,0,.35);}
   .auth-card h2{font-family:'Big Shoulders Display',sans-serif;font-size:30px;margin:0 0 6px;letter-spacing:.04em;}.auth-card p{color:var(--mist);font-size:13px;line-height:1.5;margin:0 0 20px;}
   .auth-card label{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mist);margin:14px 0 6px;}.auth-card input,.auth-card select{width:100%;padding:11px 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:14px 'IBM Plex Sans';outline:none;}.auth-card input:focus,.auth-card select:focus{border-color:var(--gold);}.auth-submit{width:100%;margin-top:20px;padding:11px;border:0;border-radius:8px;background:var(--gold);color:var(--pitch-950);font:700 13px 'IBM Plex Mono';cursor:pointer;}.auth-switch{width:100%;background:none;border:0;color:var(--gold-bright);padding:14px 0 0;cursor:pointer;font:12px 'IBM Plex Sans';}.auth-message{min-height:20px;margin-top:12px;font-size:12px;color:var(--mist);}.auth-message.error{color:var(--bad);}.auth-message.ok{color:var(--good);}
  /* ---------- OWNER PREMIUM MODE ---------- */
@@ -6379,6 +6380,21 @@ init();
         .catch(function (error) { console.warn("No se pudo registrar el Service Worker PWA:", error); });
     });
   }
+</script>
+
+<script>
+  // Logo grande de fondo (sin el nombre del club/app) en las pantallas de acceso, para que nunca
+  // se transparente el dashboard de atrás — reusa el mismo PNG que ya está en #authLogo, sin duplicar el base64.
+  (function(){
+    const src = document.getElementById('authLogo') ? document.getElementById('authLogo').src : null;
+    if(!src) return;
+    document.querySelectorAll('.auth-screen').forEach(screen=>{
+      const bg = document.createElement('div');
+      bg.className = 'auth-bg-logo';
+      bg.style.backgroundImage = `url(${src})`;
+      screen.insertBefore(bg, screen.firstChild);
+    });
+  })();
 </script>
 
 </body>
