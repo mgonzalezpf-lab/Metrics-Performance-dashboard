@@ -1847,6 +1847,9 @@ function setupCategorySelector(){
     await loadGkData(); // vuelve a calcular deriveGkData ya filtrado
     deriveAll(ACTIVE_EVENTS);
     renderAll(prevPlayer);
+    // Wellness se carga aparte (no forma parte de renderAll) — si está la pestaña abierta, hay que refrescarla a mano,
+    // si no, se queda mostrando el filtro de categoría anterior hasta que se vuelva a abrir esa pestaña.
+    if(typeof currentAdminTab!=='undefined' && currentAdminTab==='wellness'){ buildWellnessTeamList(document.getElementById('wellnessDatePicker')?.value); }
   };
 }
 function setupAddPlayerBar(){
