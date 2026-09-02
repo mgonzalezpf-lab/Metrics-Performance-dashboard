@@ -596,6 +596,7 @@
     <h2 data-i18n="nuevaContrasena" class="i18n-text">Nueva contraseña</h2>
     <p data-i18n="nuevaContrasenaDesc" class="i18n-text">Escribe tu nueva contraseña para terminar de recuperar tu acceso.</p>
     <label for="recoveryPassword" data-i18n="nuevaContrasena" class="i18n-text">Nueva contraseña</label><input id="recoveryPassword" type="password" autocomplete="new-password" minlength="6" required>
+    <label for="recoveryPasswordConfirm" data-i18n="repetirPassword" class="i18n-text">Repetir contraseña</label><input id="recoveryPasswordConfirm" type="password" autocomplete="new-password" minlength="6" required>
     <button class="auth-submit" type="submit" data-i18n="guardarContrasena">Guardar nueva contraseña</button>
     <div id="recoveryMessage" class="auth-message" aria-live="polite"></div>
   </form>
@@ -1378,8 +1379,8 @@ function showNamePicker(availableNames){
   ensureAuthBgLogo(screen);
   const select=document.getElementById('nameSelect');
   select.innerHTML = availableNames.length
-    ? availableNames.map(n=>`<option value="${n}">${n}</option>`).join('')
-    : '<option value="">— No hay nombres disponibles, contacta al staff —</option>';
+    ? `<option value="" selected disabled>— ${t('seleccionaTuNombre')} —</option>` + availableNames.map(n=>`<option value="${n}">${n}</option>`).join('')
+    : `<option value="">${t('sinNombresDisponibles')}</option>`;
 }
 // ---------- Área médica: solo lectura, solo 5 paneles relevantes (ACWR, RPE x2, Récords, Monotonía/Strain), solo jugadores de campo ----------
 function applyStaffModeUI(){
@@ -2040,7 +2041,7 @@ async function handleAuthSubmit(event){
 
   if(authMode==='signup'){
     const passwordConfirm = document.getElementById('authPasswordConfirm').value;
-    if(password !== passwordConfirm){ authMessage('Las contraseñas no coinciden. Revisa e intenta de nuevo.','error'); return; }
+    if(password !== passwordConfirm){ authMessage(t('contrasenasNoCoinciden'),'error'); return; }
     const clubNameEl = document.getElementById('authClubName');
     const roleEl = document.getElementById('authRoleSelect');
     const clubName = clubNameEl ? clubNameEl.value.trim() : '';
@@ -3427,6 +3428,7 @@ const I18N = {
     nombreYaTomado:'Ese nombre ya fue tomado por otra cuenta, elige otro.', noHayDatosParaCargar:'No hay datos para cargar.', faltaNombreRival:'Falta el nombre del rival.',
     cuentaCreadaReintentar:'Tu cuenta fue creada. Si no ingresas automáticamente, actualiza la página e intenta iniciar sesión.',
     nombreAgregado:'✅ "{n}" agregado. Ya puede crear su cuenta y elegirlo.', cuentaCreada:'Cuenta creada', seleccionaNombreValido:'Selecciona un nombre válido.',
+    contrasenasNoCoinciden:'Las contraseñas no coinciden. Revisa e intenta de nuevo.', seleccionaTuNombre:'Elige tu nombre', sinNombresDisponibles:'— No hay nombres disponibles, contacta al staff —',
     noSePudoRpePlantel:'No se pudo cargar el RPE del plantel.', noSePudoRpeArqueros:'No se pudo cargar el RPE de arqueros.', noSePudoWellness:'No se pudo cargar el Wellness del plantel.',
     noSePudoChartjs:'No se pudo cargar Chart.js (sin conexión).', noSePudoChartjsResto:'No se pudo cargar Chart.js (sin conexión). El resto del dashboard funciona con normalidad.',
     sinDatosSuficientes:'Sin datos suficientes todavía',
@@ -3525,6 +3527,7 @@ const I18N = {
     nombreYaTomado:'That name has already been taken by another account, choose another.', noHayDatosParaCargar:'No data to load.', faltaNombreRival:'Opponent name is missing.',
     cuentaCreadaReintentar:'Your account was created. If you are not signed in automatically, refresh the page and try logging in.',
     nombreAgregado:'✅ "{n}" added. They can now create their account and select it.', cuentaCreada:'Account created', seleccionaNombreValido:'Select a valid name.',
+    contrasenasNoCoinciden:'Passwords do not match. Check and try again.', seleccionaTuNombre:'Choose your name', sinNombresDisponibles:'— No names available, contact staff —',
     noSePudoRpePlantel:'Could not load squad RPE.', noSePudoRpeArqueros:'Could not load goalkeeper RPE.', noSePudoWellness:'Could not load squad Wellness.',
     noSePudoChartjs:'Could not load Chart.js (no connection).', noSePudoChartjsResto:'Could not load Chart.js (no connection). The rest of the dashboard works normally.',
     sinDatosSuficientes:'Not enough data yet',
@@ -3623,6 +3626,7 @@ const I18N = {
     nombreYaTomado:'هذا الاسم مُستخدم بالفعل من حساب آخر، اختر اسمًا آخر.', noHayDatosParaCargar:'لا توجد بيانات لتحميلها.', faltaNombreRival:'اسم الخصم مفقود.',
     cuentaCreadaReintentar:'تم إنشاء حسابك. إذا لم يتم تسجيل دخولك تلقائيًا، حدّث الصفحة وحاول تسجيل الدخول.',
     nombreAgregado:'✅ تمت إضافة "{n}". يمكنه الآن إنشاء حسابه واختياره.', cuentaCreada:'تم إنشاء الحساب', seleccionaNombreValido:'اختر اسمًا صالحًا.',
+    contrasenasNoCoinciden:'كلمتا المرور غير متطابقتين. راجعهما وحاول مجددًا.', seleccionaTuNombre:'اختر اسمك', sinNombresDisponibles:'— لا توجد أسماء متاحة، تواصل مع الطاقم —',
     noSePudoRpePlantel:'تعذّر تحميل RPE الفريق.', noSePudoRpeArqueros:'تعذّر تحميل RPE حراس المرمى.', noSePudoWellness:'تعذّر تحميل Wellness الفريق.',
     noSePudoChartjs:'تعذّر تحميل Chart.js (بلا اتصال).', noSePudoChartjsResto:'تعذّر تحميل Chart.js (بلا اتصال). باقي اللوحة يعمل بشكل طبيعي.',
     sinDatosSuficientes:'لا توجد بيانات كافية بعد',
@@ -6311,6 +6315,8 @@ async function init(){
     event.preventDefault();
     const recoveryMessage = document.getElementById('recoveryMessage');
     const newPassword = document.getElementById('recoveryPassword').value;
+    const newPasswordConfirm = document.getElementById('recoveryPasswordConfirm').value;
+    if(newPassword !== newPasswordConfirm){ recoveryMessage.textContent = t('contrasenasNoCoinciden'); recoveryMessage.className='auth-message error'; return; }
     recoveryMessage.textContent = t('guardando'); recoveryMessage.className='auth-message';
     const {error} = await supabaseClient.auth.updateUser({password:newPassword});
     if(error){ recoveryMessage.textContent = error.message; recoveryMessage.className='auth-message error'; return; }
