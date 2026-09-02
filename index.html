@@ -747,6 +747,7 @@
     <button class="tab-btn" id="tabBtnWellness" onclick="switchAdminTab('wellness')" style="padding:9px 18px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--mist);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabWellness">💚 Wellness</button>
     <button class="tab-btn" id="tabBtnPartidos" onclick="switchAdminTab('partidos')" style="padding:9px 18px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--mist);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabPartidos">🆚 Partidos</button>
     <button class="tab-btn" id="tabBtnRpe" onclick="switchAdminTab('rpe')" style="padding:9px 18px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--mist);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabRpe">📋 RPE</button>
+    <button class="tab-btn" id="tabBtnEficiencia" onclick="switchAdminTab('eficiencia')" style="padding:9px 18px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--mist);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabEficiencia">📈 Eficiencia</button>
     <button class="tab-btn" id="tabBtnClubes" onclick="switchAdminTab('clubes')" style="display:none;padding:9px 18px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--mist);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabClubes">🏢 Clubes</button>
   </div>
 
@@ -1022,6 +1023,28 @@
       <div style="overflow-x:auto;">
         <table class="cmp-table" id="rpeLoadTable"></table>
       </div>
+    </div>
+  </div>
+  </div>
+
+  <div id="eficienciaView" style="display:none;">
+  <div id="eficienciaGroup" style="position:relative;">
+    <button type="button" class="panel-dl-btn" data-target="eficienciaGroup" data-nombre="Eficiencia GPS-RPE" title="Descargar esta sección como imagen">⬇</button>
+    <div class="panel team-only" style="margin-bottom:18px;">
+      <div class="panel-head">
+        <h3 data-i18n="eficienciaTitulo">📈 Eficiencia GPS-RPE</h3>
+        <span class="tag" data-i18n="eficienciaTag">carga interna (RPE) vs. carga externa (Distancia), por jugador</span>
+      </div>
+      <p style="padding:0 18px 12px;color:var(--mist);font-size:11.5px;line-height:1.5;" data-i18n="eficienciaDesc">Compara el esfuerzo percibido (RPE) contra el trabajo real medido por GPS. Si el índice de un jugador sube sin que su carga de GPS haya cambiado, puede ser una señal temprana de fatiga. Toca un jugador para ver su evolución.</p>
+      <div class="acwr-body" id="eficienciaTeamList"></div>
+    </div>
+
+    <div class="panel team-only" id="eficienciaDetailPanel" style="margin-bottom:18px;display:none;">
+      <div class="panel-head">
+        <h3 id="eficienciaDetailTitle">—</h3>
+        <span class="tag" id="eficienciaDetailTag">—</span>
+      </div>
+      <div class="chart-box"><canvas id="eficienciaDetailChart"></canvas></div>
     </div>
   </div>
   </div>
@@ -1940,6 +1963,7 @@ function setupCategorySelector(){
     // Wellness se carga aparte (no forma parte de renderAll) — si está la pestaña abierta, hay que refrescarla a mano,
     // si no, se queda mostrando el filtro de categoría anterior hasta que se vuelva a abrir esa pestaña.
     if(typeof currentAdminTab!=='undefined' && currentAdminTab==='wellness'){ buildWellnessTeamList(document.getElementById('wellnessDatePicker')?.value); buildWellnessTrendChart(); }
+    if(typeof currentAdminTab!=='undefined' && currentAdminTab==='eficiencia'){ buildEfficiencyRanking(); const dp=document.getElementById('eficienciaDetailPanel'); if(dp) dp.style.display='none'; }
   };
 }
 function setupAddPlayerBar(){
@@ -2091,6 +2115,13 @@ function resizeAllCharts(){
         buildGkTimeline(activePlayer, state.gkMetric, true);
       }
     }catch(e){ console.warn('resize gkTimelineChart falló:', e); }
+    try{
+      if(wellnessTrendChart){ wellnessTrendChart.destroy(); wellnessTrendChart=null; }
+      if(document.getElementById('wellnessView')?.style.display !== 'none') renderWellnessTrendChart();
+    }catch(e){ console.warn('resize wellnessTrendChart falló:', e); }
+    try{
+      if(efficiencyDetailChart){ efficiencyDetailChart.destroy(); efficiencyDetailChart=null; }
+    }catch(e){ console.warn('resize efficiencyDetailChart falló:', e); }
   };
   // Varios intentos escalonados: cubre navegadores rápidos (rAF) y layouts más lentos (timeouts).
   requestAnimationFrame(()=> requestAnimationFrame(doRebuild));
@@ -3187,8 +3218,12 @@ function applyClubFeaturesToTabs(){
   const btnP = document.getElementById('tabBtnPartidos');
   const btnW = document.getElementById('tabBtnWellness');
   const btnR = document.getElementById('tabBtnRpe');
+  const btnE = document.getElementById('tabBtnEficiencia');
   [btnJ,btnA,btnC,btnP].forEach(b=>{ if(b) b.style.display = CLUB_FEATURES.gps ? '' : 'none'; });
   if(btnW) btnW.style.display = CLUB_FEATURES.rpe_wellness ? '' : 'none';
+  // Eficiencia GPS-RPE necesita las dos fuentes de datos a la vez, así que solo se muestra si el club
+  // tiene ambas habilitadas (sin GPS o sin RPE+Wellness, no hay con qué compararlo).
+  if(btnE) btnE.style.display = (CLUB_FEATURES.gps && CLUB_FEATURES.rpe_wellness) ? '' : 'none';
   // El grupo de paneles de RPE vive en un solo lugar del DOM: adentro de Control de Carga si hay GPS
   // (conviven ahí con ACWR/Monotonía/Carga Semanal), o en su propia pestaña si el club no tiene GPS
   // (porque en ese caso "Control de Carga" entero queda oculto y no hay dónde mostrarlo).
@@ -3205,7 +3240,8 @@ function applyClubFeaturesToTabs(){
   const current = typeof currentAdminTab!=='undefined' ? currentAdminTab : 'jugadores';
   const hiddenNow = (['jugadores','arqueros','carga','partidos'].includes(current) && !CLUB_FEATURES.gps)
     || (current==='wellness' && !CLUB_FEATURES.rpe_wellness)
-    || (current==='rpe' && !(CLUB_FEATURES.rpe_wellness && !CLUB_FEATURES.gps));
+    || (current==='rpe' && !(CLUB_FEATURES.rpe_wellness && !CLUB_FEATURES.gps))
+    || (current==='eficiencia' && !(CLUB_FEATURES.gps && CLUB_FEATURES.rpe_wellness));
   if(hiddenNow && myProfile && myProfile.role!=='player'){
     switchAdminTab(CLUB_FEATURES.gps ? 'jugadores' : (CLUB_FEATURES.rpe_wellness ? 'wellness' : 'clubes'));
   }
@@ -3367,6 +3403,130 @@ async function saveAllRpeMinutes(){
     alert(`Se guardaron ${updates.length-failed.length} de ${updates.length} jugadores. Hubo ${failed.length} error(es), revisa la consola.`);
   }
   await buildRpeTeamList(); // re-renderiza la tabla (esto ya vuelve a habilitar el botón según el horario)
+}
+
+// ---------- Eficiencia GPS-RPE: compara carga interna (RPE×min) vs carga externa (Distancia) por jugador ----------
+// Ciencia detrás: la Distancia Total es, según la literatura (fútbol), la métrica de GPS con correlación más fuerte
+// y consistente con el RPE de sesión (r hasta ~0.74, "muy grande" en varios estudios). Un jugador cuyo índice
+// (RPE×min ÷ Distancia) sube sin que su carga de GPS haya cambiado puede estar acumulando fatiga no visible en el GPS solo.
+function computeEfficiencySessions(playerName){
+  const evsByDate = {};
+  categoryFilteredEvents().filter(e=> normalizeNameKey(e.jugador)===normalizeNameKey(playerName) && e.dist).forEach(e=>{
+    evsByDate[e.fecha] = (evsByDate[e.fecha]||0) + e.dist; // por si hay más de un evento el mismo día, se suma
+  });
+  const reports = RPE_REPORTS_CACHE.filter(r=> normalizeNameKey(r.player_name)===normalizeNameKey(playerName));
+  const sessions = [];
+  reports.forEach(r=>{
+    const dist = evsByDate[r.fecha];
+    if(dist && dist>0 && r.rpe!==null && r.rpe!==undefined && r.minutos!==null && r.minutos!==undefined){
+      const rpeLoad = r.rpe * r.minutos;
+      sessions.push({ fecha:r.fecha, dist, rpeLoad, ratio: rpeLoad/dist });
+    }
+  });
+  sessions.sort((a,b)=> a.fecha.localeCompare(b.fecha));
+  return sessions;
+}
+function efficiencyStatusFor(sessions){
+  if(sessions.length < 4) return {status:'insuf', label:t('eficienciaSinDatos'), varName:'--mist', current:null, baseline:null, deltaPct:null};
+  const recentN = Math.min(3, Math.floor(sessions.length/2));
+  const recent = sessions.slice(-recentN);
+  const baselineArr = sessions.slice(0, sessions.length-recentN);
+  const avg = arr=> arr.reduce((a,b)=>a+b.ratio,0)/arr.length;
+  const current = avg(recent);
+  const baseline = avg(baselineArr);
+  const deltaPct = baseline>0 ? ((current-baseline)/baseline*100) : null;
+  let status='normal', label=t('eficienciaNormal'), varName='--good';
+  if(deltaPct!==null){
+    if(deltaPct>=20){ status='alerta'; label=t('eficienciaAlerta'); varName='--bad'; }
+    else if(deltaPct>=10){ status='atencion'; label=t('eficienciaAtencion'); varName='--warn'; }
+  }
+  return {status, label, varName, current, baseline, deltaPct};
+}
+async function buildEfficiencyRanking(){
+  const box = document.getElementById('eficienciaTeamList');
+  if(!box) return;
+  // Asegura tener el RPE cargado, sin depender de haber visitado la pestaña RPE antes.
+  if(!RPE_REPORTS_CACHE.length){
+    const {data,error} = await supabaseClient.from('rpe_reports').select('player_name,fecha,rpe,minutos,updated_at').eq('club',CURRENT_CLUB).order('fecha',{ascending:false});
+    if(!error) RPE_REPORTS_CACHE = data || [];
+  }
+  const rosterExtra = await getRosterExtraNames();
+  const allPlayers = mergePlayerNames(players, rosterExtra).filter(p=>!isGoalkeeper(p));
+  const order = {alerta:0, atencion:1, normal:2, insuf:3};
+  const rows = allPlayers.map(p=>{
+    const sessions = computeEfficiencySessions(p);
+    const st = efficiencyStatusFor(sessions);
+    return {p, sessions, ...st};
+  }).sort((a,b)=> (order[a.status]-order[b.status]) || ((b.deltaPct??-999)-(a.deltaPct??-999)));
+  box.innerHTML = rows.map((r,i)=>{
+    const pct = r.deltaPct!==null ? Math.min(100, Math.max(0, r.deltaPct+50)) : null; // 0% de desvío queda al centro de la barra
+    return `<div class="acwr-row" data-p="${r.p}" style="cursor:pointer;">
+      <div class="rk">${i+1<10?'0':''}${i+1}</div>
+      <div class="nm">${r.p}</div>
+      <div class="acwr-track">${pct!==null?`<div class="acwr-marker" style="left:${pct}%"></div>`:''}</div>
+      <div class="acwr-ratio">${r.deltaPct!==null? (r.deltaPct>=0?'+':'')+r.deltaPct.toFixed(0)+'%' : '—'}</div>
+      <div><span class="acwr-badge" style="background:var(${r.varName});color:#14143A;">${r.label}</span></div>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('.acwr-row').forEach(el=> el.addEventListener('click', ()=> buildEfficiencyDetail(el.dataset.p)));
+}
+let efficiencyDetailChart;
+function buildEfficiencyDetail(playerName){
+  const panel = document.getElementById('eficienciaDetailPanel');
+  const titleEl = document.getElementById('eficienciaDetailTitle');
+  const tagEl = document.getElementById('eficienciaDetailTag');
+  const canvas = document.getElementById('eficienciaDetailChart');
+  if(!panel || !canvas) return;
+  panel.style.display = '';
+  if(titleEl) titleEl.textContent = `📈 ${playerName}`;
+  if(tagEl) tagEl.textContent = t('eficienciaVsBaseline');
+  const sessions = computeEfficiencySessions(playerName);
+  if(!sessions.length){
+    canvas.parentElement.innerHTML = `<div style="color:var(--mist);font-family:'IBM Plex Mono';font-size:12px;padding:20px;text-align:center;">${t('eficienciaSinSesiones')}</div>`;
+    return;
+  }
+  if(typeof Chart === 'undefined'){
+    canvas.parentElement.innerHTML = `<div style="color:var(--mist);font-family:'IBM Plex Mono';font-size:12px;padding:20px;text-align:center;">${t('noSePudoChartjsResto')}</div>`;
+    return;
+  }
+  const labels = sessions.map(s=> s.fecha.slice(5).split('-').reverse().join('/'));
+  const data = sessions.map(s=> s.ratio);
+  const ctx = canvas.getContext('2d');
+  const cfg = {
+    type:'line',
+    data:{ labels, datasets:[{
+      label: t('eficienciaIndiceLabel'),
+      data,
+      spanGaps:true,
+      borderColor:'#FBBF24',
+      backgroundColor:'rgba(251,191,36,.12)',
+      pointBackgroundColor:'#FBBF24',
+      pointBorderColor:'#FBBF24',
+      pointRadius:5,
+      pointHoverRadius:7,
+      tension:.3,
+      fill:true,
+      borderWidth:2.2,
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      layout:{ padding:{ top:18 } },
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#1E1E58', borderColor:'#FBBF24', borderWidth:1, titleColor:'#FDE68A', bodyColor:'#E7E7FB',
+          callbacks:{ label:(ctx)=> `${t('eficienciaIndiceLabel')}: ${fmt(ctx.raw,2)}` }
+        }
+      },
+      scales:{
+        x:{ grid:{display:false}, ticks:{color:'#9797C9', font:{family:'IBM Plex Mono', size:9.5}} },
+        y:{ grace:'12%', grid:{color:'rgba(231,231,251,.06)'}, ticks:{color:'#9797C9', font:{family:'IBM Plex Mono', size:10}} }
+      }
+    },
+    plugins:[matchValueLabelPlugin(sessions.map(()=>({tipo:'Partido'})), (v)=>fmt(v,2), {showAll:true, matchColor:'#FBBF24', normalColor:'#FBBF24'})]
+  };
+  if(efficiencyDetailChart){ efficiencyDetailChart.destroy(); }
+  efficiencyDetailChart = new Chart(ctx, cfg); requestAnimationFrame(()=>{ if(efficiencyDetailChart) efficiencyDetailChart.resize(); });
 }
 
 let TEAM_SQUAD_MAX = null, TEAM_SQUAD_AVG = null;
@@ -3552,6 +3712,11 @@ const I18N = {
     contrasenasNoCoinciden:'Las contraseñas no coinciden. Revisa e intenta de nuevo.', seleccionaTuNombre:'Elige tu nombre', sinNombresDisponibles:'— No hay nombres disponibles, contacta al staff —',
     yaRechazadoAntes:'⚠ Este mail o nombre de club ya fue rechazado antes',
     tuCategoria:'Tu categoría', todasLasCategorias:'Todas las categorías', ratioAlDia:'· ratio al {d}', gkPercepcionEsfuerzo:'percepción de esfuerzo reportada por cada arquero',
+    tabEficiencia:'📈 Eficiencia', eficienciaTitulo:'📈 Eficiencia GPS-RPE', eficienciaTag:'carga interna (RPE) vs. carga externa (Distancia), por jugador',
+    eficienciaDesc:'Compara el esfuerzo percibido (RPE) contra el trabajo real medido por GPS. Si el índice de un jugador sube sin que su carga de GPS haya cambiado, puede ser una señal temprana de fatiga. Toca un jugador para ver su evolución.',
+    eficienciaNormal:'Normal', eficienciaAtencion:'Atención', eficienciaAlerta:'Alerta', eficienciaSinDatos:'Datos insuf.',
+    eficienciaSinSesiones:'Todavía no hay suficientes sesiones con Distancia y RPE cargados el mismo día para este jugador.',
+    eficienciaIndiceLabel:'Índice (RPE×min ÷ Distancia)', eficienciaVsBaseline:'vs. su propio promedio anterior',
     reintentarRechazadoDesc:'¿Te equivocaste de opción? Elige de nuevo y volvemos a mandar la solicitud.', nombreDelClub:'Nombre del club', reintentarSolicitud:'Reintentar solicitud',
     reintentandoSolicitud:'Reintentando…', solicitudReintentada:'✅ Listo, tu solicitud se volvió a enviar correctamente.', ingresaNombreClub:'Ingresa el nombre de tu club para continuar.',
     noSePudoRpePlantel:'No se pudo cargar el RPE del plantel.', noSePudoRpeArqueros:'No se pudo cargar el RPE de arqueros.', noSePudoWellness:'No se pudo cargar el Wellness del plantel.',
@@ -3656,6 +3821,11 @@ const I18N = {
     contrasenasNoCoinciden:'Passwords do not match. Check and try again.', seleccionaTuNombre:'Choose your name', sinNombresDisponibles:'— No names available, contact staff —',
     yaRechazadoAntes:'⚠ This email or club name was already rejected before',
     tuCategoria:'Your category', todasLasCategorias:'All categories', ratioAlDia:'· ratio as of {d}', gkPercepcionEsfuerzo:'perceived effort reported by each goalkeeper',
+    tabEficiencia:'📈 Efficiency', eficienciaTitulo:'📈 GPS-RPE Efficiency', eficienciaTag:'internal load (RPE) vs. external load (Distance), per player',
+    eficienciaDesc:'Compares perceived exertion (RPE) against actual GPS-measured work. If a player\'s index rises without their GPS load changing, it can be an early fatigue signal. Tap a player to see their trend.',
+    eficienciaNormal:'Normal', eficienciaAtencion:'Attention', eficienciaAlerta:'Alert', eficienciaSinDatos:'Insuf. data',
+    eficienciaSinSesiones:'Not enough sessions with both Distance and RPE loaded on the same day for this player yet.',
+    eficienciaIndiceLabel:'Index (RPE×min ÷ Distance)', eficienciaVsBaseline:'vs. their own previous average',
     reintentarRechazadoDesc:'Picked the wrong option? Choose again and we\'ll resend the request.', nombreDelClub:'Club name', reintentarSolicitud:'Retry request',
     reintentandoSolicitud:'Retrying…', solicitudReintentada:'✅ Done, your request was sent again successfully.', ingresaNombreClub:'Enter your club name to continue.',
     noSePudoRpePlantel:'Could not load squad RPE.', noSePudoRpeArqueros:'Could not load goalkeeper RPE.', noSePudoWellness:'Could not load squad Wellness.',
@@ -3760,6 +3930,11 @@ const I18N = {
     contrasenasNoCoinciden:'كلمتا المرور غير متطابقتين. راجعهما وحاول مجددًا.', seleccionaTuNombre:'اختر اسمك', sinNombresDisponibles:'— لا توجد أسماء متاحة، تواصل مع الطاقم —',
     yaRechazadoAntes:'⚠ هذا البريد أو اسم النادي تم رفضه من قبل',
     tuCategoria:'فئتك', todasLasCategorias:'جميع الفئات', ratioAlDia:'· النسبة بتاريخ {d}', gkPercepcionEsfuerzo:'شدة الجهد المُبلَّغ عنها من كل حارس مرمى',
+    tabEficiencia:'📈 الكفاءة', eficienciaTitulo:'📈 كفاءة GPS-RPE', eficienciaTag:'الحمل الداخلي (RPE) مقابل الحمل الخارجي (المسافة)، لكل لاعب',
+    eficienciaDesc:'يقارن الجهد المُدرَك (RPE) بالعمل الفعلي المقاس بواسطة GPS. إذا ارتفع مؤشر لاعب دون تغيّر حمل GPS، قد تكون إشارة مبكرة على التعب. اضغط على لاعب لرؤية تطوره.',
+    eficienciaNormal:'طبيعي', eficienciaAtencion:'انتباه', eficienciaAlerta:'تنبيه', eficienciaSinDatos:'بيانات غير كافية',
+    eficienciaSinSesiones:'لا توجد بعد حصص كافية بمسافة و RPE مُحمَّلين في نفس اليوم لهذا اللاعب.',
+    eficienciaIndiceLabel:'المؤشر (RPE×دقائق ÷ المسافة)', eficienciaVsBaseline:'مقارنة بمتوسطه السابق',
     reintentarRechazadoDesc:'اخترت الخيار الخطأ؟ اختر مجددًا وسنعيد إرسال الطلب.', nombreDelClub:'اسم النادي', reintentarSolicitud:'إعادة المحاولة',
     reintentandoSolicitud:'جارٍ إعادة المحاولة…', solicitudReintentada:'✅ تم، أُرسل طلبك مجددًا بنجاح.', ingresaNombreClub:'أدخل اسم ناديك للمتابعة.',
     noSePudoRpePlantel:'تعذّر تحميل RPE الفريق.', noSePudoRpeArqueros:'تعذّر تحميل RPE حراس المرمى.', noSePudoWellness:'تعذّر تحميل Wellness الفريق.',
@@ -4289,6 +4464,7 @@ function switchAdminTab(tab){
   const wellnessView = document.getElementById('wellnessView');
   const rpeView = document.getElementById('rpeView');
   const clubesView = document.getElementById('clubesView');
+  const eficienciaView = document.getElementById('eficienciaView');
   const btnJ = document.getElementById('tabBtnJugadores');
   const btnA = document.getElementById('tabBtnArqueros');
   const btnC = document.getElementById('tabBtnCarga');
@@ -4296,11 +4472,12 @@ function switchAdminTab(tab){
   const btnW = document.getElementById('tabBtnWellness');
   const btnR = document.getElementById('tabBtnRpe');
   const btnCl = document.getElementById('tabBtnClubes');
+  const btnE = document.getElementById('tabBtnEficiencia');
   const activeStyle = 'border-color:var(--gold);background:var(--gold);color:var(--pitch-950);';
   const inactiveStyle = 'border-color:var(--line-strong);background:transparent;color:var(--mist);';
 
-  const views = {jugadores:fieldWrap, arqueros:gkView, carga:cargaView, partidos:partidosView, wellness:wellnessView, rpe:rpeView, clubes:clubesView};
-  const btns = {jugadores:btnJ, arqueros:btnA, carga:btnC, partidos:btnP, wellness:btnW, rpe:btnR, clubes:btnCl};
+  const views = {jugadores:fieldWrap, arqueros:gkView, carga:cargaView, partidos:partidosView, wellness:wellnessView, rpe:rpeView, clubes:clubesView, eficiencia:eficienciaView};
+  const btns = {jugadores:btnJ, arqueros:btnA, carga:btnC, partidos:btnP, wellness:btnW, rpe:btnR, clubes:btnCl, eficiencia:btnE};
   const selected = views[tab] ? tab : 'jugadores';
   currentAdminTab = selected;
   Object.keys(views).forEach(key=>{
@@ -4309,6 +4486,7 @@ function switchAdminTab(tab){
   });
   if(selected==='clubes' && myProfile && myProfile.role==='owner'){ buildPendingClubsPanel(); buildClubesList(); }
   if(selected==='wellness' && !(myProfile && myProfile.role==='player')){ buildWellnessTeamList(); buildWellnessMetricTabs(); buildWellnessTrendChart(true); }
+  if(selected==='eficiencia' && !(myProfile && myProfile.role==='player')){ buildEfficiencyRanking(); }
 }
 
 // ---------- Owner: solicitudes de nuevos clubes ----------
