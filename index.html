@@ -5833,6 +5833,9 @@ async function computeWellnessDailySeries(){
   const filtered = (data||[]).filter(r=> matchesCurrentCategory(r.player_name));
   const byDate = {};
   filtered.forEach(r=>{ (byDate[r.fecha] = byDate[r.fecha] || []).push(r); });
+  // Fechas de partido real (si el club tiene GPS cargado), para marcar esos puntos distinto en el gráfico —
+  // los clubes sin GPS no tienen este dato disponible, sus puntos quedan todos con el color normal.
+  const matchDates = new Set(categoryFilteredEvents().filter(e=>e.tipo==='Partido').map(e=>e.fecha));
   const avg = (arr)=> arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
   wellnessDailySeries = Object.keys(byDate).sort().map(fecha=>{
     const rows = byDate[fecha];
@@ -5842,7 +5845,7 @@ async function computeWellnessDailySeries(){
       const vals = ['sueno','fatiga','dolor_muscular','estres','animo'].map(k=>r[k]).filter(v=>v!==null && v!==undefined);
       return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
     }).filter(v=>v!==null);
-    return { fecha, tqr:avg(tqrVals), total_muscular:avg(muscVals), score:avg(scoreVals) };
+    return { fecha, tqr:avg(tqrVals), total_muscular:avg(muscVals), score:avg(scoreVals), esPartido:matchDates.has(fecha) };
   });
 }
 function buildWellnessMetricTabs(){
@@ -5854,12 +5857,15 @@ function buildWellnessMetricTabs(){
     el.addEventListener('click', ()=>{
       state.wtMetric = el.dataset.m;
       buildWellnessMetricTabs();
-      buildWellnessTrendChart();
+      renderWellnessTrendChart(); // solo redibuja con los datos ya cargados — no hace falta pedirlos de nuevo a Supabase
     });
   });
 }
 async function buildWellnessTrendChart(resetToLatest){
   await computeWellnessDailySeries();
+  renderWellnessTrendChart(resetToLatest);
+}
+function renderWellnessTrendChart(resetToLatest){
   const allEvs = wellnessDailySeries;
   const maxOffset = Math.max(0, allEvs.length - TIMELINE_WINDOW);
   if(resetToLatest) state.wtOffset = maxOffset;
@@ -5870,10 +5876,10 @@ async function buildWellnessTrendChart(resetToLatest){
   const slider = document.getElementById('wtSlider');
   if(slider){
     slider.max = maxOffset; slider.value = state.wtOffset;
-    slider.oninput = (e)=>{ state.wtOffset = Number(e.target.value); buildWellnessTrendChart(); };
+    slider.oninput = (e)=>{ state.wtOffset = Number(e.target.value); renderWellnessTrendChart(); };
   }
-  if(prevBtn) prevBtn.onclick = ()=>{ state.wtOffset = Math.max(0, state.wtOffset - TIMELINE_WINDOW); buildWellnessTrendChart(); };
-  if(nextBtn) nextBtn.onclick = ()=>{ state.wtOffset = Math.min(maxOffset, state.wtOffset + TIMELINE_WINDOW); buildWellnessTrendChart(); };
+  if(prevBtn) prevBtn.onclick = ()=>{ state.wtOffset = Math.max(0, state.wtOffset - TIMELINE_WINDOW); renderWellnessTrendChart(); };
+  if(nextBtn) nextBtn.onclick = ()=>{ state.wtOffset = Math.min(maxOffset, state.wtOffset + TIMELINE_WINDOW); renderWellnessTrendChart(); };
   if(prevBtn) prevBtn.disabled = state.wtOffset<=0;
   if(nextBtn) nextBtn.disabled = state.wtOffset>=maxOffset;
   if(slider) slider.disabled = maxOffset<=0;
@@ -5900,6 +5906,8 @@ async function buildWellnessTrendChart(resetToLatest){
   }
   const labels = evs.map(e=> e.fecha.slice(5).split('-').reverse().join('/'));
   const data = evs.map(e=>e[m]);
+  const pointColors = evs.map(e=> e.esPartido ? '#7C5CFC' : '#34D399');
+  const pointStyles = evs.map(e=> e.esPartido ? 'rectRot' : 'circle');
   const ctx = canvas.getContext('2d');
   const cfg = {
     type:'line',
@@ -5909,10 +5917,11 @@ async function buildWellnessTrendChart(resetToLatest){
       spanGaps:true,
       borderColor:'#34D399',
       backgroundColor:'rgba(52,211,153,.12)',
-      pointBackgroundColor:'#34D399',
-      pointBorderColor:'#34D399',
-      pointRadius:5,
-      pointHoverRadius:7,
+      pointBackgroundColor: pointColors,
+      pointBorderColor: pointColors,
+      pointStyle: pointStyles,
+      pointRadius: evs.map(e=> e.esPartido ? 6.5 : 5),
+      pointHoverRadius: evs.map(e=> e.esPartido ? 8.5 : 7),
       tension:.3,
       fill:true,
       borderWidth:2.2,
