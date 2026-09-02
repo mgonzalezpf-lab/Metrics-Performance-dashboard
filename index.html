@@ -587,6 +587,19 @@
   <div class="auth-card">
     <h2 id="pendingTitle">Cuenta creada</h2>
     <p id="pendingMessage" style="color:var(--mist);line-height:1.5;margin-bottom:18px;">Tu cuenta fue creada correctamente. Necesita la aprobación del administrador antes de poder acceder al panel.</p>
+    <div id="retryRejectedWrap" style="display:none;margin-bottom:14px;padding-top:4px;border-top:1px solid var(--line-strong);">
+      <p style="color:var(--mist);font-size:12.5px;margin:12px 0 10px;" data-i18n="reintentarRechazadoDesc">¿Te equivocaste de opción? Elige de nuevo y volvemos a mandar la solicitud.</p>
+      <label for="retryClubName" data-i18n="nombreDelClub" style="font-size:11px;color:var(--mist);display:block;margin-bottom:4px;">Nombre del club</label>
+      <input id="retryClubName" type="text" autocomplete="organization" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Sans';outline:none;margin-bottom:10px;box-sizing:border-box;">
+      <label for="retryRoleSelect" data-i18n="quienSos" style="font-size:11px;color:var(--mist);display:block;margin-bottom:4px;">¿Quién eres?</label>
+      <select id="retryRoleSelect" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:13px 'IBM Plex Sans';outline:none;margin-bottom:10px;">
+        <option value="player" data-i18n="rolJugador">Jugador o arquero</option>
+        <option value="pending_staff" data-i18n="rolStaff">Staff (médico y técnico)</option>
+        <option value="pending_gk_coach" data-i18n="rolGkCoach">Entrenador de arqueros</option>
+      </select>
+      <button id="retryRejectedBtn" class="auth-submit" type="button" style="margin-bottom:10px;" data-i18n="reintentarSolicitud">Reintentar solicitud</button>
+      <div id="retryRejectedStatus" style="font-size:12px;color:var(--mist);margin-bottom:6px;"></div>
+    </div>
     <button id="pendingLogoutBtn" class="auth-submit" type="button">Cerrar sesión</button>
   </div>
 </div>
@@ -1321,6 +1334,37 @@ async function getMyProfile(){
   const {data,error}=await supabaseClient.from('player_profiles').select('*').eq('user_id',user.id).maybeSingle();
   if(error){ console.warn(error); return null; }
   return data;
+}
+// Le permite a alguien que quedó "rejected_club" (típicamente porque eligió "Administrador de un club nuevo"
+// por error, en vez de Jugador/Staff) reintentar con la opción correcta, sin crear una cuenta nueva —
+// reusa la misma cuenta/email, solo corrige club y rol, y pasa otra vez por el mismo camino que un registro normal.
+async function retryAfterRejection(){
+  const status = document.getElementById('retryRejectedStatus');
+  const btn = document.getElementById('retryRejectedBtn');
+  const clubName = document.getElementById('retryClubName').value.trim();
+  const selectedRole = document.getElementById('retryRoleSelect').value;
+  if(!clubName){ status.textContent = t('ingresaNombreClub'); return; }
+  btn.disabled = true;
+  status.textContent = t('reintentandoSolicitud');
+  try{
+    const {data:{user}} = await supabaseClient.auth.getUser();
+    const {data:existingClub, error:clubError} = await supabaseClient.rpc('club_exists', {search_name: clubName});
+    if(clubError) throw clubError;
+    const clubExists = !!existingClub;
+    const finalClub = clubExists ? existingClub : clubName;
+    // Si el club todavía no existe en la plataforma, sigue necesitando aprobación del OWNER como club nuevo —
+    // eso no cambia. Lo que se corrige acá es el caso típico: el club YA existe y solo eligieron mal el rol.
+    const finalRole = clubExists ? selectedRole : 'pending_club';
+    const {error} = await supabaseClient.from('player_profiles').update({club:finalClub, role:finalRole}).eq('user_id', user.id);
+    if(error) throw error;
+    status.textContent = t('solicitudReintentada');
+    CURRENT_CLUB = finalClub;
+    myProfile = await getMyProfile();
+    setTimeout(()=>{ routeAfterLogin(); }, 900);
+  }catch(e){
+    status.textContent = tf('noSePudoGuardar', {e: e.message || e});
+    btn.disabled = false;
+  }
 }
 async function ensureProfile(){
   const {data:{user}}=await supabaseClient.auth.getUser();
@@ -2152,7 +2196,20 @@ function showPendingScreen(role){
   const approver = role==='pending_club' ? 'OWNER (Matías González)' : 'el administrador de tu club';
   if(role==='rejected_club'){
     msg.textContent = t('solicitudRechazada');
+    const retryWrap = document.getElementById('retryRejectedWrap');
+    if(retryWrap) retryWrap.style.display = '';
+    const retryClubInput = document.getElementById('retryClubName');
+    if(retryClubInput && !retryClubInput.value){
+      supabaseClient.auth.getUser().then(({data})=>{
+        const prevClub = data?.user?.user_metadata?.club_name;
+        if(prevClub) retryClubInput.value = prevClub;
+      });
+    }
+    const retryBtn = document.getElementById('retryRejectedBtn');
+    if(retryBtn) retryBtn.onclick = retryAfterRejection;
   } else {
+    const retryWrap = document.getElementById('retryRejectedWrap');
+    if(retryWrap) retryWrap.style.display = 'none';
     msg.textContent = role==='pending_club'
       ? `La solicitud del club fue creada correctamente. Necesita la aprobación del OWNER (Matías González) antes de activar el club y asignarte como administrador.`
       : `Tu cuenta fue creada correctamente como "${roleLabel}". Necesita la aprobación de ${approver} antes de poder acceder al panel.`;
@@ -3436,6 +3493,9 @@ const I18N = {
     cuentaCreadaReintentar:'Tu cuenta fue creada. Si no ingresas automáticamente, actualiza la página e intenta iniciar sesión.',
     nombreAgregado:'✅ "{n}" agregado. Ya puede crear su cuenta y elegirlo.', cuentaCreada:'Cuenta creada', seleccionaNombreValido:'Selecciona un nombre válido.',
     contrasenasNoCoinciden:'Las contraseñas no coinciden. Revisa e intenta de nuevo.', seleccionaTuNombre:'Elige tu nombre', sinNombresDisponibles:'— No hay nombres disponibles, contacta al staff —',
+    yaRechazadoAntes:'⚠ Este mail o nombre de club ya fue rechazado antes',
+    reintentarRechazadoDesc:'¿Te equivocaste de opción? Elige de nuevo y volvemos a mandar la solicitud.', nombreDelClub:'Nombre del club', reintentarSolicitud:'Reintentar solicitud',
+    reintentandoSolicitud:'Reintentando…', solicitudReintentada:'✅ Listo, tu solicitud se volvió a enviar correctamente.', ingresaNombreClub:'Ingresa el nombre de tu club para continuar.',
     noSePudoRpePlantel:'No se pudo cargar el RPE del plantel.', noSePudoRpeArqueros:'No se pudo cargar el RPE de arqueros.', noSePudoWellness:'No se pudo cargar el Wellness del plantel.',
     noSePudoChartjs:'No se pudo cargar Chart.js (sin conexión).', noSePudoChartjsResto:'No se pudo cargar Chart.js (sin conexión). El resto del dashboard funciona con normalidad.',
     sinDatosSuficientes:'Sin datos suficientes todavía',
@@ -3535,6 +3595,9 @@ const I18N = {
     cuentaCreadaReintentar:'Your account was created. If you are not signed in automatically, refresh the page and try logging in.',
     nombreAgregado:'✅ "{n}" added. They can now create their account and select it.', cuentaCreada:'Account created', seleccionaNombreValido:'Select a valid name.',
     contrasenasNoCoinciden:'Passwords do not match. Check and try again.', seleccionaTuNombre:'Choose your name', sinNombresDisponibles:'— No names available, contact staff —',
+    yaRechazadoAntes:'⚠ This email or club name was already rejected before',
+    reintentarRechazadoDesc:'Picked the wrong option? Choose again and we\'ll resend the request.', nombreDelClub:'Club name', reintentarSolicitud:'Retry request',
+    reintentandoSolicitud:'Retrying…', solicitudReintentada:'✅ Done, your request was sent again successfully.', ingresaNombreClub:'Enter your club name to continue.',
     noSePudoRpePlantel:'Could not load squad RPE.', noSePudoRpeArqueros:'Could not load goalkeeper RPE.', noSePudoWellness:'Could not load squad Wellness.',
     noSePudoChartjs:'Could not load Chart.js (no connection).', noSePudoChartjsResto:'Could not load Chart.js (no connection). The rest of the dashboard works normally.',
     sinDatosSuficientes:'Not enough data yet',
@@ -3634,6 +3697,9 @@ const I18N = {
     cuentaCreadaReintentar:'تم إنشاء حسابك. إذا لم يتم تسجيل دخولك تلقائيًا، حدّث الصفحة وحاول تسجيل الدخول.',
     nombreAgregado:'✅ تمت إضافة "{n}". يمكنه الآن إنشاء حسابه واختياره.', cuentaCreada:'تم إنشاء الحساب', seleccionaNombreValido:'اختر اسمًا صالحًا.',
     contrasenasNoCoinciden:'كلمتا المرور غير متطابقتين. راجعهما وحاول مجددًا.', seleccionaTuNombre:'اختر اسمك', sinNombresDisponibles:'— لا توجد أسماء متاحة، تواصل مع الطاقم —',
+    yaRechazadoAntes:'⚠ هذا البريد أو اسم النادي تم رفضه من قبل',
+    reintentarRechazadoDesc:'اخترت الخيار الخطأ؟ اختر مجددًا وسنعيد إرسال الطلب.', nombreDelClub:'اسم النادي', reintentarSolicitud:'إعادة المحاولة',
+    reintentandoSolicitud:'جارٍ إعادة المحاولة…', solicitudReintentada:'✅ تم، أُرسل طلبك مجددًا بنجاح.', ingresaNombreClub:'أدخل اسم ناديك للمتابعة.',
     noSePudoRpePlantel:'تعذّر تحميل RPE الفريق.', noSePudoRpeArqueros:'تعذّر تحميل RPE حراس المرمى.', noSePudoWellness:'تعذّر تحميل Wellness الفريق.',
     noSePudoChartjs:'تعذّر تحميل Chart.js (بلا اتصال).', noSePudoChartjsResto:'تعذّر تحميل Chart.js (بلا اتصال). باقي اللوحة يعمل بشكل طبيعي.',
     sinDatosSuficientes:'لا توجد بيانات كافية بعد',
@@ -4200,11 +4266,24 @@ async function buildPendingClubsPanel(){
   if(!data || !data.length){ panel.style.display='none'; return; }
   panel.style.display='';
   count.textContent=`${data.length} pendiente${data.length===1?'':'s'}`;
+
+  // Para avisar si esta persona (o este nombre de club) ya fue rechazada antes — no bloquea nada,
+  // solo te lo señala para que decidas con contexto antes de aprobar de nuevo.
+  const {data:rechazados} = await supabaseClient.from('player_profiles')
+    .select('email,club').eq('role','rejected_club');
+  const rechazadosList = rechazados || [];
+  const yaRechazado = (r) => rechazadosList.some(x=>
+    (x.email && r.email && x.email.toLowerCase()===r.email.toLowerCase()) ||
+    (x.club && r.club && normalizeNameKey(x.club)===normalizeNameKey(r.club))
+  );
+
   box.innerHTML=data.map(r=>{
     const fecha=new Date(r.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+    const avisoRechazo = yaRechazado(r) ? `<div style="color:var(--bad);font-size:11px;font-weight:700;margin-top:3px;">${t('yaRechazadoAntes')}</div>` : '';
     return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap;">
       <div><div style="color:var(--bone);font-weight:600;font-size:13px;">${r.club||'Club sin nombre'}</div>
-      <div style="color:var(--mist);font-size:11.5px;margin-top:2px;">${r.email||'Sin email'} · Solicitud ${fecha}</div></div>
+      <div style="color:var(--mist);font-size:11.5px;margin-top:2px;">${r.email||'Sin email'} · Solicitud ${fecha}</div>
+      ${avisoRechazo}</div>
       <div style="display:flex;gap:8px;">
         <button class="upload-btn" data-approve-club="${r.user_id}" style="padding:7px 14px;white-space:nowrap;">✓ Aprobar y hacer Admin</button>
         <button class="upload-btn" data-reject-club="${r.user_id}" style="padding:7px 14px;white-space:nowrap;">✕ Rechazar</button>
