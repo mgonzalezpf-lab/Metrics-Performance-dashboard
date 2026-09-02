@@ -6625,7 +6625,7 @@ async function init(){
   const rpeDatePicker = document.getElementById('rpeDatePicker');
   if(rpeDatePicker){
     rpeDatePicker.value = todayISO();
-    rpeDatePicker.addEventListener('change', ()=> buildRpeLoadTable(rpeDatePicker.value));
+    rpeDatePicker.addEventListener('change', ()=> buildRpeTeamList());
   }
   const gkRpeSaveAllBtn = document.getElementById('gkRpeSaveAllBtn');
   if(gkRpeSaveAllBtn){
@@ -6634,7 +6634,7 @@ async function init(){
   const gkRpeDatePicker = document.getElementById('gkRpeDatePicker');
   if(gkRpeDatePicker){
     gkRpeDatePicker.value = todayISO();
-    gkRpeDatePicker.addEventListener('change', ()=> buildGkRpeLoadTable(gkRpeDatePicker.value));
+    gkRpeDatePicker.addEventListener('change', ()=> buildGkRpeTeamList());
   }
   const weeklyTargetPct = document.getElementById('weeklyTargetPct');
   if(weeklyTargetPct){
