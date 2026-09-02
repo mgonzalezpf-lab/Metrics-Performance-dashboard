@@ -939,6 +939,26 @@
       <div id="wellnessAlerts"></div>
       <div style="overflow-x:auto;"><div id="wellnessTable"></div></div>
     </div>
+
+    <div id="wellnessTrendGroup" style="position:relative;">
+    <button type="button" class="panel-dl-btn" data-target="wellnessTrendGroup" data-nombre="Evolucion Wellness" title="Descargar esta sección como imagen">⬇</button>
+    <div class="panel team-only" style="margin-top:18px;">
+      <div class="panel-head">
+        <h3 data-i18n="evolucionWellness">Evolución del Wellness</h3>
+        <span class="tag" id="wellnessTrendTag">—</span>
+      </div>
+      <div class="metric-tabs" id="wellnessMetricTabs"></div>
+      <div class="chart-box"><canvas id="wellnessTrendChart"></canvas></div>
+      <div class="timeline-nav">
+        <button class="tl-btn" id="wtPrev" data-i18n-title="sesionesAnteriores" title="Sesiones anteriores">◀</button>
+        <div class="tl-range">
+          <input type="range" id="wtSlider" min="0" max="0" value="0" step="1">
+          <div class="tl-label" id="wtLabel">—</div>
+        </div>
+        <button class="tl-btn" id="wtNext" data-i18n-title="sesionesSiguientes" title="Sesiones siguientes">▶</button>
+      </div>
+    </div>
+    </div>
   </div>
 
   <div id="rpeView" style="display:none;">
@@ -1893,7 +1913,7 @@ function setupCategorySelector(){
     renderAll(prevPlayer);
     // Wellness se carga aparte (no forma parte de renderAll) — si está la pestaña abierta, hay que refrescarla a mano,
     // si no, se queda mostrando el filtro de categoría anterior hasta que se vuelva a abrir esa pestaña.
-    if(typeof currentAdminTab!=='undefined' && currentAdminTab==='wellness'){ buildWellnessTeamList(document.getElementById('wellnessDatePicker')?.value); }
+    if(typeof currentAdminTab!=='undefined' && currentAdminTab==='wellness'){ buildWellnessTeamList(document.getElementById('wellnessDatePicker')?.value); buildWellnessTrendChart(); }
   };
 }
 function setupAddPlayerBar(){
@@ -3411,7 +3431,8 @@ const I18N = {
     jugador:'Jugador', confirmar:'Confirmar',
     actualizarDatos:'⟳ Actualizar datos (subir Excel)', cerrarSesion:'Cerrar sesión',
     datosActualizados:'DATOS ACTUALIZADOS AL', jugadoresActivos:'jugadores activos',
-    evolucionPlantel:'Evolución del plantel', sesionesAnteriores:'Sesiones anteriores', sesionesSiguientes:'Sesiones siguientes',
+    evolucionPlantel:'Evolución del plantel', sesionesAnteriores:'Sesiones anteriores', sesionesSiguientes:'Sesiones siguientes', evolucionWellness:'Evolución del Wellness',
+    metricaTqr:'TQR', metricaTotalMuscular:'Total Muscular', metricaScore:'Score',
     plantel:'Plantel', buscarJugador:'Buscar jugador…', radarVuelo:'Radar de Vuelo', perfilNormalizado:'perfil normalizado vs. plantel',
     evolucionSesion:'Evolución por sesión', tusSprints:'Tus Sprints (>25 km/h)', sprintTag:'distancia recorrida a máxima velocidad', alertasCarga:'Alertas de carga · ACWR', acwrTag:'agudo (7 días) : crónico (28 días) · sobre Player Load',
     promedioPlantel:'Promedio del plantel · un dato por día', diasAnteriores:'Días anteriores', diasSiguientes:'Días siguientes',
@@ -3513,7 +3534,8 @@ const I18N = {
     jugador:'Player', confirmar:'Confirm',
     actualizarDatos:'⟳ Update data (upload Excel)', cerrarSesion:'Log out',
     datosActualizados:'DATA UPDATED ON', jugadoresActivos:'active players',
-    evolucionPlantel:'Squad evolution', sesionesAnteriores:'Previous sessions', sesionesSiguientes:'Next sessions',
+    evolucionPlantel:'Squad evolution', sesionesAnteriores:'Previous sessions', sesionesSiguientes:'Next sessions', evolucionWellness:'Wellness evolution',
+    metricaTqr:'TQR', metricaTotalMuscular:'Total Muscular', metricaScore:'Score',
     plantel:'Squad', buscarJugador:'Search player…', radarVuelo:'Flight Radar', perfilNormalizado:'normalized profile vs. squad',
     evolucionSesion:'Session evolution', tusSprints:'Your Sprints (>25 km/h)', sprintTag:'distance covered at top speed', alertasCarga:'Load alerts · ACWR', acwrTag:'acute (7 days) : chronic (28 days) · over Player Load',
     promedioPlantel:'Squad average · one data point per day', diasAnteriores:'Previous days', diasSiguientes:'Next days',
@@ -3615,7 +3637,8 @@ const I18N = {
     jugador:'اللاعب', confirmar:'تأكيد',
     actualizarDatos:'⟳ تحديث البيانات (رفع ملف إكسل)', cerrarSesion:'تسجيل الخروج',
     datosActualizados:'البيانات محدّثة حتى', jugadoresActivos:'لاعبًا نشطًا',
-    evolucionPlantel:'تطور الفريق', sesionesAnteriores:'الحصص السابقة', sesionesSiguientes:'الحصص التالية',
+    evolucionPlantel:'تطور الفريق', sesionesAnteriores:'الحصص السابقة', sesionesSiguientes:'الحصص التالية', evolucionWellness:'تطور Wellness',
+    metricaTqr:'TQR', metricaTotalMuscular:'إجمالي عضلي', metricaScore:'النتيجة',
     plantel:'قائمة الفريق', buscarJugador:'ابحث عن لاعب…', radarVuelo:'رادار الأداء', perfilNormalizado:'ملف معياري مقابل الفريق',
     evolucionSesion:'التطور خلال الحصة', tusSprints:'سرعاتك القصوى (>25 كم/س)', sprintTag:'المسافة المقطوعة بأقصى سرعة', alertasCarga:'تنبيهات الحمل · ACWR', acwrTag:'حاد (7 أيام) : مزمن (28 يومًا) · حسب حمل اللاعب',
     promedioPlantel:'متوسط الفريق · قيمة واحدة لكل يوم', diasAnteriores:'الأيام السابقة', diasSiguientes:'الأيام التالية',
@@ -3736,7 +3759,7 @@ function setLang(lang){
   if(ACTIVE_EVENTS && ACTIVE_EVENTS.length){ renderAll(state.player); }
   if(!(myProfile && myProfile.role==='player')){
     const wellnessViewVisible = document.getElementById('wellnessView')?.style.display !== 'none';
-    if(wellnessViewVisible) buildWellnessTeamList(document.getElementById('wellnessDatePicker')?.value);
+    if(wellnessViewVisible){ buildWellnessTeamList(document.getElementById('wellnessDatePicker')?.value); buildWellnessTrendChart(); }
   }
   // Arqueros: refrescar sus propias pestañas y vistas, independiente del flujo de jugadores de campo.
   if(GK_EVENTS && GK_EVENTS.length){
@@ -3748,7 +3771,7 @@ function setLang(lang){
   }
 }
 
-let state = { player:null, metric:'dist', tlOffset:0, wlOffset:0, ttMetric:'dist', ttOffset:0, lbMetric:'dist', gkMetric:'dist', gkTlOffset:0, gkLbMetric:'dist', gkTtMetric:'dist', gkTtOffset:0, weeklyMicroTab:'total' };
+let state = { player:null, metric:'dist', tlOffset:0, wlOffset:0, ttMetric:'dist', ttOffset:0, lbMetric:'dist', gkMetric:'dist', gkTlOffset:0, gkLbMetric:'dist', gkTtMetric:'dist', gkTtOffset:0, weeklyMicroTab:'total', wtMetric:'tqr', wtOffset:0 };
 const TIMELINE_WINDOW = 20;
 
 function fmt(v,dec=0){
@@ -4246,7 +4269,7 @@ function switchAdminTab(tab){
     if(btns[key]) btns[key].style.cssText += (key===selected) ? activeStyle : inactiveStyle;
   });
   if(selected==='clubes' && myProfile && myProfile.role==='owner'){ buildPendingClubsPanel(); buildClubesList(); }
-  if(selected==='wellness' && !(myProfile && myProfile.role==='player')){ buildWellnessTeamList(); }
+  if(selected==='wellness' && !(myProfile && myProfile.role==='player')){ buildWellnessTeamList(); buildWellnessMetricTabs(); buildWellnessTrendChart(true); }
 }
 
 // ---------- Owner: solicitudes de nuevos clubes ----------
@@ -5794,6 +5817,127 @@ function buildTeamTimeline(resetToLatest){
   };
   if(teamTimelineChart){ teamTimelineChart.destroy(); } // idem: se recrea siempre para que el plugin de etiquetas de partido no quede con datos/decimales de la métrica anterior
   teamTimelineChart = new Chart(ctx, cfg); requestAnimationFrame(()=>{ if(teamTimelineChart) teamTimelineChart.resize(); });
+}
+
+// ---------- Evolución del Wellness (TQR / Total Muscular / Score, promedio diario del plantel) ----------
+let wellnessDailySeries = [];
+let wellnessTrendChart;
+function wellnessMetricMeta(key){
+  if(key==='total_muscular') return {label:t('metricaTotalMuscular'), dec:1};
+  if(key==='score') return {label:t('metricaScore'), dec:1};
+  return {label:t('metricaTqr'), dec:1};
+}
+async function computeWellnessDailySeries(){
+  const {data, error} = await supabaseClient.from('wellness_reports').select('*').eq('club', CURRENT_CLUB);
+  if(error){ console.warn('No se pudo cargar la evolución de Wellness:', error); wellnessDailySeries = []; return; }
+  const filtered = (data||[]).filter(r=> matchesCurrentCategory(r.player_name));
+  const byDate = {};
+  filtered.forEach(r=>{ (byDate[r.fecha] = byDate[r.fecha] || []).push(r); });
+  const avg = (arr)=> arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
+  wellnessDailySeries = Object.keys(byDate).sort().map(fecha=>{
+    const rows = byDate[fecha];
+    const tqrVals = rows.map(r=>r.tqr).filter(v=>v!==null && v!==undefined);
+    const muscVals = rows.map(r=> (r.fatiga!==null && r.fatiga!==undefined && r.dolor_muscular!==null && r.dolor_muscular!==undefined) ? (r.fatiga + r.dolor_muscular) : null).filter(v=>v!==null);
+    const scoreVals = rows.map(r=>{
+      const vals = ['sueno','fatiga','dolor_muscular','estres','animo'].map(k=>r[k]).filter(v=>v!==null && v!==undefined);
+      return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+    }).filter(v=>v!==null);
+    return { fecha, tqr:avg(tqrVals), total_muscular:avg(muscVals), score:avg(scoreVals) };
+  });
+}
+function buildWellnessMetricTabs(){
+  const box = document.getElementById('wellnessMetricTabs');
+  if(!box) return;
+  const keys = ['tqr','total_muscular','score'];
+  box.innerHTML = keys.map(k=>`<button class="mtab ${k===state.wtMetric?'active':''}" data-m="${k}">${wellnessMetricMeta(k).label}</button>`).join('');
+  box.querySelectorAll('.mtab').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      state.wtMetric = el.dataset.m;
+      buildWellnessMetricTabs();
+      buildWellnessTrendChart();
+    });
+  });
+}
+async function buildWellnessTrendChart(resetToLatest){
+  await computeWellnessDailySeries();
+  const allEvs = wellnessDailySeries;
+  const maxOffset = Math.max(0, allEvs.length - TIMELINE_WINDOW);
+  if(resetToLatest) state.wtOffset = maxOffset;
+  state.wtOffset = Math.min(Math.max(0, state.wtOffset||0), maxOffset);
+
+  const prevBtn = document.getElementById('wtPrev');
+  const nextBtn = document.getElementById('wtNext');
+  const slider = document.getElementById('wtSlider');
+  if(slider){
+    slider.max = maxOffset; slider.value = state.wtOffset;
+    slider.oninput = (e)=>{ state.wtOffset = Number(e.target.value); buildWellnessTrendChart(); };
+  }
+  if(prevBtn) prevBtn.onclick = ()=>{ state.wtOffset = Math.max(0, state.wtOffset - TIMELINE_WINDOW); buildWellnessTrendChart(); };
+  if(nextBtn) nextBtn.onclick = ()=>{ state.wtOffset = Math.min(maxOffset, state.wtOffset + TIMELINE_WINDOW); buildWellnessTrendChart(); };
+  if(prevBtn) prevBtn.disabled = state.wtOffset<=0;
+  if(nextBtn) nextBtn.disabled = state.wtOffset>=maxOffset;
+  if(slider) slider.disabled = maxOffset<=0;
+
+  const evs = allEvs.slice(state.wtOffset, state.wtOffset + TIMELINE_WINDOW);
+  const label = document.getElementById('wtLabel');
+  if(label){
+    if(!allEvs.length) label.innerHTML = t('sinSesionesCargadas');
+    else{
+      const from = state.wtOffset+1, to = Math.min(allEvs.length, state.wtOffset+TIMELINE_WINDOW);
+      label.innerHTML = tf('sesionesXaYdeZ',{from,to,total:allEvs.length});
+    }
+  }
+  const m = state.wtMetric;
+  const meta = wellnessMetricMeta(m);
+  const tag = document.getElementById('wellnessTrendTag');
+  if(tag) tag.textContent = `${meta.label} · ${t('promedioDiarioPlantel')}`;
+
+  const canvas = document.getElementById('wellnessTrendChart');
+  if(!canvas) return;
+  if(typeof Chart === 'undefined'){
+    canvas.parentElement.innerHTML = `<div style="color:var(--mist);font-family:'IBM Plex Mono';font-size:12px;padding:20px;text-align:center;">${t('noSePudoChartjsResto')}</div>`;
+    return;
+  }
+  const labels = evs.map(e=> e.fecha.slice(5).split('-').reverse().join('/'));
+  const data = evs.map(e=>e[m]);
+  const ctx = canvas.getContext('2d');
+  const cfg = {
+    type:'line',
+    data:{ labels, datasets:[{
+      label: meta.label,
+      data,
+      spanGaps:true,
+      borderColor:'#34D399',
+      backgroundColor:'rgba(52,211,153,.12)',
+      pointBackgroundColor:'#34D399',
+      pointBorderColor:'#34D399',
+      pointRadius:5,
+      pointHoverRadius:7,
+      tension:.3,
+      fill:true,
+      borderWidth:2.2,
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      layout:{ padding:{ top:18 } },
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#1E1E58', borderColor:'#34D399', borderWidth:1, titleColor:'#6EE7B7', bodyColor:'#E7E7FB',
+          callbacks:{
+            label:(ctx)=> ctx.raw===null||ctx.raw===undefined ? t('sinDatosTooltip') : `${meta.label}: ${fmt(ctx.raw, meta.dec)}`
+          }
+        }
+      },
+      scales:{
+        x:{ grid:{display:false}, ticks:{color:'#9797C9', font:{family:'IBM Plex Mono', size:9.5}} },
+        y:{ grace:'12%', grid:{color:'rgba(231,231,251,.06)'}, ticks:{color:'#9797C9', font:{family:'IBM Plex Mono', size:10}} }
+      }
+    },
+    plugins:[matchValueLabelPlugin(evs.map(()=>({tipo:'Partido'})), (v)=>fmt(v, meta.dec))]
+  };
+  if(wellnessTrendChart){ wellnessTrendChart.destroy(); }
+  wellnessTrendChart = new Chart(ctx, cfg); requestAnimationFrame(()=>{ if(wellnessTrendChart) wellnessTrendChart.resize(); });
 }
 
 // ---------- compare (head-to-head) ----------
