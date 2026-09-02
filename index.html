@@ -619,6 +619,15 @@
   <form id="nameForm" class="auth-card">
     <h2 data-i18n="quienEres" class="i18n-text">¿Quién eres?</h2>
     <p data-i18n="quienEresDesc" class="i18n-text">Selecciona tu nombre en la lista del plantel. Una vez elegido, tu cuenta queda vinculada a ese jugador y solo verás tus propios datos.</p>
+    <div id="nameCategoryWrap" style="display:none;margin-bottom:10px;">
+      <label for="nameCategorySelect" data-i18n="tuCategoria" class="i18n-text">Tu categoría</label>
+      <select id="nameCategorySelect">
+        <option value="" data-i18n="todasLasCategorias">Todas las categorías</option>
+        <option value="U16">U16</option>
+        <option value="U18">U18</option>
+        <option value="U20">U20</option>
+      </select>
+    </div>
     <label for="nameSelect" data-i18n="jugador" class="i18n-text">Jugador</label>
     <select id="nameSelect"></select>
     <button class="auth-submit" type="submit" data-i18n="confirmar">Confirmar</button>
@@ -646,7 +655,7 @@
       <button id="uploadBtn" class="upload-btn" style="display:none;" data-i18n="actualizarDatos">⟳ Actualizar datos (subir Excel)</button>
       <span id="categorySelectorWrap" style="display:none;margin-left:6px;">
         <select id="categorySelector" class="upload-btn" style="padding:6px 9px;font-size:11px;cursor:pointer;">
-          <option value="">Todas las categorías</option>
+        <option value="" data-i18n="todasLasCategorias">Todas las categorías</option>
           <option value="U16">U16</option>
           <option value="U18">U18</option>
           <option value="U20">U20</option>
@@ -1437,15 +1446,32 @@ async function claimPlayerName(name){
   const {error}=await supabaseClient.from('player_profiles').update({player_name:name}).eq('user_id',user.id);
   if(error) throw error;
 }
+let nameScreenAllNames = [];
+function renderNameSelectOptions(){
+  const select=document.getElementById('nameSelect');
+  const catSelect = document.getElementById('nameCategorySelect');
+  const cat = catSelect ? catSelect.value : '';
+  const filtered = cat
+    ? nameScreenAllNames.filter(n=> ROSTER_CATEGORIES[normalizeNameKey(n)] === cat)
+    : nameScreenAllNames;
+  select.innerHTML = filtered.length
+    ? `<option value="" selected disabled>— ${t('seleccionaTuNombre')} —</option>` + filtered.map(n=>`<option value="${n}">${n}</option>`).join('')
+    : `<option value="">${t('sinNombresDisponibles')}</option>`;
+}
 function showNamePicker(availableNames){
   document.getElementById('authScreen').style.display='none';
   const screen=document.getElementById('nameScreen');
   screen.style.display='flex';
   ensureAuthBgLogo(screen);
-  const select=document.getElementById('nameSelect');
-  select.innerHTML = availableNames.length
-    ? `<option value="" selected disabled>— ${t('seleccionaTuNombre')} —</option>` + availableNames.map(n=>`<option value="${n}">${n}</option>`).join('')
-    : `<option value="">${t('sinNombresDisponibles')}</option>`;
+  nameScreenAllNames = availableNames;
+  // El selector de categoría solo tiene sentido si el club realmente tiene jugadores con categoría asignada
+  // (clubes de un solo plantel no la necesitan y no la ven).
+  const catWrap = document.getElementById('nameCategoryWrap');
+  const catSelect = document.getElementById('nameCategorySelect');
+  const usaCategoria = Object.keys(ROSTER_CATEGORIES).length > 0;
+  if(catWrap) catWrap.style.display = usaCategoria ? '' : 'none';
+  if(catSelect){ catSelect.value = ''; catSelect.onchange = renderNameSelectOptions; }
+  renderNameSelectOptions();
 }
 // ---------- Área médica: solo lectura, solo 5 paneles relevantes (ACWR, RPE x2, Récords, Monotonía/Strain), solo jugadores de campo ----------
 function applyStaffModeUI(){
@@ -3515,6 +3541,7 @@ const I18N = {
     nombreAgregado:'✅ "{n}" agregado. Ya puede crear su cuenta y elegirlo.', cuentaCreada:'Cuenta creada', seleccionaNombreValido:'Selecciona un nombre válido.',
     contrasenasNoCoinciden:'Las contraseñas no coinciden. Revisa e intenta de nuevo.', seleccionaTuNombre:'Elige tu nombre', sinNombresDisponibles:'— No hay nombres disponibles, contacta al staff —',
     yaRechazadoAntes:'⚠ Este mail o nombre de club ya fue rechazado antes',
+    tuCategoria:'Tu categoría', todasLasCategorias:'Todas las categorías',
     reintentarRechazadoDesc:'¿Te equivocaste de opción? Elige de nuevo y volvemos a mandar la solicitud.', nombreDelClub:'Nombre del club', reintentarSolicitud:'Reintentar solicitud',
     reintentandoSolicitud:'Reintentando…', solicitudReintentada:'✅ Listo, tu solicitud se volvió a enviar correctamente.', ingresaNombreClub:'Ingresa el nombre de tu club para continuar.',
     noSePudoRpePlantel:'No se pudo cargar el RPE del plantel.', noSePudoRpeArqueros:'No se pudo cargar el RPE de arqueros.', noSePudoWellness:'No se pudo cargar el Wellness del plantel.',
@@ -3618,6 +3645,7 @@ const I18N = {
     nombreAgregado:'✅ "{n}" added. They can now create their account and select it.', cuentaCreada:'Account created', seleccionaNombreValido:'Select a valid name.',
     contrasenasNoCoinciden:'Passwords do not match. Check and try again.', seleccionaTuNombre:'Choose your name', sinNombresDisponibles:'— No names available, contact staff —',
     yaRechazadoAntes:'⚠ This email or club name was already rejected before',
+    tuCategoria:'Your category', todasLasCategorias:'All categories',
     reintentarRechazadoDesc:'Picked the wrong option? Choose again and we\'ll resend the request.', nombreDelClub:'Club name', reintentarSolicitud:'Retry request',
     reintentandoSolicitud:'Retrying…', solicitudReintentada:'✅ Done, your request was sent again successfully.', ingresaNombreClub:'Enter your club name to continue.',
     noSePudoRpePlantel:'Could not load squad RPE.', noSePudoRpeArqueros:'Could not load goalkeeper RPE.', noSePudoWellness:'Could not load squad Wellness.',
@@ -3721,6 +3749,7 @@ const I18N = {
     nombreAgregado:'✅ تمت إضافة "{n}". يمكنه الآن إنشاء حسابه واختياره.', cuentaCreada:'تم إنشاء الحساب', seleccionaNombreValido:'اختر اسمًا صالحًا.',
     contrasenasNoCoinciden:'كلمتا المرور غير متطابقتين. راجعهما وحاول مجددًا.', seleccionaTuNombre:'اختر اسمك', sinNombresDisponibles:'— لا توجد أسماء متاحة، تواصل مع الطاقم —',
     yaRechazadoAntes:'⚠ هذا البريد أو اسم النادي تم رفضه من قبل',
+    tuCategoria:'فئتك', todasLasCategorias:'جميع الفئات',
     reintentarRechazadoDesc:'اخترت الخيار الخطأ؟ اختر مجددًا وسنعيد إرسال الطلب.', nombreDelClub:'اسم النادي', reintentarSolicitud:'إعادة المحاولة',
     reintentandoSolicitud:'جارٍ إعادة المحاولة…', solicitudReintentada:'✅ تم، أُرسل طلبك مجددًا بنجاح.', ingresaNombreClub:'أدخل اسم ناديك للمتابعة.',
     noSePudoRpePlantel:'تعذّر تحميل RPE الفريق.', noSePudoRpeArqueros:'تعذّر تحميل RPE حراس المرمى.', noSePudoWellness:'تعذّر تحميل Wellness الفريق.',
