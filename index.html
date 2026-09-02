@@ -2833,14 +2833,16 @@ async function buildWellnessTeamList(fecha){
   const totalMuscularAvg = totalMuscularVals.length ? (totalMuscularVals.reduce((a,b)=>a+b,0)/totalMuscularVals.length) : null;
 
   tableBox.innerHTML = `<table class="mc-table">
-    <thead><tr><th>${t('colJugador')}</th><th>${t('colSueno')}</th><th>${t('colFatiga')}</th><th>${t('colDolorMusc')}</th><th>${t('colEstres')}</th><th>${t('colAnimo')}</th><th>${t('colScore')}</th><th>${t('colTotalMusc')}</th><th>${t('colTqr')}</th><th>${t('colZonaDolor')}</th><th>${t('colObservacion')}</th></tr></thead>
-    <tbody>${allPlayers.map(p=>{
+    <thead><tr><th>#</th><th>${t('colJugador')}</th><th>${t('colSueno')}</th><th>${t('colFatiga')}</th><th>${t('colDolorMusc')}</th><th>${t('colEstres')}</th><th>${t('colAnimo')}</th><th>${t('colScore')}</th><th>${t('colTotalMusc')}</th><th>${t('colTqr')}</th><th>${t('colZonaDolor')}</th><th>${t('colObservacion')}</th></tr></thead>
+    <tbody>${allPlayers.map((p,i)=>{
+      const num = `${i+1<10?'0':''}${i+1}`;
       const r = byPlayer[normalizeNameKey(p)];
-      if(!r) return `<tr><td><b>${p}</b></td><td colspan="10" style="color:var(--mist);">${isToday?t('sinReportarHoy'):t('sinReportarDia')}</td></tr>`;
+      if(!r) return `<tr><td class="mono" style="color:var(--mist);">${num}</td><td><b>${p}</b></td><td colspan="10" style="color:var(--mist);">${isToday?t('sinReportarHoy'):t('sinReportarDia')}</td></tr>`;
       const sc = scoreOf(r);
       const tm = totalMuscularOf(r);
       const zonas = (r.zonas_dolor||[]).map(z=> BODY_ZONE_LABELS[z.zona]||z.zona).join(', ');
       return `<tr>
+        <td class="mono" style="color:var(--mist);">${num}</td>
         <td><b>${p}</b></td>
         <td class="mono">${r.sueno??'—'}</td>
         <td class="mono">${r.fatiga??'—'}</td>
@@ -2855,6 +2857,7 @@ async function buildWellnessTeamList(fecha){
       </tr>`;
     }).join('')}</tbody>
     <tfoot><tr class="mc-total" style="border-top:2px solid var(--line-strong);">
+      <td></td>
       <td><b>${t('promedioDelPlantel')}</b></td>
       <td class="mono">${fmtAvg(avgCol('sueno'))}</td>
       <td class="mono">${fmtAvg(avgCol('fatiga'))}</td>
