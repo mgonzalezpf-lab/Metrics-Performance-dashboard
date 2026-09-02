@@ -5653,7 +5653,10 @@ function buildRpeAcwrChart(){
 const TEAM_METRICS = ['dist','hsr','vel','acc','desa','pl','sprint','sprint_count'];
 // Plugin reutilizable: dibuja el valor numérico SOLO sobre los puntos de partido (no en cada sesión de entreno),
 // para no saturar el gráfico — usado en Evolución del plantel y en el gráfico individual de cada jugador.
-function matchValueLabelPlugin(evsRef, fmtFn){
+function matchValueLabelPlugin(evsRef, fmtFn, opts){
+  const showAll = !!(opts && opts.showAll);
+  const matchColor = (opts && opts.matchColor) || '#B794F6';
+  const normalColor = (opts && opts.normalColor) || '#B794F6';
   return {
     id: 'matchValueLabel',
     afterDatasetsDraw(chart){
@@ -5663,12 +5666,13 @@ function matchValueLabelPlugin(evsRef, fmtFn){
       ctx.save();
       ctx.font = "700 11px 'IBM Plex Mono'";
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#B794F6';
       meta.data.forEach((point, i)=>{
         const e = evsRef[i];
-        if(!e || e.tipo!=='Partido') return;
+        const esPartido = !!(e && e.tipo==='Partido');
+        if(!showAll && !esPartido) return;
         const v = chart.data.datasets[0].data[i];
         if(v===null || v===undefined) return;
+        ctx.fillStyle = esPartido ? matchColor : normalColor;
         ctx.fillText(fmtFn(v), point.x, point.y - 12);
       });
       ctx.restore();
@@ -5943,7 +5947,7 @@ function renderWellnessTrendChart(resetToLatest){
         y:{ grace:'12%', grid:{color:'rgba(231,231,251,.06)'}, ticks:{color:'#9797C9', font:{family:'IBM Plex Mono', size:10}} }
       }
     },
-    plugins:[matchValueLabelPlugin(evs.map(()=>({tipo:'Partido'})), (v)=>fmt(v, meta.dec))]
+    plugins:[matchValueLabelPlugin(evs.map(e=>({tipo: e.esPartido ? 'Partido' : 'Entreno'})), (v)=>fmt(v, meta.dec), {showAll:true, matchColor:'#B794F6', normalColor:'#6EE7B7'})]
   };
   if(wellnessTrendChart){ wellnessTrendChart.destroy(); }
   wellnessTrendChart = new Chart(ctx, cfg); requestAnimationFrame(()=>{ if(wellnessTrendChart) wellnessTrendChart.resize(); });
