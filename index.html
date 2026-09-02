@@ -708,6 +708,16 @@
     </div>
   </div>
 
+  <div id="pendingRequestsPanel" class="panel" style="display:none;margin-bottom:18px;border-color:var(--gold);">
+    <div class="panel-head">
+      <h3>🔔 Solicitudes pendientes</h3>
+      <span class="tag" id="pendingRequestsCount">—</span>
+    </div>
+    <div class="rec-scroll">
+      <div id="pendingRequestsList"></div>
+    </div>
+  </div>
+
   <div class="team-only" id="adminTabBar" style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;">
     <button class="tab-btn active" id="tabBtnJugadores" onclick="switchAdminTab('jugadores')" style="padding:9px 18px;border-radius:10px;border:1px solid var(--gold);background:var(--gold);color:var(--pitch-950);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabJugadoresCampo">⚽ Jugadores de Campo</button>
     <button class="tab-btn" id="tabBtnArqueros" onclick="switchAdminTab('arqueros')" style="padding:9px 18px;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--mist);font:700 13px 'IBM Plex Mono';cursor:pointer;" data-i18n="tabArqueros">🧤 Arqueros</button>
@@ -994,15 +1004,6 @@
   </div>
 
   <div id="fieldContentWrap">
-  <div id="pendingRequestsPanel" class="panel" style="display:none;margin-bottom:18px;border-color:var(--gold);">
-    <div class="panel-head">
-      <h3>🔔 Solicitudes pendientes</h3>
-      <span class="tag" id="pendingRequestsCount">—</span>
-    </div>
-    <div class="rec-scroll">
-      <div id="pendingRequestsList"></div>
-    </div>
-  </div>
   <div class="kpis team-only" id="kpiStrip"></div>
 
   <div id="evolMicrocicloGroup" style="position:relative;">
