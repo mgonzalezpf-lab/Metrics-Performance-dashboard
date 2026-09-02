@@ -4312,7 +4312,7 @@ async function buildClubesList(){
   });
 }
 async function switchToClub(clubName){
-  if(clubName === CURRENT_CLUB){ switchAdminTab('jugadores'); return; }
+  if(clubName === CURRENT_CLUB){ switchAdminTab(CLUB_FEATURES.gps ? 'jugadores' : (CLUB_FEATURES.rpe_wellness ? 'wellness' : 'clubes')); return; }
   CURRENT_CLUB = clubName;
   try{
     await loadRemoteData();
@@ -4340,7 +4340,9 @@ async function switchToClub(clubName){
   buildPendingRequestsPanel();
   const subEl = document.querySelector('.top .brand-sub');
   if(subEl) subEl.textContent = `Viendo: ${CURRENT_CLUB} (modo Owner)`;
-  switchAdminTab('jugadores');
+  // Al club que corresponda según lo que tenga habilitado — antes esto forzaba siempre 'jugadores',
+  // dejando pegado en una pestaña vacía a los clubes sin GPS (solo RPE+Wellness).
+  switchAdminTab(CLUB_FEATURES.gps ? 'jugadores' : (CLUB_FEATURES.rpe_wellness ? 'wellness' : 'clubes'));
 }
 
 // ---------- Arqueros: tabla admin con sus 7 métricas propias ----------
