@@ -3478,6 +3478,7 @@ function buildEfficiencyDetail(playerName){
   const canvas = document.getElementById('eficienciaDetailChart');
   if(!panel || !canvas) return;
   panel.style.display = '';
+  requestAnimationFrame(()=>{ panel.scrollIntoView({behavior:'smooth', block:'start'}); });
   if(titleEl) titleEl.textContent = `📈 ${playerName}`;
   if(tagEl) tagEl.textContent = t('eficienciaVsBaseline');
   const sessions = computeEfficiencySessions(playerName);
@@ -3525,8 +3526,14 @@ function buildEfficiencyDetail(playerName){
     },
     plugins:[matchValueLabelPlugin(sessions.map(()=>({tipo:'Partido'})), (v)=>fmt(v,2), {showAll:true, matchColor:'#FBBF24', normalColor:'#FBBF24'})]
   };
-  if(efficiencyDetailChart){ efficiencyDetailChart.destroy(); }
-  efficiencyDetailChart = new Chart(ctx, cfg); requestAnimationFrame(()=>{ if(efficiencyDetailChart) efficiencyDetailChart.resize(); });
+  if(efficiencyDetailChart){ efficiencyDetailChart.destroy(); efficiencyDetailChart=null; }
+  try{
+    efficiencyDetailChart = new Chart(ctx, cfg);
+    requestAnimationFrame(()=>{ if(efficiencyDetailChart) efficiencyDetailChart.resize(); });
+  }catch(e){
+    console.error('buildEfficiencyDetail: error creando el gráfico', e);
+    canvas.parentElement.innerHTML = `<div style="color:var(--bad);font-family:'IBM Plex Mono';font-size:12px;padding:20px;text-align:center;">Error al dibujar el gráfico: ${e.message||e}</div>`;
+  }
 }
 
 let TEAM_SQUAD_MAX = null, TEAM_SQUAD_AVG = null;
@@ -4638,7 +4645,7 @@ async function buildClubesList(){
   });
 }
 async function switchToClub(clubName){
-  if(clubName === CURRENT_CLUB){ switchAdminTab(CLUB_FEATURES.gps ? 'jugadores' : (CLUB_FEATURES.rpe_wellness ? 'wellness' : 'clubes')); return; }
+  if(clubName === CURRENT_CLUB){ switchAdminTab(typeof currentAdminTab!=='undefined' ? currentAdminTab : (CLUB_FEATURES.gps ? 'jugadores' : (CLUB_FEATURES.rpe_wellness ? 'wellness' : 'clubes'))); return; }
   CURRENT_CLUB = clubName;
   try{
     await loadRemoteData();
@@ -4672,9 +4679,10 @@ async function switchToClub(clubName){
   buildPendingRequestsPanel();
   const subEl = document.querySelector('.top .brand-sub');
   if(subEl) subEl.textContent = `Viendo: ${CURRENT_CLUB} (modo Owner)`;
-  // Al club que corresponda según lo que tenga habilitado — antes esto forzaba siempre 'jugadores',
-  // dejando pegado en una pestaña vacía a los clubes sin GPS (solo RPE+Wellness).
-  switchAdminTab(CLUB_FEATURES.gps ? 'jugadores' : (CLUB_FEATURES.rpe_wellness ? 'wellness' : 'clubes'));
+  // Se queda en la MISMA pestaña en la que estabas si sigue siendo válida para el club nuevo
+  // (applyClubFeaturesToTabs ya te redirige si dejó de estarlo) — y de paso refresca su contenido,
+  // que hasta acá seguía mostrando los datos del club anterior.
+  switchAdminTab(typeof currentAdminTab!=='undefined' ? currentAdminTab : (CLUB_FEATURES.gps ? 'jugadores' : (CLUB_FEATURES.rpe_wellness ? 'wellness' : 'clubes')));
 }
 
 // ---------- Arqueros: tabla admin con sus 7 métricas propias ----------
