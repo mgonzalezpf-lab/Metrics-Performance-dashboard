@@ -4652,6 +4652,12 @@ async function switchToClub(clubName){
   CLUB_FEATURES = await loadClubFeatures(CURRENT_CLUB);
   await loadGkData();
   deriveAll(ACTIVE_EVENTS);
+  // RPE_REPORTS_CACHE es global y queda del club anterior — si no se limpia acá, Eficiencia (y otras vistas
+  // que lo reusan sin volver a pedirlo) podrían mezclar el RPE de un club con el GPS de otro.
+  RPE_REPORTS_CACHE = [];
+  GK_RPE_REPORTS_CACHE = [];
+  const efDetailPanel = document.getElementById('eficienciaDetailPanel');
+  if(efDetailPanel) efDetailPanel.style.display = 'none';
   renderAll();
   setupPreviewBar();
   setupGkPreviewBar();
