@@ -812,7 +812,7 @@
     <div class="panel team-only" style="margin-bottom:18px;">
       <div class="panel-head">
         <h3>🧤 RPE de arqueros</h3>
-        <span class="tag">percepción de esfuerzo reportada por cada arquero</span>
+        <span class="tag" id="gkRpePlantelTag" data-i18n="gkPercepcionEsfuerzo">percepción de esfuerzo reportada por cada arquero</span>
       </div>
       <div class="acwr-body" id="gkRpeTeamList"></div>
     </div>
@@ -990,7 +990,7 @@
     <div class="panel team-only" style="margin-bottom:18px;">
       <div class="panel-head">
         <h3 data-i18n="rpePlantel">RPE del plantel</h3>
-        <span class="tag" data-i18n="rpePlantelTag">percepción de esfuerzo reportada por cada jugador</span>
+        <span class="tag" id="rpePlantelTag" data-i18n="rpePlantelTag">percepción de esfuerzo reportada por cada jugador</span>
       </div>
       <div class="acwr-body" id="rpeTeamList"></div>
     </div>
@@ -2700,13 +2700,19 @@ async function buildRpeTeamList(){
   const byPlayerRpe = {};
   RPE_REPORTS_CACHE.forEach(r=>{ (byPlayerRpe[normalizeNameKey(r.player_name)] = byPlayerRpe[normalizeNameKey(r.player_name)]||[]).push(r); });
   const today = todayISO();
+  // Usa la MISMA fecha de referencia que la tabla de abajo (el selector de fecha), no siempre "hoy" —
+  // antes calculaba acá con hoy fijo, y la tabla con la fecha elegida, así que si alguien miraba un día
+  // anterior, los números de la lista y los de la tabla no coincidían entre sí.
+  const refDate = document.getElementById('rpeDatePicker')?.value || today;
+  const tagEl = document.getElementById('rpePlantelTag');
+  if(tagEl) tagEl.textContent = `${t('rpePlantelTag')} ${tf('ratioAlDia', {d: refDate.split('-').reverse().join('/')})}`;
   const order = {high:0, caution:1, optimal:2, low:3, insuf:4};
   // Plantel completo: jugadores con datos GPS + los que se agregaron manualmente (todavía sin GPS cargado)
   const rosterExtra = await getRosterExtraNames();
   const allPlayers = mergePlayerNames(players, rosterExtra).filter(p=>!isGoalkeeper(p));
   const rows = allPlayers.map(p=>{
     const reportsForPlayer = byPlayerRpe[normalizeNameKey(p)] || [];
-    const {ratio} = computeRpeACWR(reportsForPlayer, today);
+    const {ratio} = computeRpeACWR(reportsForPlayer, refDate);
     const st = rpeAcwrStatus(ratio);
     return {p, ratio, ...st};
   }).sort((a,b)=> (order[a.status]-order[b.status]) || ((b.ratio||0)-(a.ratio||0)));
@@ -2734,6 +2740,10 @@ async function buildGkRpeTeamList(){
   const byPlayerRpe = {};
   GK_RPE_REPORTS_CACHE.forEach(r=>{ (byPlayerRpe[normalizeNameKey(r.player_name)] = byPlayerRpe[normalizeNameKey(r.player_name)]||[]).push(r); });
   const today = todayISO();
+  // Misma fecha de referencia que la tabla de abajo (mismo motivo que en RPE de jugadores de campo).
+  const refDate = document.getElementById('gkRpeDatePicker')?.value || today;
+  const gkTagEl = document.getElementById('gkRpePlantelTag');
+  if(gkTagEl) gkTagEl.textContent = `${t('gkPercepcionEsfuerzo')} ${tf('ratioAlDia', {d: refDate.split('-').reverse().join('/')})}`;
   const order = {high:0, caution:1, optimal:2, low:3, insuf:4};
   if(!gkPlayers.length){
     box.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">${t('gkSinArqueros')}</div>`;
@@ -2741,7 +2751,7 @@ async function buildGkRpeTeamList(){
   }
   const rows = gkPlayers.map(p=>{
     const reportsForPlayer = byPlayerRpe[normalizeNameKey(p)] || [];
-    const {ratio} = computeRpeACWR(reportsForPlayer, today);
+    const {ratio} = computeRpeACWR(reportsForPlayer, refDate);
     const st = rpeAcwrStatus(ratio);
     return {p, ratio, ...st};
   }).sort((a,b)=> (order[a.status]-order[b.status]) || ((b.ratio||0)-(a.ratio||0)));
@@ -3541,7 +3551,7 @@ const I18N = {
     nombreAgregado:'✅ "{n}" agregado. Ya puede crear su cuenta y elegirlo.', cuentaCreada:'Cuenta creada', seleccionaNombreValido:'Selecciona un nombre válido.',
     contrasenasNoCoinciden:'Las contraseñas no coinciden. Revisa e intenta de nuevo.', seleccionaTuNombre:'Elige tu nombre', sinNombresDisponibles:'— No hay nombres disponibles, contacta al staff —',
     yaRechazadoAntes:'⚠ Este mail o nombre de club ya fue rechazado antes',
-    tuCategoria:'Tu categoría', todasLasCategorias:'Todas las categorías',
+    tuCategoria:'Tu categoría', todasLasCategorias:'Todas las categorías', ratioAlDia:'· ratio al {d}', gkPercepcionEsfuerzo:'percepción de esfuerzo reportada por cada arquero',
     reintentarRechazadoDesc:'¿Te equivocaste de opción? Elige de nuevo y volvemos a mandar la solicitud.', nombreDelClub:'Nombre del club', reintentarSolicitud:'Reintentar solicitud',
     reintentandoSolicitud:'Reintentando…', solicitudReintentada:'✅ Listo, tu solicitud se volvió a enviar correctamente.', ingresaNombreClub:'Ingresa el nombre de tu club para continuar.',
     noSePudoRpePlantel:'No se pudo cargar el RPE del plantel.', noSePudoRpeArqueros:'No se pudo cargar el RPE de arqueros.', noSePudoWellness:'No se pudo cargar el Wellness del plantel.',
@@ -3645,7 +3655,7 @@ const I18N = {
     nombreAgregado:'✅ "{n}" added. They can now create their account and select it.', cuentaCreada:'Account created', seleccionaNombreValido:'Select a valid name.',
     contrasenasNoCoinciden:'Passwords do not match. Check and try again.', seleccionaTuNombre:'Choose your name', sinNombresDisponibles:'— No names available, contact staff —',
     yaRechazadoAntes:'⚠ This email or club name was already rejected before',
-    tuCategoria:'Your category', todasLasCategorias:'All categories',
+    tuCategoria:'Your category', todasLasCategorias:'All categories', ratioAlDia:'· ratio as of {d}', gkPercepcionEsfuerzo:'perceived effort reported by each goalkeeper',
     reintentarRechazadoDesc:'Picked the wrong option? Choose again and we\'ll resend the request.', nombreDelClub:'Club name', reintentarSolicitud:'Retry request',
     reintentandoSolicitud:'Retrying…', solicitudReintentada:'✅ Done, your request was sent again successfully.', ingresaNombreClub:'Enter your club name to continue.',
     noSePudoRpePlantel:'Could not load squad RPE.', noSePudoRpeArqueros:'Could not load goalkeeper RPE.', noSePudoWellness:'Could not load squad Wellness.',
@@ -3749,7 +3759,7 @@ const I18N = {
     nombreAgregado:'✅ تمت إضافة "{n}". يمكنه الآن إنشاء حسابه واختياره.', cuentaCreada:'تم إنشاء الحساب', seleccionaNombreValido:'اختر اسمًا صالحًا.',
     contrasenasNoCoinciden:'كلمتا المرور غير متطابقتين. راجعهما وحاول مجددًا.', seleccionaTuNombre:'اختر اسمك', sinNombresDisponibles:'— لا توجد أسماء متاحة، تواصل مع الطاقم —',
     yaRechazadoAntes:'⚠ هذا البريد أو اسم النادي تم رفضه من قبل',
-    tuCategoria:'فئتك', todasLasCategorias:'جميع الفئات',
+    tuCategoria:'فئتك', todasLasCategorias:'جميع الفئات', ratioAlDia:'· النسبة بتاريخ {d}', gkPercepcionEsfuerzo:'شدة الجهد المُبلَّغ عنها من كل حارس مرمى',
     reintentarRechazadoDesc:'اخترت الخيار الخطأ؟ اختر مجددًا وسنعيد إرسال الطلب.', nombreDelClub:'اسم النادي', reintentarSolicitud:'إعادة المحاولة',
     reintentandoSolicitud:'جارٍ إعادة المحاولة…', solicitudReintentada:'✅ تم، أُرسل طلبك مجددًا بنجاح.', ingresaNombreClub:'أدخل اسم ناديك للمتابعة.',
     noSePudoRpePlantel:'تعذّر تحميل RPE الفريق.', noSePudoRpeArqueros:'تعذّر تحميل RPE حراس المرمى.', noSePudoWellness:'تعذّر تحميل Wellness الفريق.',
