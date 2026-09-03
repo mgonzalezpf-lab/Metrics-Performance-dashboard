@@ -2752,7 +2752,12 @@ async function buildRpeTeamList(){
   const box = document.getElementById('rpeTeamList');
   if(!box) return;
   const {data,error} = await supabaseClient.from('rpe_reports').select('player_name,fecha,rpe,minutos,updated_at').eq('club',CURRENT_CLUB).order('fecha',{ascending:false});
-  if(error){ box.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">${t('noSePudoRpePlantel')}</div>`; return; }
+  if(error){
+    box.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">${t('noSePudoRpePlantel')}</div>`;
+    const tagElErr = document.getElementById('rpePlantelTag');
+    if(tagElErr) tagElErr.textContent = t('rpePlantelTag');
+    return;
+  }
   RPE_REPORTS_CACHE = data || [];
   buildRpeAcwrChart();
   const byPlayerRpe = {};
@@ -2793,7 +2798,12 @@ async function buildGkRpeTeamList(){
   const box = document.getElementById('gkRpeTeamList');
   if(!box) return;
   const {data,error} = await supabaseClient.from('rpe_reports').select('player_name,fecha,rpe,minutos,updated_at').eq('club',CURRENT_CLUB).order('fecha',{ascending:false});
-  if(error){ box.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">${t('noSePudoRpeArqueros')}</div>`; return; }
+  if(error){
+    box.innerHTML = `<div style="padding:14px 0;color:var(--mist);font-size:12.5px;">${t('noSePudoRpeArqueros')}</div>`;
+    const gkTagElErr = document.getElementById('gkRpePlantelTag');
+    if(gkTagElErr) gkTagElErr.textContent = t('gkPercepcionEsfuerzo');
+    return;
+  }
   GK_RPE_REPORTS_CACHE = (data || []).filter(r => isGoalkeeper(r.player_name));
   const byPlayerRpe = {};
   GK_RPE_REPORTS_CACHE.forEach(r=>{ (byPlayerRpe[normalizeNameKey(r.player_name)] = byPlayerRpe[normalizeNameKey(r.player_name)]||[]).push(r); });
@@ -4686,6 +4696,11 @@ async function buildClubesList(){
 async function switchToClub(clubName){
   if(clubName === CURRENT_CLUB){ switchAdminTab(typeof currentAdminTab!=='undefined' ? currentAdminTab : (CLUB_FEATURES.gps ? 'jugadores' : (CLUB_FEATURES.rpe_wellness ? 'wellness' : 'clubes'))); return; }
   CURRENT_CLUB = clubName;
+  // Las categorías son propias de cada club — si no se resetean acá, un club nuevo puede heredar
+  // la categoría (ej. "U20") o los datos de categoría de jugadores con el mismo nombre del club anterior,
+  // dejando el dashboard vacío sin razón aparente (todo queda filtrado a una categoría que no existe acá).
+  CURRENT_CATEGORY = null;
+  ROSTER_CATEGORIES = {};
   try{
     await loadRemoteData();
   }catch(error){
@@ -5070,6 +5085,10 @@ function buildWeeklyTarget(){
   const {cycles, byDate, lastCycleWasClosed} = computeMicrocycles(categoryFilteredEvents());
   if(!cycles.length){
     body.innerHTML = `<div style="color:var(--mist);font-size:12px;">${t('sinDatosSuficientes')}</div>`;
+    // Si no, este panel se quedaba con la recomendación/alerta del club o categoría anterior — mostrando
+    // a la vez "sin datos" (acá) y un texto detallado de otro club (ahí abajo). Pasaba al cambiar de club.
+    const recBoxEmpty = document.getElementById('weeklyTargetRecommendation');
+    if(recBoxEmpty) recBoxEmpty.innerHTML = '';
     return;
   }
   // Ciclos cerrados: si el último bloque quedó abierto (sin partido todavía), no cuenta para las cuentas.
@@ -5672,6 +5691,13 @@ function buildWeeklyLoadChart(){
     if(weeklyLoadChart){ weeklyLoadChart.destroy(); weeklyLoadChart=null; }
     const tag = document.getElementById('weeklyLoadTag');
     if(tag) tag.textContent = t('sinDatosCargados');
+    // Si no, este label se quedaba con el "X días cargados" del club/categoría anterior — contradiciendo
+    // al tag de arriba, que sí decía "sin datos". Pasaba sobre todo al cambiar de club como owner.
+    const wlLabelElEmpty = document.getElementById('wlLabel');
+    if(wlLabelElEmpty) wlLabelElEmpty.innerHTML = '';
+    const scrollBoxEmpty = document.getElementById('weeklyChartScrollBox');
+    const innerEmpty = document.getElementById('weeklyChartInner');
+    if(innerEmpty && scrollBoxEmpty) innerEmpty.style.width = scrollBoxEmpty.clientWidth + 'px';
     return;
   }
 
@@ -5807,6 +5833,11 @@ function buildRpeAcwrChart(){
     if(rpeAcwrChartInstance){ rpeAcwrChartInstance.destroy(); rpeAcwrChartInstance=null; }
     const tag2 = document.getElementById('rpeAcwrTag');
     if(tag2) tag2.textContent = t('sinReportesRpe');
+    const labelElEmpty = document.getElementById('rpeAcwrLabel');
+    if(labelElEmpty) labelElEmpty.innerHTML = '';
+    const scrollBoxEmpty = document.getElementById('rpeAcwrScrollBox');
+    const innerEmpty = document.getElementById('rpeAcwrInner');
+    if(innerEmpty && scrollBoxEmpty) innerEmpty.style.width = scrollBoxEmpty.clientWidth + 'px';
     return;
   }
 
