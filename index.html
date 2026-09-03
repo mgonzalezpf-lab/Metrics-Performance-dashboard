@@ -2918,6 +2918,8 @@ async function saveAllGkRpeMinutes(){
     failed.forEach(f=>console.warn(f.error));
     alert(`Se guardaron ${updates.length-failed.length} de ${updates.length} arqueros. Hubo ${failed.length} error(es), revisa la consola.`);
   }
+  const active = document.activeElement;
+  if(active && active.classList && active.classList.contains('gk-rpe-min-input')){ btn.disabled = false; return; }
   await buildGkRpeTeamList();
 }
 // ---------- Wellness: vista de staff (promedio del plantel, tabla y alertas de dolor) ----------
@@ -3408,6 +3410,10 @@ async function saveAllRpeMinutes(){
     failed.forEach(f=>console.warn(f.error));
     alert(`Se guardaron ${updates.length-failed.length} de ${updates.length} jugadores. Hubo ${failed.length} error(es), revisa la consola.`);
   }
+  // Si mientras se guardaba ya pasaste a escribir en otra casilla, no reconstruimos ahora
+  // (te borraría lo que estás tipeando) — se actualiza cuando esa casilla también se guarde.
+  const active = document.activeElement;
+  if(active && active.classList && active.classList.contains('rpe-min-input')){ btn.disabled = false; return; }
   await buildRpeTeamList(); // re-renderiza la tabla (esto ya vuelve a habilitar el botón según el horario)
 }
 
