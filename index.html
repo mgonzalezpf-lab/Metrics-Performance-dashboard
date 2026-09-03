@@ -2106,6 +2106,13 @@ function setupGkPreviewBar(){
   document.getElementById('gkPreviewStartBtn').onclick = ()=>{ startPlayerPreview(select.value); };
 }
 function resizeAllCharts(){
+  // Si hay un modal abierto (ej. el de confirmar tipo/nombre de entrenamiento al subir el CSV), no tiene
+  // sentido reconstruir los ~8 gráficos del dashboard de atrás cada vez que el teclado del celular
+  // dispara un resize — eso es trabajo pesado e innecesario en ese momento, y causaba un destello/parpadeo
+  // visible mientras se tipeaba. Se salta acá; los gráficos igual se refrescan solos al cerrar el modal
+  // (las pestañas ya se reconstruyen normalmente cuando se vuelve a entrar a ellas).
+  const csvModalOpen = document.getElementById('csvImportModal')?.style.display === 'flex';
+  if(csvModalOpen) return;
   const doRebuild = ()=>{
     try{
       if(timelineChart){ timelineChart.destroy(); timelineChart=null; }
@@ -6888,7 +6895,7 @@ async function init(){
   let resizeDebounce;
   window.addEventListener('resize', ()=>{
     clearTimeout(resizeDebounce);
-    resizeDebounce = setTimeout(resizeAllCharts, 200);
+    resizeDebounce = setTimeout(resizeAllCharts, 350);
   });
 }
 init();
