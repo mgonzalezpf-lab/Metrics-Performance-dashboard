@@ -1498,6 +1498,10 @@ function showNamePicker(availableNames){
 }
 // ---------- Área médica: solo lectura, solo 5 paneles relevantes (ACWR, RPE x2, Récords, Monotonía/Strain), solo jugadores de campo ----------
 function applyStaffModeUI(){
+  // Corre esto primero: además de mover el grupo de paneles de RPE al lugar que corresponde según si
+  // el club tiene GPS o no, ya decide sola a qué pestaña mandar si "Jugadores" no aplica para este club
+  // (antes esto no se llamaba acá, así que un club sin GPS igual mostraba la vista de Jugadores vacía).
+  applyClubFeaturesToTabs();
   document.querySelectorAll('.team-only').forEach(el=>{
     el.style.display = el.classList.contains('staff-ok') ? '' : 'none';
   });
@@ -1508,13 +1512,29 @@ function applyStaffModeUI(){
   const goalkeepersView = document.getElementById('goalkeepersView');
   if(goalkeepersView) goalkeepersView.style.display = 'none';
   const fieldWrap = document.getElementById('fieldContentWrap');
-  if(fieldWrap) fieldWrap.style.display = ''; // los paneles staff-ok viven adentro, tiene que estar visible
   const controlCargaView = document.getElementById('controlCargaView');
-  if(controlCargaView) controlCargaView.style.display = ''; // ACWR y Monotonía (staff-ok) ahora viven acá
+  const wellnessView = document.getElementById('wellnessView');
+  const rpeView = document.getElementById('rpeView');
+  // Un club sin GPS no tiene nada que mostrar en Jugadores/Control de Carga (dependen del GPS) — ahí
+  // el staff tiene que ver Wellness/RPE en su lugar, que es donde vive ese contenido para ese tipo de club.
+  if(CLUB_FEATURES.gps){
+    if(fieldWrap) fieldWrap.style.display = ''; // los paneles staff-ok viven adentro, tiene que estar visible
+    if(controlCargaView) controlCargaView.style.display = ''; // ACWR y Monotonía (staff-ok) viven acá cuando hay GPS
+    if(wellnessView) wellnessView.style.display = 'none';
+    if(rpeView) rpeView.style.display = 'none';
+  } else {
+    if(fieldWrap) fieldWrap.style.display = 'none';
+    if(controlCargaView) controlCargaView.style.display = 'none';
+    if(wellnessView) wellnessView.style.display = CLUB_FEATURES.rpe_wellness ? '' : 'none';
+    if(rpeView) rpeView.style.display = CLUB_FEATURES.rpe_wellness ? '' : 'none';
+    if(CLUB_FEATURES.rpe_wellness) buildWellnessTeamList();
+  }
   const partidosView = document.getElementById('partidosView');
   if(partidosView) partidosView.style.display = 'none'; // Staff no ve Comparativo de partidos
   const clubesView = document.getElementById('clubesView');
   if(clubesView) clubesView.style.display = 'none'; // esa vista es exclusiva del owner
+  const eficienciaView = document.getElementById('eficienciaView');
+  if(eficienciaView) eficienciaView.style.display = 'none'; // Staff no tiene esta pestaña por ahora
   const previewBar = document.getElementById('previewBar');
   if(previewBar) previewBar.style.display = 'none';
   const gkPlayerView = document.getElementById('gkPlayerView');
