@@ -2881,6 +2881,8 @@ function buildGkRpeLoadTable(dateStr){
         .eq('club',CURRENT_CLUB).eq('player_name',input.dataset.player).eq('fecha',input.dataset.fecha);
       input.disabled = false;
       if(error){ console.warn(error); return; }
+      const active = document.activeElement;
+      if(active && active.classList && active.classList.contains('gk-rpe-min-input') && active !== input) return;
       await buildGkRpeTeamList();
     };
     input.addEventListener('blur', save);
@@ -3366,6 +3368,10 @@ async function buildRpeLoadTable(dateStr){
         .eq('club',CURRENT_CLUB).eq('player_name',input.dataset.player).eq('fecha',input.dataset.fecha);
       input.disabled = false;
       if(error){ console.warn(error); return; }
+      // Si ya pasaste a escribir en OTRA casilla de minutos, no reconstruimos la tabla ahora —
+      // eso te borraría lo que estás tipeando ahí. Se actualiza recién cuando esa otra casilla también se guarde.
+      const active = document.activeElement;
+      if(active && active.classList && active.classList.contains('rpe-min-input') && active !== input) return;
       await buildRpeTeamList();
     };
     input.addEventListener('blur', save);
