@@ -4414,6 +4414,10 @@ function buildMicrocycleTable(){
     <thead><tr><th>${t('colFecha')}</th><th>${t('colMD')}</th><th>${t('colSesion')}</th><th>${t('colDistProm')}</th><th>${t('colHsrProm')}</th><th>${t('colPlProm')}</th><th>${t('colIntensidad')}</th></tr></thead>
     <tbody>${bodyHtml}</tbody>
   </table>`;
+  // Arranca mostrando lo más reciente (abajo del todo) en vez del inicio del historial — mismo criterio
+  // que ya usan los gráficos de ACWR con su scroll horizontal.
+  const scrollBox = box.closest('.rec-scroll');
+  requestAnimationFrame(()=>{ if(scrollBox) scrollBox.scrollTop = scrollBox.scrollHeight; });
 }
 
 // ---------- Carga semanal del plantel (microciclo) ----------
