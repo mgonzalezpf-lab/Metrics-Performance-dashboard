@@ -1527,6 +1527,18 @@ function applyStaffModeUI(){
     if(controlCargaView) controlCargaView.style.display = ''; // ACWR y Monotonía (staff-ok) viven acá cuando hay GPS
     if(wellnessView) wellnessView.style.display = 'none';
     if(rpeView) rpeView.style.display = 'none';
+    // Mismo ajuste que en switchAdminTab: estos gráficos se armaron mientras este panel estaba oculto,
+    // así que hay que reintentar el scroll al día más reciente ahora que ya es visible de verdad.
+    requestAnimationFrame(()=>{
+      const wb = document.getElementById('weeklyChartScrollBox');
+      if(wb) wb.scrollLeft = wb.scrollWidth;
+      const rb = document.getElementById('rpeAcwrScrollBox');
+      if(rb) rb.scrollLeft = rb.scrollWidth;
+      setTimeout(()=>{
+        if(wb) wb.scrollLeft = wb.scrollWidth;
+        if(rb) rb.scrollLeft = rb.scrollWidth;
+      }, 60);
+    });
   } else {
     if(fieldWrap) fieldWrap.style.display = 'none';
     if(controlCargaView) controlCargaView.style.display = 'none';
@@ -4555,6 +4567,22 @@ function switchAdminTab(tab){
   if(selected==='clubes' && myProfile && myProfile.role==='owner'){ buildPendingClubsPanel(); buildClubesList(); }
   if(selected==='wellness' && !(myProfile && myProfile.role==='player')){ buildWellnessTeamList(); buildWellnessMetricTabs(); buildWellnessTrendChart(true); }
   if(selected==='eficiencia' && !(myProfile && myProfile.role==='player')){ buildEfficiencyRanking(); }
+  if(selected==='carga'){
+    // Estos 2 gráficos (ACWR diario y RPE) se construyen una sola vez al cargar la página, mientras esta
+    // pestaña todavía estaba oculta — con el panel oculto, el navegador no puede calcular su ancho real,
+    // así que el scroll hacia el día más reciente no tenía efecto en ese momento. Al entrar acá, ya con
+    // el panel visible y el ancho ya calculado de verdad, se reintenta.
+    requestAnimationFrame(()=>{
+      const wb = document.getElementById('weeklyChartScrollBox');
+      if(wb) wb.scrollLeft = wb.scrollWidth;
+      const rb = document.getElementById('rpeAcwrScrollBox');
+      if(rb) rb.scrollLeft = rb.scrollWidth;
+      setTimeout(()=>{
+        if(wb) wb.scrollLeft = wb.scrollWidth;
+        if(rb) rb.scrollLeft = rb.scrollWidth;
+      }, 60);
+    });
+  }
 }
 
 // ---------- Owner: solicitudes de nuevos clubes ----------
