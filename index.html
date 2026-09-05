@@ -5825,8 +5825,12 @@ function buildWeeklyLoadChart(){
   weeklyLoadChart = new Chart(ctx, cfg);
   requestAnimationFrame(()=>{
     if(weeklyLoadChart) weeklyLoadChart.resize();
-    // arranca mostrando los días más recientes (extremo derecho), como antes hacía "resetToLatest"
+    // arranca mostrando los días más recientes (extremo derecho), como antes hacía "resetToLatest".
+    // Un solo requestAnimationFrame a veces no alcanza a esperar a que termine de asentarse el ancho
+    // real del contenedor (sobre todo la primera vez que se abre la pestaña) — se agrega un pequeño
+    // margen extra con setTimeout para que el scroll se aplique después de que el layout ya esté firme.
     if(scrollBox) scrollBox.scrollLeft = scrollBox.scrollWidth;
+    setTimeout(()=>{ if(scrollBox) scrollBox.scrollLeft = scrollBox.scrollWidth; }, 60);
   });
   const tag = document.getElementById('weeklyLoadTag');
   if(tag) tag.textContent = `${t('promedioDelPlantel')} · ${tf('diasCargados',{n:allRatios.length})}`;
@@ -5957,6 +5961,7 @@ function buildRpeAcwrChart(){
   requestAnimationFrame(()=>{
     if(rpeAcwrChartInstance) rpeAcwrChartInstance.resize();
     if(scrollBox) scrollBox.scrollLeft = scrollBox.scrollWidth;
+    setTimeout(()=>{ if(scrollBox) scrollBox.scrollLeft = scrollBox.scrollWidth; }, 60);
   });
   const tag2 = document.getElementById('rpeAcwrTag');
   if(tag2) tag2.textContent = `${t('promedioPlantelRpe')} · ${tf('diasCargados',{n:allRatios.length})}`;
