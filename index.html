@@ -1404,9 +1404,10 @@ async function retryAfterRejection(){
     if(clubError) throw clubError;
     const clubExists = !!existingClub;
     const finalClub = clubExists ? existingClub : clubName;
-    // Si el club todavía no existe en la plataforma, sigue necesitando aprobación del OWNER como club nuevo —
-    // eso no cambia. Lo que se corrige acá es el caso típico: el club YA existe y solo eligieron mal el rol.
-    const finalRole = clubExists ? selectedRole : 'pending_club';
+    // Este formulario de reintento no ofrece la opción "Administrador" — solo jugador/staff/entrenador de
+    // arqueros. Así que si el club sigue sin encontrarse, NUNCA lo mandamos como solicitud de admin;
+    // se queda en "club no encontrado" para que pueda corregir el nombre de nuevo, sin límite de intentos.
+    const finalRole = clubExists ? selectedRole : 'club_not_found';
     const {error} = await supabaseClient.from('player_profiles').update({club:finalClub, role:finalRole}).eq('user_id', user.id);
     if(error) throw error;
     status.textContent = t('solicitudReintentada');
@@ -1447,9 +1448,13 @@ async function ensureProfile(){
   const finalClub = clubExists ? existingClub : clubName;
   // Un club nuevo JAMÁS se activa automáticamente. El primer solicitante queda pendiente
   // hasta que el OWNER lo apruebe y recién entonces pasa a admin.
+  // Importante: si el club NO existe y la persona NO eligió "Administrador de un club nuevo" a propósito
+  // (o sea, quería ser jugador/staff/entrenador de arqueros de un club que ya existe, pero lo escribió mal),
+  // NO la convertimos en una solicitud de admin silenciosa — eso confundía a mucha gente. En vez de eso,
+  // queda en un estado aparte que le explica que no encontramos el club, con opción de corregir el nombre.
   const finalRole = clubExists
     ? (selectedRole === 'club_admin' ? 'pending_club' : selectedRole)
-    : 'pending_club';
+    : (selectedRole === 'club_admin' ? 'pending_club' : 'club_not_found');
 
   const {error} = await supabaseClient.from('player_profiles').insert({
     user_id:user.id, club:finalClub, role:finalRole, player_name:null, email:user.email
@@ -2254,7 +2259,7 @@ if(myProfile.role==='pending_club' || myProfile.role==='pending_staff' || myProf
     showPendingScreen(myProfile.role);
     return;
   }
-  if(myProfile.role==='rejected_club'){
+  if(myProfile.role==='rejected_club' || myProfile.role==='club_not_found'){
     showPendingScreen(myProfile.role);
     return;
   }
@@ -2298,8 +2303,8 @@ function showPendingScreen(role){
   title.textContent = t('cuentaCreada');
   const roleLabel = role==='pending_club' ? 'Administrador de un nuevo club' : (role==='pending_gk_coach' ? 'Entrenador de arqueros' : 'Staff (médico y técnico)');
   const approver = role==='pending_club' ? 'OWNER (Matías González)' : 'el administrador de tu club';
-  if(role==='rejected_club'){
-    msg.textContent = t('solicitudRechazada');
+  if(role==='rejected_club' || role==='club_not_found'){
+    msg.textContent = role==='club_not_found' ? t('clubNoEncontrado') : t('solicitudRechazada');
     const retryWrap = document.getElementById('retryRejectedWrap');
     if(retryWrap) retryWrap.style.display = '';
     const retryClubInput = document.getElementById('retryClubName');
@@ -3758,6 +3763,7 @@ const I18N = {
     nombreYaEnLista:'Ese nombre ya está en la lista.', fechaGuardada:'✅ Fecha guardada.',
     sesionYaCargadaEseDia:'Ya hay una sesión cargada ese día — elige otra fecha.', noHayJugadoresCargados:'No hay jugadores cargados todavía.',
     solicitudRechazada:'La solicitud para crear este club fue rechazada. Si piensas que es un error, contacta al OWNER (Matías González).',
+    clubNoEncontrado:'No encontramos ningún club con ese nombre. Revisa que esté bien escrito (puede ser una diferencia de tildes, mayúsculas o espacios) e intenta de nuevo abajo, o pídele a tu club el nombre exacto con el que está registrado.',
     reintentar:'⚠️ Reintentar', cargandoClubes:'Cargando clubes…', sinClubesRegistrados:'Todavía no hay clubes registrados.',
     recordSuperadoBanner:'🔥 ¡Récord superado en {m}! {n} alcanzó un nuevo máximo personal en la última sesión.',
     sinJugadoresComparar:'Sin jugadores todavía para comparar.', radarVueloSinJugadores:'sin jugadores todavía',
@@ -3867,6 +3873,7 @@ const I18N = {
     nombreYaEnLista:'That name is already on the list.', fechaGuardada:'✅ Date saved.',
     sesionYaCargadaEseDia:'There is already a session loaded that day — choose another date.', noHayJugadoresCargados:'No players loaded yet.',
     solicitudRechazada:'The request to create this club was rejected. If you think this is a mistake, contact the OWNER (Matías González).',
+    clubNoEncontrado:'We couldn\'t find any club with that name. Check that it\'s spelled correctly (it could be a difference in accents, capitalization, or spaces) and try again below, or ask your club for the exact name it\'s registered under.',
     reintentar:'⚠️ Retry', cargandoClubes:'Loading clubs…', sinClubesRegistrados:'No clubs registered yet.',
     recordSuperadoBanner:'🔥 Record broken in {m}! {n} reached a new personal best in the last session.',
     sinJugadoresComparar:'No players yet to compare.', radarVueloSinJugadores:'no players yet',
@@ -3976,6 +3983,7 @@ const I18N = {
     nombreYaEnLista:'هذا الاسم موجود بالفعل في القائمة.', fechaGuardada:'✅ تم حفظ التاريخ.',
     sesionYaCargadaEseDia:'توجد حصة محمّلة في ذلك اليوم بالفعل — اختر تاريخًا آخر.', noHayJugadoresCargados:'لا يوجد لاعبون محمّلون بعد.',
     solicitudRechazada:'تم رفض طلب إنشاء هذا النادي. إذا كنت تعتقد أن هذا خطأ، تواصل مع المالك (ماتياس غونزاليس غاليندو).',
+    clubNoEncontrado:'لم نجد أي نادٍ بهذا الاسم. تحقق من كتابته بشكل صحيح (قد يكون الفرق في التشكيل أو الأحرف الكبيرة أو المسافات) وحاول مجددًا أدناه، أو اسأل ناديك عن الاسم الدقيق المسجّل به.',
     reintentar:'⚠️ إعادة المحاولة', cargandoClubes:'جارٍ تحميل الأندية…', sinClubesRegistrados:'لا توجد أندية مسجّلة بعد.',
     recordSuperadoBanner:'🔥 تم تحطيم الرقم القياسي في {m}! حقق {n} رقمًا شخصيًا جديدًا في آخر حصة.',
     sinJugadoresComparar:'لا يوجد لاعبون بعد للمقارنة.', radarVueloSinJugadores:'لا يوجد لاعبون بعد',
@@ -4633,7 +4641,7 @@ async function buildClubesList(){
   const counts = {};
   (data||[]).forEach(r=>{
     if(!r.club) return;
-    if(r.role==='pending_club' || r.role==='rejected_club') return; // no son clubes activos todavía
+    if(r.role==='pending_club' || r.role==='rejected_club' || r.role==='club_not_found') return; // no son clubes activos todavía
     counts[r.club] = (counts[r.club]||0)+1;
   });
   const clubs = Object.keys(counts).sort((a,b)=>a.localeCompare(b));
