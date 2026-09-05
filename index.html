@@ -1542,9 +1542,19 @@ function applyStaffModeUI(){
   } else {
     if(fieldWrap) fieldWrap.style.display = 'none';
     if(controlCargaView) controlCargaView.style.display = 'none';
-    if(wellnessView) wellnessView.style.display = CLUB_FEATURES.rpe_wellness ? '' : 'none';
-    if(rpeView) rpeView.style.display = CLUB_FEATURES.rpe_wellness ? '' : 'none';
-    if(CLUB_FEATURES.rpe_wellness) buildWellnessTeamList();
+    const showWellnessRpe = CLUB_FEATURES.rpe_wellness;
+    if(wellnessView){
+      wellnessView.style.display = showWellnessRpe ? '' : 'none';
+      // El barrido de ".team-only" de más arriba oculta TODO lo que no tenga "staff-ok" — pero acá, para
+      // un club sin GPS, Wellness/RPE SON toda la vista del staff (no un subconjunto curado como pasa
+      // adentro de Jugadores/Control de Carga), así que se muestran sus paneles internos explícitamente.
+      if(showWellnessRpe) wellnessView.querySelectorAll('.team-only').forEach(el=> el.style.display = '');
+    }
+    if(rpeView){
+      rpeView.style.display = showWellnessRpe ? '' : 'none';
+      if(showWellnessRpe) rpeView.querySelectorAll('.team-only').forEach(el=> el.style.display = '');
+    }
+    if(showWellnessRpe) buildWellnessTeamList();
   }
   const partidosView = document.getElementById('partidosView');
   if(partidosView) partidosView.style.display = 'none'; // Staff no ve Comparativo de partidos
@@ -3631,7 +3641,14 @@ async function startDashboard(){
   }
   deriveAll(ACTIVE_EVENTS);
   if(TEAM_SQUAD_MAX){ squadMax = TEAM_SQUAD_MAX; squadAvg = TEAM_SQUAD_AVG; } // restaura la escala real para el radar
-  renderAll(myProfile && myProfile.role==='player' ? myProfile.player_name : undefined);
+  try{
+    renderAll(myProfile && myProfile.role==='player' ? myProfile.player_name : undefined);
+  }catch(e){
+    // Si algo dentro de renderAll() tira un error (ej. un club sin GPS con datos poco usuales), no queremos
+    // que la página se quede a medio armar y en blanco — seguimos igual para que al menos se apliquen
+    // las vistas de cada rol (Staff, Owner, etc.) que vienen justo después.
+    console.error('renderAll() falló durante startDashboard():', e);
+  }
   if(myProfile && myProfile.role==='staff'){ applyStaffModeUI(); }
   if(myProfile && myProfile.role==='gk_coach'){ applyGkCoachModeUI(); }
   if(myProfile && myProfile.role==='owner'){
@@ -4759,7 +4776,13 @@ async function switchToClub(clubName){
   GK_RPE_REPORTS_CACHE = [];
   const efDetailPanel = document.getElementById('eficienciaDetailPanel');
   if(efDetailPanel) efDetailPanel.style.display = 'none';
-  renderAll();
+  try{
+    renderAll();
+  }catch(e){
+    // Mismo criterio que en startDashboard(): si algo dentro de renderAll() falla para este club en particular,
+    // no queremos que se corte acá y deje todo lo que sigue (pestañas, botones, etc.) sin configurar.
+    console.error('switchToClub: renderAll() falló', e);
+  }
   setupPreviewBar();
   setupGkPreviewBar();
   setupAddPlayerBar();
