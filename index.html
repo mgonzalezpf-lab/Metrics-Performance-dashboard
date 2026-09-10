@@ -1440,7 +1440,19 @@ async function ensureProfile(){
 
   const {data:existingClub, error:clubError} = await supabaseClient.rpc('club_exists', {search_name: clubName});
   if(clubError){
-    console.warn('No se pudo comprobar el club:', clubError);
+    // Antes, si esta consulta fallaba (típicamente por un corte de señal momentáneo en el celular),
+    // la función se rendía acá sin llegar a crear NUNCA el perfil — dejando a la persona con una cuenta
+    // de acceso creada pero sin perfil, atascada para siempre hasta que alguien lo notara y lo arreglara
+    // a mano. Ahora, en vez de rendirse, se crea el perfil igual con el mismo estado que "club no
+    // encontrado" — así la persona ve un mensaje claro y puede reintentar apenas tenga señal de nuevo,
+    // en lugar de quedar en un limbo invisible.
+    console.warn('No se pudo comprobar el club (se guarda como "club no encontrado" para poder reintentar):', clubError);
+    const fallbackRole2 = selectedRole === 'club_admin' ? 'pending_club' : 'club_not_found';
+    const {error: fallbackError} = await supabaseClient.from('player_profiles').insert({
+      user_id:user.id, club:clubName, role:fallbackRole2, player_name:null, email:user.email
+    });
+    if(fallbackError) console.warn('Tampoco se pudo crear el perfil de respaldo:', fallbackError);
+    pendingSignupClub = null;
     return await getMyProfile();
   }
 
@@ -2268,6 +2280,13 @@ function applyOwnerMode(){
 }async function routeAfterLogin(){
   myProfile = await getMyProfile();
  if(!myProfile){ myProfile = await ensureProfile(); }
+ if(!myProfile){
+   // Si llegamos hasta acá sin perfil (típicamente por un corte de señal en un momento muy puntual),
+   // avisamos claro y dejamos reintentar en vez de romper en silencio con una pantalla en blanco o
+   // trabada — la cuenta de acceso ya existe, así que con volver a intentar alcanza, sin crear nada de nuevo.
+   authMessage('No se pudo terminar de cargar tu perfil (puede ser un corte de señal). Volvé a intentar en un momento.','error');
+   return;
+ }
  CURRENT_CLUB = myProfile.club || CURRENT_CLUB; // a partir de acá, todo el dashboard usa el club de quien inició sesión
 
 applyOwnerMode();
