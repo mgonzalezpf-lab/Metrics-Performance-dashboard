@@ -1566,7 +1566,19 @@ function applyStaffModeUI(){
       rpeView.style.display = showWellnessRpe ? '' : 'none';
       if(showWellnessRpe) rpeView.querySelectorAll('.team-only').forEach(el=> el.style.display = '');
     }
-    if(showWellnessRpe) buildWellnessTeamList();
+    if(showWellnessRpe){
+      try{
+        buildWellnessTeamList();
+        buildWellnessMetricTabs();
+        buildWellnessTrendChart(true);
+        // renderAll() puede haber fallado a mitad de camino en un club sin GPS (típicamente por la lista
+        // de jugadores vacía) y nunca llegar a armar el panel de RPE — así que lo armamos acá también,
+        // sin depender de que renderAll() lo haya logrado antes.
+        buildRpeTeamList();
+      }catch(e){
+        console.error('applyStaffModeUI: falló al armar Wellness/RPE', e);
+      }
+    }
   }
   const partidosView = document.getElementById('partidosView');
   if(partidosView) partidosView.style.display = 'none'; // Staff no ve Comparativo de partidos
