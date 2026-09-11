@@ -3809,6 +3809,7 @@ const I18N = {
     bajarCargaSimple:'Baja la carga en {m} — vas por encima del último ciclo.',
     subirCargaSimple:'Sube la carga — vas por debajo del último ciclo en todo.',
     mantenerCargaSimple:'Mantén la carga — vas dentro del margen del último ciclo.',
+    metaTotalCiclo:'Meta total ({d} días)',
     objetivoEsteCiclo:'objetivo de este ciclo ({d}d)', objetivoProximoCiclo:'objetivo próximo ciclo ({d}d aprox.)',
     rangoConMargen:'rango {min}–{max}{u} (±{pct}%)', cumplidoCheck:'✓ cumplido', fueraCheck:'⚠ fuera',
     ultimoCicloResumen:'último ciclo ({d}d): {v}{u} ({s}{pct}%)', enCursoLabel:'● En curso ({d}d):', acumuladoLabel:'acumulado',
@@ -3925,6 +3926,7 @@ const I18N = {
     bajarCargaSimple:'Lower the load on {m} — you\'re above the last cycle.',
     subirCargaSimple:'Increase the load — you\'re below the last cycle across the board.',
     mantenerCargaSimple:'Keep the load as is — you\'re within the margin of the last cycle.',
+    metaTotalCiclo:'Total target ({d} days)',
     objetivoEsteCiclo:'target for this cycle ({d}d)', objetivoProximoCiclo:'target for next cycle ({d}d approx.)',
     rangoConMargen:'range {min}–{max}{u} (±{pct}%)', cumplidoCheck:'✓ met', fueraCheck:'⚠ off target',
     ultimoCicloResumen:'last cycle ({d}d): {v}{u} ({s}{pct}%)', enCursoLabel:'● In progress ({d}d):', acumuladoLabel:'accumulated',
@@ -4041,6 +4043,7 @@ const I18N = {
     bajarCargaSimple:'قلّل الحمل في {m} — أنت أعلى من الدورة الأخيرة.',
     subirCargaSimple:'زِد الحمل — أنت أقل من الدورة الأخيرة في كل شيء.',
     mantenerCargaSimple:'حافظ على الحمل — أنت ضمن هامش الدورة الأخيرة.',
+    metaTotalCiclo:'الهدف الإجمالي ({d} أيام)',
     objetivoEsteCiclo:'هدف هذه الدورة ({d} يوم)', objetivoProximoCiclo:'هدف الدورة القادمة (~{d} يوم)',
     rangoConMargen:'النطاق {min}–{max}{u} (±{pct}%)', cumplidoCheck:'✓ محقق', fueraCheck:'⚠ خارج النطاق',
     ultimoCicloResumen:'الدورة الأخيرة ({d} يوم): {v}{u} ({s}{pct}%)', enCursoLabel:'● قيد التنفيذ ({d} يوم):', acumuladoLabel:'متراكم',
@@ -5240,6 +5243,22 @@ function buildWeeklyTarget(){
     return count ? total/count : null;
   };
 
+  // Cuántos días de trabajo (entrenos + partido) va a tener este ciclo, para poder mostrar una meta TOTAL,
+  // no solo el promedio diario. Si ya está cargada la fecha del próximo partido, se usan los días reales
+  // que faltan hasta esa fecha. Si no, se usa la duración real del último ciclo cerrado como mejor estimación
+  // (el historial disponible), en vez de asumir siempre una semana completa de 7 días.
+  const countWorkDays = (datesArr) => datesArr.filter(d=> (byDate[d]||[]).some(e=> !isRestDayEvent(e))).length;
+  let cicloDias = countWorkDays(refCycle) || refCycle.length;
+  if(currentCycle && currentCycle.length){
+    if(NEXT_MATCH_DATE){
+      const start = currentCycle[0];
+      const totalDays = Math.round((new Date(NEXT_MATCH_DATE+'T00:00:00') - new Date(start+'T00:00:00')) / 86400000) + 1;
+      if(totalDays > 0) cicloDias = totalDays;
+    } else {
+      cicloDias = Math.max(currentCycle.length, cicloDias);
+    }
+  }
+
   const metrics = [
     {key:'dist', label:t('mtDistancia'), unit:'m'},
     {key:'hsr', label:'HSR', unit:'m'},
@@ -5265,10 +5284,12 @@ function buildWeeklyTarget(){
       <span style="color:${within?'var(--good)':(diffPct>0?'var(--bad)':'var(--warn)')};font-weight:700;">${diffPct>=0?'▲':'▼'} ${Math.abs(diffPct)}%</span> ${t('vsUltimoCiclo')}
     </div>` : '';
     const valShown = curDaily!==null ? curDaily : refDaily;
+    const metaTotal = Math.round(refDaily * cicloDias);
     return `<div class="kpi" style="flex:1;min-width:170px;">
       <div class="lbl">${m.label}</div>
       <div class="val" style="font-size:24px;">${fmt(Math.round(valShown))}<small>${m.unit}/${t('diaAbrev')}</small></div>
       <div class="sub">${t('ultimoCicloFue')} ${fmt(Math.round(refDaily))}${m.unit}/${t('diaAbrev')}</div>
+      <div class="sub" style="margin-top:4px;color:var(--gold-bright);font-weight:700;">${tf('metaTotalCiclo',{d:cicloDias})}: ${fmt(metaTotal)}${m.unit}</div>
       ${diffHtml}
     </div>`;
   }).join('');
