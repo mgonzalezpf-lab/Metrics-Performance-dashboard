@@ -5155,8 +5155,15 @@ function getCyclePLComparison(){
     });
     return { total, days: count };
   };
-  const current = sumCycle(cycles[cycles.length-1]);
-  const prevArr = cycles.length>=2 ? cycles[cycles.length-2] : null;
+  // Un ciclo formado solo por un día libre suelto (sin ningún entreno/partido, ej. justo después de un
+  // partido) no tiene ningún dato de GPS — la tabla de Microciclo ya lo salta al mostrar totales, pero acá
+  // había que hacer lo mismo: si no, "el ciclo anterior" terminaba siendo ese día libre vacío en vez del
+  // ciclo real con partido, mostrando siempre "sin ciclo anterior para comparar" aunque sí hubiera uno.
+  const cycleHasData = (datesArr)=> datesArr.some(d=> (byDate[d]||[]).some(e=> !isRestDayEvent(e)));
+  const cyclesWithData = cycles.filter(cycleHasData);
+  const relevantCycles = cyclesWithData.length ? cyclesWithData : cycles;
+  const current = sumCycle(relevantCycles[relevantCycles.length-1]);
+  const prevArr = relevantCycles.length>=2 ? relevantCycles[relevantCycles.length-2] : null;
   const prev = prevArr ? sumCycle(prevArr) : null;
   const currentPerDay = current.days ? current.total/current.days : null;
   const prevPerDay = (prev && prev.days) ? prev.total/prev.days : null;
