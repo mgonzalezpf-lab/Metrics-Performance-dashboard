@@ -2296,7 +2296,7 @@ function applyOwnerMode(){
    // Si llegamos hasta acá sin perfil (típicamente por un corte de señal en un momento muy puntual),
    // avisamos claro y dejamos reintentar en vez de romper en silencio con una pantalla en blanco o
    // trabada — la cuenta de acceso ya existe, así que con volver a intentar alcanza, sin crear nada de nuevo.
-   authMessage('No se pudo terminar de cargar tu perfil (puede ser un corte de señal). Volvé a intentar en un momento.','error');
+   authMessage('No se pudo terminar de cargar tu perfil (puede ser un corte de señal). Vuelve a intentar en un momento.','error');
    return;
  }
  CURRENT_CLUB = myProfile.club || CURRENT_CLUB; // a partir de acá, todo el dashboard usa el club de quien inició sesión
@@ -3803,6 +3803,12 @@ const I18N = {
     mmDistTotal:'Distancia total', mmHsr:'HSR', mmSprintDist:'Sprint distancia', mmSprintCount:'Sprint conteo', mmAccB23:'Acc B2-3', mmDesaB23:'Desa B2-3', mmRhie:'RHIE bouts', mmPlayerLoad:'Player Load', mmIndiceFatiga:'Índice de fatiga (2T vs 1T)',
     sinValoresAtipicos:'Sin valores atípicos detectados — todos los datos están dentro de rangos esperados.',
     mtDistancia:'Distancia', mtPlayerLoad:'Player Load', sinCiclosCerrados:'Sin ciclos cerrados todavía',
+    vsUltimoCiclo:'vs. último ciclo', ultimoCicloFue:'último ciclo:', diaAbrev:'día',
+    esperandoProximoCiclo:'Recién cerró un ciclo — todavía no arrancó el próximo para poder compararlo.',
+    necesitaUnCicloCerrado:'Necesitamos al menos un ciclo cerrado (con partido) para poder comparar.',
+    bajarCargaSimple:'Baja la carga en {m} — vas por encima del último ciclo.',
+    subirCargaSimple:'Sube la carga — vas por debajo del último ciclo en todo.',
+    mantenerCargaSimple:'Mantén la carga — vas dentro del margen del último ciclo.',
     objetivoEsteCiclo:'objetivo de este ciclo ({d}d)', objetivoProximoCiclo:'objetivo próximo ciclo ({d}d aprox.)',
     rangoConMargen:'rango {min}–{max}{u} (±{pct}%)', cumplidoCheck:'✓ cumplido', fueraCheck:'⚠ fuera',
     ultimoCicloResumen:'último ciclo ({d}d): {v}{u} ({s}{pct}%)', enCursoLabel:'● En curso ({d}d):', acumuladoLabel:'acumulado',
@@ -3913,6 +3919,12 @@ const I18N = {
     mmDistTotal:'Total distance', mmHsr:'HSR', mmSprintDist:'Sprint distance', mmSprintCount:'Sprint count', mmAccB23:'Acc B2-3', mmDesaB23:'Dec B2-3', mmRhie:'RHIE bouts', mmPlayerLoad:'Player Load', mmIndiceFatiga:'Fatigue index (2H vs 1H)',
     sinValoresAtipicos:'No outliers detected — all data is within expected ranges.',
     mtDistancia:'Distance', mtPlayerLoad:'Player Load', sinCiclosCerrados:'No closed cycles yet',
+    vsUltimoCiclo:'vs. last cycle', ultimoCicloFue:'last cycle:', diaAbrev:'day',
+    esperandoProximoCiclo:'A cycle just closed — the next one hasn\'t started yet to compare.',
+    necesitaUnCicloCerrado:'We need at least one closed cycle (with a match) to compare.',
+    bajarCargaSimple:'Lower the load on {m} — you\'re above the last cycle.',
+    subirCargaSimple:'Increase the load — you\'re below the last cycle across the board.',
+    mantenerCargaSimple:'Keep the load as is — you\'re within the margin of the last cycle.',
     objetivoEsteCiclo:'target for this cycle ({d}d)', objetivoProximoCiclo:'target for next cycle ({d}d approx.)',
     rangoConMargen:'range {min}–{max}{u} (±{pct}%)', cumplidoCheck:'✓ met', fueraCheck:'⚠ off target',
     ultimoCicloResumen:'last cycle ({d}d): {v}{u} ({s}{pct}%)', enCursoLabel:'● In progress ({d}d):', acumuladoLabel:'accumulated',
@@ -4023,6 +4035,12 @@ const I18N = {
     mmDistTotal:'المسافة الإجمالية', mmHsr:'HSR', mmSprintDist:'مسافة السرعات القصوى', mmSprintCount:'عدد السرعات القصوى', mmAccB23:'تسارع B2-3', mmDesaB23:'تباطؤ B2-3', mmRhie:'RHIE', mmPlayerLoad:'Player Load', mmIndiceFatiga:'مؤشر التعب (الشوط 2 مقابل 1)',
     sinValoresAtipicos:'لم يتم رصد قيم شاذة — جميع البيانات ضمن النطاقات المتوقعة.',
     mtDistancia:'المسافة', mtPlayerLoad:'Player Load', sinCiclosCerrados:'لا توجد دورات مغلقة بعد',
+    vsUltimoCiclo:'مقابل الدورة الأخيرة', ultimoCicloFue:'الدورة الأخيرة:', diaAbrev:'يوم',
+    esperandoProximoCiclo:'انتهت دورة للتو — لم تبدأ الدورة التالية بعد للمقارنة.',
+    necesitaUnCicloCerrado:'نحتاج دورة مغلقة واحدة على الأقل (بمباراة) للمقارنة.',
+    bajarCargaSimple:'قلّل الحمل في {m} — أنت أعلى من الدورة الأخيرة.',
+    subirCargaSimple:'زِد الحمل — أنت أقل من الدورة الأخيرة في كل شيء.',
+    mantenerCargaSimple:'حافظ على الحمل — أنت ضمن هامش الدورة الأخيرة.',
     objetivoEsteCiclo:'هدف هذه الدورة ({d} يوم)', objetivoProximoCiclo:'هدف الدورة القادمة (~{d} يوم)',
     rangoConMargen:'النطاق {min}–{max}{u} (±{pct}%)', cumplidoCheck:'✓ محقق', fueraCheck:'⚠ خارج النطاق',
     ultimoCicloResumen:'الدورة الأخيرة ({d} يوم): {v}{u} ({s}{pct}%)', enCursoLabel:'● قيد التنفيذ ({d} يوم):', acumuladoLabel:'متراكم',
@@ -5176,73 +5194,51 @@ function getCyclePLComparison(){
   };
 }
 
-// ---------- Objetivo para el próximo microciclo: rango de Distancia/HSR/Player Load según el promedio de los últimos 3 ciclos ----------
+// ---------- Objetivo para el próximo microciclo: compara el ciclo actual contra el ÚLTIMO ciclo cerrado ----------
 function buildWeeklyTarget(){
   const body = document.getElementById('weeklyTargetBody');
+  const recBox = document.getElementById('weeklyTargetRecommendation');
   if(!body) return;
   const pctInput = document.getElementById('weeklyTargetPct');
   const pct = pctInput ? Math.max(1, Math.min(100, Number(pctInput.value) || 20)) : 20;
 
   const {cycles, byDate, lastCycleWasClosed} = computeMicrocycles(categoryFilteredEvents());
-  if(!cycles.length){
+  const emptyState = ()=>{
     body.innerHTML = `<div style="color:var(--mist);font-size:12px;">${t('sinDatosSuficientes')}</div>`;
-    // Si no, este panel se quedaba con la recomendación/alerta del club o categoría anterior — mostrando
-    // a la vez "sin datos" (acá) y un texto detallado de otro club (ahí abajo). Pasaba al cambiar de club.
-    const recBoxEmpty = document.getElementById('weeklyTargetRecommendation');
-    if(recBoxEmpty) recBoxEmpty.innerHTML = '';
+    if(recBox) recBox.innerHTML = '';
+  };
+  if(!cycles.length){ emptyState(); return; }
+
+  // Ignora los "microciclos" que son solo un día libre suelto sin ningún dato real (ej. el día siguiente
+  // a un partido) — si no, ese ciclo vacío contamina la comparación como si fuera el ciclo de referencia
+  // (esto era lo que generaba mensajes contradictorios y porcentajes exagerados antes).
+  const cycleHasData = (datesArr)=> datesArr.some(d=> (byDate[d]||[]).some(e=> !isRestDayEvent(e)));
+  const cyclesWithData = cycles.filter(cycleHasData);
+  if(!cyclesWithData.length){ emptyState(); return; }
+
+  // El ciclo EN CURSO es el último de la lista, solo si todavía no cerró (sin partido/día libre que lo cierre).
+  // El ciclo de REFERENCIA es siempre el último ciclo CERRADO con datos reales — no un promedio de varios,
+  // así es más fácil de asociar: "esta semana vs. la semana pasada", nada más.
+  const lastIsOpen = !lastCycleWasClosed;
+  const currentCycle = lastIsOpen ? cyclesWithData[cyclesWithData.length-1] : null;
+  const refCycle = lastIsOpen ? cyclesWithData[cyclesWithData.length-2] : cyclesWithData[cyclesWithData.length-1];
+
+  if(!refCycle){
+    body.innerHTML = `<div style="color:var(--mist);font-size:12px;">${t('necesitaUnCicloCerrado')}</div>`;
+    if(recBox) recBox.innerHTML = '';
     return;
   }
-  // Ciclos cerrados: si el último bloque quedó abierto (sin partido todavía), no cuenta para las cuentas.
-  const closedCycles = lastCycleWasClosed ? cycles : cycles.slice(0, -1);
 
-  // Promedio DIARIO de un ciclo (total ÷ cantidad de días del ciclo) — así un microciclo corto (post-racha
-  // de partidos seguidos, 3-4 días) y uno normal (7 días) se comparan de igual a igual, sin que el tamaño
-  // del ciclo distorsione el objetivo (un ciclo corto no es "más liviano", solo tuvo menos días).
-  const cycleDailyAvg = (datesArr, field) => {
-    let total = 0;
+  // Promedio DIARIO (no total) — así un ciclo corto (post-racha de partidos) y uno normal de 7 días
+  // se comparan de igual a igual, sin importar cuántos días de trabajo tenga cada uno.
+  const dailyAvg = (datesArr, field) => {
+    let total = 0, count = 0;
     datesArr.forEach(d=>{
       const v = avgField(byDate[d]||[], field);
-      if(v!==null) total += v;
+      if(v!==null){ total += v; count++; }
     });
-    return datesArr.length ? total/datesArr.length : null;
+    return count ? total/count : null;
   };
-  const cycleRealTotal = (datesArr, field) => {
-    let total = 0, any = false;
-    datesArr.forEach(d=>{
-      const v = avgField(byDate[d]||[], field);
-      if(v!==null){ total += v; any = true; }
-    });
-    return any ? total : null;
-  };
-  const baselineDailyOf = (field, cyclesArr) => {
-    const dailyAvgs = cyclesArr.slice(-3).map(c=>cycleDailyAvg(c, field)).filter(v=>v!==null);
-    return dailyAvgs.length ? dailyAvgs.reduce((a,b)=>a+b,0)/dailyAvgs.length : null;
-  };
-
-  // El ciclo que "acaba de cerrar" (recién se cargó el partido que lo cierra) — solo existe si el último bloque ya cerró.
-  const justClosedCycle = lastCycleWasClosed ? closedCycles[closedCycles.length-1] : null;
-  // El ciclo EN CURSO (todavía no cerró con un partido) — solo existe si el último bloque sigue abierto.
-  const currentOpenCycle = lastCycleWasClosed ? null : cycles[cycles.length-1];
-
-  // Duración del ciclo a evaluar — NO siempre "una semana": si el próximo partido ya está cargado,
-  // se usa la cantidad real de días hasta esa fecha (por ejemplo, 3 días en una racha de partidos seguidos).
-  // Si no hay fecha cargada, se usa el promedio de duración de los últimos ciclos cerrados como estimación.
-  const avgCycleLength = (cyclesArr) => {
-    const lens = cyclesArr.slice(-3).map(c=>c.length);
-    return lens.length ? Math.round(lens.reduce((a,b)=>a+b,0)/lens.length) : 7;
-  };
-  let cicloDias;
-  if(currentOpenCycle && currentOpenCycle.length){
-    if(NEXT_MATCH_DATE){
-      const start = currentOpenCycle[0];
-      const totalDays = Math.round((new Date(NEXT_MATCH_DATE+'T00:00:00') - new Date(start+'T00:00:00')) / 86400000) + 1;
-      cicloDias = totalDays > 0 ? totalDays : Math.max(currentOpenCycle.length, avgCycleLength(closedCycles));
-    } else {
-      cicloDias = Math.max(currentOpenCycle.length, avgCycleLength(closedCycles));
-    }
-  } else {
-    cicloDias = avgCycleLength(closedCycles);
-  }
 
   const metrics = [
     {key:'dist', label:t('mtDistancia'), unit:'m'},
@@ -5250,103 +5246,55 @@ function buildWeeklyTarget(){
     {key:'pl', label:t('mtPlayerLoad'), unit:''},
   ];
 
-  const checks = []; // {label, diffPct, within} de cada métrica, para armar la recomendación general
-  const liveChecks = []; // {label, ritmoPct, dentro} del ciclo EN CURSO, para el aviso en vivo
-
+  const diffs = []; // {label, diffPct, within} de cada métrica, para la recomendación final
   const cardsHtml = metrics.map(m=>{
-    const baselineDaily = baselineDailyOf(m.key, closedCycles);
-    if(baselineDaily===null){
-      return `<div class="kpi" style="flex:1;min-width:150px;">
-        <div class="lbl">${m.label}</div>
-        <div class="sub">${t('sinCiclosCerrados')}</div>
-      </div>`;
+    const refDaily = dailyAvg(refCycle, m.key);
+    if(refDaily===null){
+      return `<div class="kpi" style="flex:1;min-width:170px;"><div class="lbl">${m.label}</div><div class="sub">${t('sinCiclosCerrados')}</div></div>`;
     }
-    // El objetivo se escala a la duración REAL (o esperada) del ciclo, no a una semana fija de 7 días.
-    // Así un ciclo corto (post-racha de partidos, 3-4 días) muestra un objetivo acorde a esos días,
-    // en vez de un número inflado como si fuera una semana completa.
-    const targetLabel = currentOpenCycle ? tf('objetivoEsteCiclo',{d:cicloDias}) : tf('objetivoProximoCiclo',{d:cicloDias});
-    const objetivoCiclo = baselineDaily * cicloDias;
-    const min = Math.round(objetivoCiclo * (1 - pct/100));
-    const max = Math.round(objetivoCiclo * (1 + pct/100));
-
-    let checkHtml = '';
-    if(justClosedCycle && closedCycles.length>=2){
-      const priorCycles = closedCycles.slice(0, -1);
-      const baselinePriorDaily = baselineDailyOf(m.key, priorCycles);
-      const actualDaily = cycleDailyAvg(justClosedCycle, m.key);
-      const actualTotal = cycleRealTotal(justClosedCycle, m.key);
-      if(baselinePriorDaily!==null && actualDaily!==null && actualTotal!==null && baselinePriorDaily>0){
-        const diffPct = Math.round((actualDaily-baselinePriorDaily)/baselinePriorDaily*100);
-        const within = Math.abs(diffPct) <= pct;
-        checks.push({label:m.label, diffPct, within});
-        checkHtml = `<div class="sub" style="margin-top:4px;">
-          <span style="color:${within?'var(--good)':'var(--bad)'};font-weight:700;">${within?t('cumplidoCheck'):t('fueraCheck')}</span>
-          ${tf('ultimoCicloResumen',{d:justClosedCycle.length, v:fmt(Math.round(actualTotal)), u:m.unit, s:diffPct>=0?'+':'', pct:diffPct})}
-        </div>`;
+    let curDaily = null, diffPct = null, within = null;
+    if(currentCycle){
+      curDaily = dailyAvg(currentCycle, m.key);
+      if(curDaily!==null && refDaily>0){
+        diffPct = Math.round((curDaily-refDaily)/refDaily*100);
+        within = Math.abs(diffPct) <= pct;
+        diffs.push({label:m.label, diffPct, within});
       }
     }
-
-    // Progreso EN VIVO del ciclo actual (todavía no cerró) — para poder corregir a tiempo, no solo enterarse al final.
-    let liveHtml = '';
-    if(currentOpenCycle && currentOpenCycle.length){
-      const actualSoFar = cycleRealTotal(currentOpenCycle, m.key);
-      const dailyRateSoFar = cycleDailyAvg(currentOpenCycle, m.key);
-      if(actualSoFar!==null && dailyRateSoFar!==null && baselineDaily>0){
-        const ritmoPct = Math.round((dailyRateSoFar-baselineDaily)/baselineDaily*100);
-        const dentro = Math.abs(ritmoPct) <= pct;
-        liveChecks.push({label:m.label, ritmoPct, dentro});
-        const colorRitmo = dentro ? 'var(--good)' : (ritmoPct>0 ? 'var(--bad)' : 'var(--warn)');
-        const flechaRitmo = ritmoPct>=0 ? '▲' : '▼';
-        liveHtml = `<div class="sub" style="margin-top:4px;padding-top:4px;border-top:1px dashed var(--line-strong);">
-          <span style="color:var(--gold-bright);">${tf('enCursoLabel',{d:currentOpenCycle.length})}</span> ${fmt(Math.round(actualSoFar))}${m.unit} ${t('acumuladoLabel')}
-          <span style="color:${colorRitmo};font-weight:700;">${tf('ritmoLabel',{arrow:flechaRitmo, pct:Math.abs(ritmoPct)})}</span> ${t('vsObjetivo')}
-        </div>`;
-      }
-    }
-
+    const diffHtml = diffPct!==null ? `<div class="sub" style="margin-top:4px;">
+      <span style="color:${within?'var(--good)':(diffPct>0?'var(--bad)':'var(--warn)')};font-weight:700;">${diffPct>=0?'▲':'▼'} ${Math.abs(diffPct)}%</span> ${t('vsUltimoCiclo')}
+    </div>` : '';
+    const valShown = curDaily!==null ? curDaily : refDaily;
     return `<div class="kpi" style="flex:1;min-width:170px;">
       <div class="lbl">${m.label}</div>
-      <div class="val" style="font-size:24px;">${fmt(Math.round(objetivoCiclo))}<small>${m.unit}</small></div>
-      <div class="sub">${targetLabel} · ${tf('rangoConMargen',{min:fmt(min), max:fmt(max), u:m.unit, pct})}</div>
-      ${checkHtml}
-      ${liveHtml}
+      <div class="val" style="font-size:24px;">${fmt(Math.round(valShown))}<small>${m.unit}/${t('diaAbrev')}</small></div>
+      <div class="sub">${t('ultimoCicloFue')} ${fmt(Math.round(refDaily))}${m.unit}/${t('diaAbrev')}</div>
+      ${diffHtml}
     </div>`;
   }).join('');
-
   body.innerHTML = cardsHtml;
 
-  // ---- Recomendación en palabras simples: ¿subo, bajo o mantengo la carga esta semana? ----
-  const recBox = document.getElementById('weeklyTargetRecommendation');
+  // ---- Recomendación en una frase: ¿subo, bajo o mantengo la carga? ----
   if(recBox){
-    let liveNote = '';
-    if(currentOpenCycle && liveChecks.length){
-      const porArriba = liveChecks.filter(c=>!c.dentro && c.ritmoPct>0);
-      const porAbajo = liveChecks.filter(c=>!c.dentro && c.ritmoPct<0);
-      if(porArriba.length){
-        liveNote = ` <span style="color:var(--bad);">${tf('porArribaTexto',{d:currentOpenCycle.length, m:porArriba.map(c=>c.label).join(', ')})}</span>`;
-      } else if(porAbajo.length){
-        liveNote = ` <span style="color:var(--warn);">${tf('porAbajoTexto',{d:currentOpenCycle.length, m:porAbajo.map(c=>c.label).join(', ')})}</span>`;
-      }
-    }
-    if(!checks.length){
-      recBox.innerHTML = `<div style="padding:10px 14px;background:rgba(255,255,255,.03);border:1px solid var(--line-strong);border-radius:8px;font-size:12.5px;color:var(--mist);line-height:1.5;">
-        ${t('sinMicrocicloTexto')}${liveNote}
-      </div>`;
+    if(!currentCycle){
+      recBox.innerHTML = `<div style="padding:10px 14px;background:rgba(255,255,255,.03);border:1px solid var(--line-strong);border-radius:8px;font-size:12.5px;color:var(--mist);line-height:1.5;">${t('esperandoProximoCiclo')}</div>`;
+    } else if(!diffs.length){
+      recBox.innerHTML = `<div style="padding:10px 14px;background:rgba(255,255,255,.03);border:1px solid var(--line-strong);border-radius:8px;font-size:12.5px;color:var(--mist);line-height:1.5;">${t('sinDatosSuficientes')}</div>`;
     } else {
-      const excedidos = checks.filter(c=>!c.within && c.diffPct>0); // se pasó por arriba (sobrecarga)
-      const bajaron = checks.filter(c=>!c.within && c.diffPct<0);   // se quedó muy por debajo (descarga)
+      const porArriba = diffs.filter(d=>!d.within && d.diffPct>0);
+      const porAbajo = diffs.filter(d=>!d.within && d.diffPct<0);
       let color, texto;
-      if(excedidos.length){
+      if(porArriba.length){
         color = 'var(--bad)';
-        texto = tf('bajaLaCargaTexto', {m:excedidos.map(c=>c.label).join(', '), pct:Math.max(...excedidos.map(c=>c.diffPct))});
-      } else if(bajaron.length){
+        texto = `⬇️ ${tf('bajarCargaSimple',{m:porArriba.map(c=>c.label).join(', ')})}`;
+      } else if(porAbajo.length === diffs.length){
         color = 'var(--warn)';
-        texto = tf('progresarTexto', {m:bajaron.map(c=>c.label).join(', ')});
+        texto = `⬆️ ${t('subirCargaSimple')}`;
       } else {
         color = 'var(--good)';
-        texto = t('mantenerTexto');
+        texto = `✅ ${t('mantenerCargaSimple')}`;
       }
-      recBox.innerHTML = `<div style="padding:10px 14px;background:rgba(255,255,255,.03);border:1px solid ${color};border-radius:8px;font-size:12.5px;color:var(--bone);line-height:1.5;">${texto}${liveNote}</div>`;
+      recBox.innerHTML = `<div style="padding:10px 14px;background:rgba(255,255,255,.03);border:1px solid ${color};border-radius:8px;font-size:13px;font-weight:700;color:var(--bone);line-height:1.5;">${texto}</div>`;
     }
   }
 }
