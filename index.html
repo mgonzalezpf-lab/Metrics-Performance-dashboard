@@ -2152,8 +2152,9 @@ async function buildManageRosterList(){
         saveError = ins.error;
       }
       if(saveError){ statusEl.textContent = tf('noSePudoGuardar',{e:saveError.message}); return; }
+      statusEl.textContent = nuevoActivo ? t('reactivadoCheck') : t('archivadoCheck');
       await refreshEverything();
-      buildManageRosterList(); // refresca toda la lista para reflejar el nuevo estado (opacidad, botón, etc.)
+      setTimeout(()=>{ buildManageRosterList(); }, 1100); // deja tiempo para leer el mensaje antes de refrescar la lista entera
     };
   });
 }
@@ -4005,6 +4006,7 @@ const I18N = {
     cerrar:'Cerrar', cargando:'Cargando…', sinJugadoresTodavia:'Todavía no hay jugadores cargados.', sinCategoria:'Sin categoría',
     guardar:'Guardar', archivar:'Archivar', reactivar:'Reactivar', escribeUnNombre:'Escribe un nombre.',
     guardando:'Guardando…', guardadoCheck:'✅ Guardado', reactivando:'Reactivando…', archivando:'Archivando…',
+    reactivadoCheck:'✅ Reactivado', archivadoCheck:'✅ Archivado',
     objetivoEsteCiclo:'objetivo de este ciclo ({d}d)', objetivoProximoCiclo:'objetivo próximo ciclo ({d}d aprox.)',
     rangoConMargen:'rango {min}–{max}{u} (±{pct}%)', cumplidoCheck:'✓ cumplido', fueraCheck:'⚠ fuera',
     ultimoCicloResumen:'último ciclo ({d}d): {v}{u} ({s}{pct}%)', enCursoLabel:'● En curso ({d}d):', acumuladoLabel:'acumulado',
@@ -4132,6 +4134,7 @@ const I18N = {
     cerrar:'Close', cargando:'Loading…', sinJugadoresTodavia:'No players loaded yet.', sinCategoria:'No category',
     guardar:'Save', archivar:'Archive', reactivar:'Reactivate', escribeUnNombre:'Enter a name.',
     guardando:'Saving…', guardadoCheck:'✅ Saved', reactivando:'Reactivating…', archivando:'Archiving…',
+    reactivadoCheck:'✅ Reactivated', archivadoCheck:'✅ Archived',
     objetivoEsteCiclo:'target for this cycle ({d}d)', objetivoProximoCiclo:'target for next cycle ({d}d approx.)',
     rangoConMargen:'range {min}–{max}{u} (±{pct}%)', cumplidoCheck:'✓ met', fueraCheck:'⚠ off target',
     ultimoCicloResumen:'last cycle ({d}d): {v}{u} ({s}{pct}%)', enCursoLabel:'● In progress ({d}d):', acumuladoLabel:'accumulated',
@@ -4259,6 +4262,7 @@ const I18N = {
     cerrar:'إغلاق', cargando:'جارٍ التحميل…', sinJugadoresTodavia:'لا يوجد لاعبون بعد.', sinCategoria:'بدون فئة',
     guardar:'حفظ', archivar:'أرشفة', reactivar:'إعادة تفعيل', escribeUnNombre:'أدخل اسمًا.',
     guardando:'جارٍ الحفظ…', guardadoCheck:'✅ تم الحفظ', reactivando:'جارٍ إعادة التفعيل…', archivando:'جارٍ الأرشفة…',
+    reactivadoCheck:'✅ تمت إعادة التفعيل', archivadoCheck:'✅ تمت الأرشفة',
     objetivoEsteCiclo:'هدف هذه الدورة ({d} يوم)', objetivoProximoCiclo:'هدف الدورة القادمة (~{d} يوم)',
     rangoConMargen:'النطاق {min}–{max}{u} (±{pct}%)', cumplidoCheck:'✓ محقق', fueraCheck:'⚠ خارج النطاق',
     ultimoCicloResumen:'الدورة الأخيرة ({d} يوم): {v}{u} ({s}{pct}%)', enCursoLabel:'● قيد التنفيذ ({d} يوم):', acumuladoLabel:'متراكم',
