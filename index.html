@@ -2123,15 +2123,17 @@ async function buildManageRosterList(){
       const isGk = row.querySelector('.mr-gk').checked;
       if(!newName){ statusEl.textContent = t('escribeUnNombre'); return; }
       statusEl.textContent = t('guardando');
-      const {data:updated, error:updError} = await supabaseClient.from('roster_players')
-        .update({player_name:newName, categoria, is_goalkeeper:isGk})
-        .eq('club', CURRENT_CLUB).eq('player_name', originalName)
-        .select();
-      let saveError = updError;
-      if(!saveError && (!updated || !updated.length)){
-        // No había fila todavía (jugador que solo existía en el GPS) — se crea una nueva.
-        const ins = await supabaseClient.from('roster_players').insert({club:CURRENT_CLUB, player_name:newName, categoria, is_goalkeeper:isGk});
-        saveError = ins.error;
+      // "upsert" (en vez de update-y-si-no-existe-insert) evita depender de si la fila ya existía o no —
+      // antes, para un jugador que solo venía del GPS (sin fila propia en roster_players), el UPDATE no
+      // encontraba nada, y el INSERT de respaldo chocaba con la restricción de nombre único si la fila
+      // SÍ existía mientras tanto (esto es lo que le pasaba a los usuarios: "duplicate key value...").
+      const {error:upsertError} = await supabaseClient.from('roster_players')
+        .upsert({club:CURRENT_CLUB, player_name:originalName, categoria, is_goalkeeper:isGk}, {onConflict:'club,player_name'});
+      let saveError = upsertError;
+      // Si además cambiaron el nombre, se renombra en un segundo paso (el upsert de arriba ya guardó categoría/arquero).
+      if(!saveError && newName !== originalName){
+        const ren = await supabaseClient.from('roster_players').update({player_name:newName}).eq('club',CURRENT_CLUB).eq('player_name', originalName);
+        saveError = ren.error;
       }
       if(saveError){ statusEl.textContent = saveError.code==='23505' ? t('nombreYaEnLista') : tf('noSePudoGuardar',{e:saveError.message}); return; }
       statusEl.textContent = t('guardadoCheck');
@@ -2139,18 +2141,10 @@ async function buildManageRosterList(){
       await refreshEverything();
     };
     row.querySelector('.mr-toggle').onclick = async ()=>{
-      const activandoDeNuevo = row.querySelector('.mr-toggle').textContent.includes(t('reactivar'));
-      const nuevoActivo = activandoDeNuevo;
+      const nuevoActivo = row.querySelector('.mr-toggle').textContent.includes(t('reactivar'));
       statusEl.textContent = nuevoActivo ? t('reactivando') : t('archivando');
-      const {data:updated, error:updError} = await supabaseClient.from('roster_players')
-        .update({activo:nuevoActivo})
-        .eq('club', CURRENT_CLUB).eq('player_name', originalName)
-        .select();
-      let saveError = updError;
-      if(!saveError && (!updated || !updated.length)){
-        const ins = await supabaseClient.from('roster_players').insert({club:CURRENT_CLUB, player_name:originalName, activo:nuevoActivo});
-        saveError = ins.error;
-      }
+      const {error:saveError} = await supabaseClient.from('roster_players')
+        .upsert({club:CURRENT_CLUB, player_name:originalName, activo:nuevoActivo}, {onConflict:'club,player_name'});
       if(saveError){ statusEl.textContent = tf('noSePudoGuardar',{e:saveError.message}); return; }
       statusEl.textContent = nuevoActivo ? t('reactivadoCheck') : t('archivadoCheck');
       await refreshEverything();
