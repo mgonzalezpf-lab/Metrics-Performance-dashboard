@@ -2606,9 +2606,9 @@ const WELLNESS_CATEGORIES = [
 // solo los números "ancla" tienen descripción; los impares intermedios (1,3,7,9) quedan sin texto,
 // tal como en la escala original en papel que usan los preparadores físicos.
 const TQR_CAPTIONS = {
-  es: ['No recuperado / Extremadamente cansado','','Poco recuperado / Bastante cansado','','Algo recuperado','Adecuadamente recuperado','Bastante recuperado','','Bien recuperado / Con gran energía','','Muy bien recuperado / Con mucha energía'],
-  en: ['Not recovered / Extremely tired','','Poorly recovered / Quite tired','','Somewhat recovered','Adequately recovered','Well recovered','','Well recovered / Great energy','','Fully recovered / Great energy'],
-  ar: ['غير متعافٍ / متعب جدًا','','متعافٍ قليلًا / متعب جدًا','','متعافٍ إلى حد ما','متعافٍ بشكل مناسب','متعافٍ جيدًا','','متعافٍ جيدًا / طاقة عالية','','متعافٍ تمامًا / طاقة عالية جدًا'],
+  es: ['No recuperado / Extremadamente cansado','Muy poco recuperado / Muy cansado','Poco recuperado / Bastante cansado','Ligeramente recuperado / Cansado','Algo recuperado','Adecuadamente recuperado','Bastante recuperado','Recuperado / Con energía','Bien recuperado / Con gran energía','Muy bien recuperado / Con bastante energía','Muy bien recuperado / Con mucha energía'],
+  en: ['Not recovered / Extremely tired','Very poorly recovered / Very tired','Poorly recovered / Quite tired','Slightly recovered / Tired','Somewhat recovered','Adequately recovered','Well recovered','Recovered / With energy','Well recovered / Great energy','Very well recovered / Plenty of energy','Fully recovered / Great energy'],
+  ar: ['غير متعافٍ / متعب جدًا','متعافٍ قليلًا جدًا / متعب جدًا','متعافٍ قليلًا / متعب جدًا','متعافٍ بشكل طفيف / متعب','متعافٍ إلى حد ما','متعافٍ بشكل مناسب','متعافٍ جيدًا','متعافٍ / بطاقة جيدة','متعافٍ جيدًا / طاقة عالية','متعافٍ جيدًا جدًا / طاقة وفيرة','متعافٍ تمامًا / طاقة عالية جدًا'],
 };
 function tqrCaption(n){
   if(n===null || n===undefined) return '';
@@ -3037,7 +3037,7 @@ async function buildWellnessTeamList(fecha){
   const alertBox = document.getElementById('wellnessAlerts');
   const legendBox = document.getElementById('tqrLegend');
   if(legendBox){
-    const anchors = [0,2,4,5,6,8,10].map(n=> `<b style="color:var(--gold);">${n}</b> = ${tqrCaption(n)}`).join(' &nbsp;·&nbsp; ');
+    const anchors = [0,1,2,3,4,5,6,7,8,9,10].map(n=> `<b style="color:var(--gold);">${n}</b> = ${tqrCaption(n)}`).join(' &nbsp;·&nbsp; ');
     legendBox.innerHTML = `🔋 <b>${t('leyendaTqrTitulo')}</b> ${anchors}`;
   }
   if(!tableBox) return;
@@ -3170,6 +3170,7 @@ const BODY_ZONE_LABELS = {
   cabeza_cuello:'Cabeza/Cuello', pecho:'Pecho', abdomen:'Abdomen',
   biceps_izq:'Bíceps Izq.', biceps_der:'Bíceps Der.',
   cuadriceps_izq:'Cuádriceps Izq.', cuadriceps_der:'Cuádriceps Der.',
+  aductor_izq:'Aductor Izq.', aductor_der:'Aductor Der.', inguinal_pubis:'Inguinal/Pubis',
   espinilla_izq:'Espinilla Izq.', espinilla_der:'Espinilla Der.',
   cervical:'Cervical (nuca)', espalda_alta:'Espalda Alta', espalda_baja:'Espalda Baja/Lumbar',
   gluteo_izq:'Glúteo Izq.', gluteo_der:'Glúteo Der.',
@@ -3189,8 +3190,11 @@ const BODY_ZONES_FRONT = [
   {id:'codo_der', cx:168, cy:132, r:9},
   {id:'cadera_izq', cx:92, cy:158, r:11},
   {id:'cadera_der', cx:128, cy:158, r:11},
+  {id:'inguinal_pubis', cx:110, cy:168, r:8},
   {id:'cuadriceps_izq', cx:92, cy:200, r:14},
   {id:'cuadriceps_der', cx:128, cy:200, r:14},
+  {id:'aductor_izq', cx:103, cy:196, r:7},
+  {id:'aductor_der', cx:117, cy:196, r:7},
   {id:'rodilla_izq', cx:92, cy:242, r:10},
   {id:'rodilla_der', cx:128, cy:242, r:10},
   {id:'espinilla_izq', cx:92, cy:280, r:10},
