@@ -684,6 +684,9 @@
           <div id="addPlayerStatus" style="font-size:11px;color:var(--mist);margin-top:6px;"></div>
         </div>
       </span>
+      <span id="manageRosterWrap" style="display:none;margin-left:6px;">
+        <button id="manageRosterBtn" class="upload-btn" style="padding:7px 10px;">⚙️ <span class="i18n-text" data-i18n="gestionarPlantel">Gestionar plantel</span></button>
+      </span>
       <button id="logoutBtn" class="upload-btn" style="border-color:var(--mist);color:var(--mist);margin-left:6px;" data-i18n="cerrarSesion">Cerrar sesión</button>
       <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none;">
       <div id="uploadStatus" class="upload-status"></div>
@@ -727,6 +730,15 @@
         <button id="csvImportConfirm" class="upload-btn" style="flex:1;">Cargar datos</button>
       </div>
       <div id="csvImportStatus" style="font-size:11px;color:var(--mist);margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <div id="manageRosterModal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(20,20,58,.85);align-items:center;justify-content:center;padding:16px;">
+    <div style="background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:14px;padding:22px;max-width:600px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.5);">
+      <h3 style="margin:0 0 6px;font-size:15px;color:var(--bone);">⚙️ <span class="i18n-text" data-i18n="gestionarPlantel">Gestionar plantel</span></h3>
+      <p style="color:var(--mist);font-size:12px;margin:0 0 14px;line-height:1.5;" class="i18n-text" data-i18n="gestionarPlantelDesc">Edita el nombre, categoría o si es arquero. "Archivar" saca al jugador de las listas activas sin borrar su historial ya cargado.</p>
+      <div id="manageRosterList" style="overflow-y:auto;flex:1;"></div>
+      <button id="manageRosterClose" class="upload-btn i18n-text" data-i18n="cerrar" style="width:100%;margin-top:14px;">Cerrar</button>
     </div>
   </div>
 
@@ -1572,17 +1584,23 @@ function applyStaffModeUI(){
       if(showWellnessRpe) rpeView.querySelectorAll('.team-only').forEach(el=> el.style.display = '');
     }
     if(showWellnessRpe){
-      try{
-        buildWellnessTeamList();
-        buildWellnessMetricTabs();
-        buildWellnessTrendChart(true);
-        // renderAll() puede haber fallado a mitad de camino en un club sin GPS (típicamente por la lista
-        // de jugadores vacía) y nunca llegar a armar el panel de RPE — así que lo armamos acá también,
-        // sin depender de que renderAll() lo haya logrado antes.
-        buildRpeTeamList();
-      }catch(e){
-        console.error('applyStaffModeUI: falló al armar Wellness/RPE', e);
-      }
+      // Antes esto llamaba a estas 4 funciones (todas async) sin "await" dentro de un try/catch síncrono —
+      // eso significa que si alguna fallaba, el error pasaba en silencio total, sin que este catch lo agarrara
+      // (para cuando el error ocurre, el catch ya había terminado de ejecutarse). Ahora cada una se espera de
+      // verdad y tiene su propio manejo de error VISIBLE EN PANTALLA (no solo en consola, para poder
+      // diagnosticar esto con una simple captura de celular, sin depender de abrir la consola del navegador).
+      const showBuildError = (containerId, e) => {
+        console.error(`applyStaffModeUI: falló al armar ${containerId}`, e);
+        const el = document.getElementById(containerId);
+        const target = (el && el.tagName === 'CANVAS') ? el.parentElement : el;
+        if(target) target.innerHTML = `<div style="padding:14px 18px;color:var(--bad);font-size:12px;">⚠️ Error al cargar esta sección: ${e && e.message ? e.message : e}</div>`;
+      };
+      (async()=>{
+        try{ await buildWellnessTeamList(); }catch(e){ showBuildError('wellnessTable', e); }
+        try{ buildWellnessMetricTabs(); }catch(e){ console.error('applyStaffModeUI: falló buildWellnessMetricTabs', e); }
+        try{ await buildWellnessTrendChart(true); }catch(e){ showBuildError('wellnessTrendChart', e); }
+        try{ await buildRpeTeamList(); }catch(e){ showBuildError('rpeTeamList', e); }
+      })();
     }
   }
   const partidosView = document.getElementById('partidosView');
@@ -1985,11 +2003,15 @@ async function approvePendingUser(userId, newRole, btnEl){
 
 // ---------- Admin: agregar jugador manualmente a la lista (antes de tener datos de GPS) ----------
 async function getRosterExtraNames(){
-  const {data,error} = await supabaseClient.from('roster_players').select('player_name,is_goalkeeper,categoria').eq('club',CURRENT_CLUB);
+  const {data,error} = await supabaseClient.from('roster_players').select('player_name,is_goalkeeper,categoria,activo').eq('club',CURRENT_CLUB);
   if(error) return [];
-  ROSTER_GK_NAMES = (data||[]).filter(r=>r.is_goalkeeper).map(r=>r.player_name);
-  (data||[]).forEach(r=>{ if(r.categoria) ROSTER_CATEGORIES[normalizeNameKey(r.player_name)] = r.categoria; });
-  const visibles = (data||[]).filter(r => matchesCurrentCategory(r.player_name));
+  // Los jugadores archivados (activo=false, "ya no están en el club") se sacan de todos lados donde se arma
+  // el plantel activo — pero sin borrar nada de su historial de GPS/RPE/Wellness ya cargado.
+  ARCHIVED_PLAYERS = new Set((data||[]).filter(r=>r.activo===false).map(r=>normalizeNameKey(r.player_name)));
+  const activos = (data||[]).filter(r=>r.activo!==false);
+  ROSTER_GK_NAMES = activos.filter(r=>r.is_goalkeeper).map(r=>r.player_name);
+  activos.forEach(r=>{ if(r.categoria) ROSTER_CATEGORIES[normalizeNameKey(r.player_name)] = r.categoria; });
+  const visibles = activos.filter(r => matchesCurrentCategory(r.player_name));
   return visibles.map(r=>r.player_name);
 }
 // Compara nombres ignorando tildes, mayúsculas y espacios de más — para que "Matías Cofré"
@@ -2041,6 +2063,99 @@ function setupCategorySelector(){
     if(typeof currentAdminTab!=='undefined' && currentAdminTab==='wellness'){ buildWellnessTeamList(document.getElementById('wellnessDatePicker')?.value); buildWellnessTrendChart(); }
     if(typeof currentAdminTab!=='undefined' && currentAdminTab==='eficiencia'){ buildEfficiencyRanking(); const dp=document.getElementById('eficienciaDetailPanel'); if(dp) dp.style.display='none'; }
   };
+}
+function setupManageRosterBar(){
+  if(!(myProfile && (myProfile.role==='admin' || myProfile.role==='owner'))) return;
+  const wrap = document.getElementById('manageRosterWrap');
+  if(wrap) wrap.style.display = 'inline-block';
+  const btn = document.getElementById('manageRosterBtn');
+  const modal = document.getElementById('manageRosterModal');
+  const closeBtn = document.getElementById('manageRosterClose');
+  if(btn) btn.onclick = ()=>{ modal.style.display='flex'; buildManageRosterList(); };
+  if(closeBtn) closeBtn.onclick = ()=>{ modal.style.display='none'; };
+  if(modal) modal.onclick = (e)=>{ if(e.target===modal) modal.style.display='none'; };
+}
+async function buildManageRosterList(){
+  const listEl = document.getElementById('manageRosterList');
+  if(!listEl) return;
+  listEl.innerHTML = `<div style="color:var(--mist);font-size:12px;padding:10px 0;">${t('cargando')}</div>`;
+  const {data, error} = await supabaseClient.from('roster_players').select('player_name,is_goalkeeper,categoria,activo').eq('club', CURRENT_CLUB);
+  if(error){ listEl.innerHTML = `<div style="color:var(--bad);font-size:12px;">${tf('noSePudoGuardar',{e:error.message})}</div>`; return; }
+  const rosterMap = new Map();
+  (data||[]).forEach(r=> rosterMap.set(normalizeNameKey(r.player_name), {name:r.player_name, is_goalkeeper:!!r.is_goalkeeper, categoria:r.categoria||'', activo:r.activo!==false}));
+  // Nombres que solo existen en el GPS todavía (nunca se agregaron a mano ni se etiquetaron) — también
+  // tienen que poder editarse/archivarse acá, aunque no tengan fila propia en roster_players todavía.
+  (ACTIVE_EVENTS||[]).forEach(e=>{
+    const key = normalizeNameKey(e.jugador);
+    if(key && !rosterMap.has(key)) rosterMap.set(key, {name:e.jugador, is_goalkeeper:false, categoria:'', activo:true});
+  });
+  const rows = [...rosterMap.values()].sort((a,b)=> a.name.localeCompare(b.name));
+  if(!rows.length){ listEl.innerHTML = `<div style="color:var(--mist);font-size:12px;padding:10px 0;">${t('sinJugadoresTodavia')}</div>`; return; }
+  listEl.innerHTML = rows.map(r=>{
+    return `<div class="manage-roster-row" data-original-name="${r.name.replace(/"/g,'&quot;')}" style="display:flex;gap:6px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);opacity:${r.activo?'1':'.5'};flex-wrap:wrap;">
+      <input type="text" class="mr-name" value="${r.name.replace(/"/g,'&quot;')}" style="flex:2;min-width:130px;padding:6px 8px;border-radius:6px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:12.5px 'IBM Plex Sans';">
+      <select class="mr-categoria" style="padding:6px 6px;border-radius:6px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:11.5px 'IBM Plex Sans';">
+        <option value="" ${!r.categoria?'selected':''}>${t('sinCategoria')}</option>
+        <option value="U16" ${r.categoria==='U16'?'selected':''}>U16</option>
+        <option value="U18" ${r.categoria==='U18'?'selected':''}>U18</option>
+        <option value="U20" ${r.categoria==='U20'?'selected':''}>U20</option>
+      </select>
+      <label style="font-size:11px;color:var(--mist);display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;">
+        <input type="checkbox" class="mr-gk" ${r.is_goalkeeper?'checked':''} style="width:13px;height:13px;cursor:pointer;"> 🧤
+      </label>
+      <button class="upload-btn mr-save" title="${t('guardar')}" style="padding:5px 9px;font-size:11px;">💾</button>
+      <button class="upload-btn mr-toggle" style="padding:5px 9px;font-size:11px;white-space:nowrap;${r.activo?'':'border-color:var(--good);color:var(--good);'}">${r.activo ? '🗑️ '+t('archivar') : '↩️ '+t('reactivar')}</button>
+      <span class="mr-status" style="font-size:10.5px;color:var(--mist);width:100%;"></span>
+    </div>`;
+  }).join('');
+
+  listEl.querySelectorAll('.manage-roster-row').forEach(row=>{
+    const originalName = row.dataset.originalName;
+    const statusEl = row.querySelector('.mr-status');
+    const refreshEverything = async ()=>{
+      await getRosterExtraNames();
+      deriveAll(ACTIVE_EVENTS);
+      renderAll(state.player);
+    };
+    row.querySelector('.mr-save').onclick = async ()=>{
+      const newName = row.querySelector('.mr-name').value.trim();
+      const categoria = row.querySelector('.mr-categoria').value || null;
+      const isGk = row.querySelector('.mr-gk').checked;
+      if(!newName){ statusEl.textContent = t('escribeUnNombre'); return; }
+      statusEl.textContent = t('guardando');
+      const {data:updated, error:updError} = await supabaseClient.from('roster_players')
+        .update({player_name:newName, categoria, is_goalkeeper:isGk})
+        .eq('club', CURRENT_CLUB).eq('player_name', originalName)
+        .select();
+      let saveError = updError;
+      if(!saveError && (!updated || !updated.length)){
+        // No había fila todavía (jugador que solo existía en el GPS) — se crea una nueva.
+        const ins = await supabaseClient.from('roster_players').insert({club:CURRENT_CLUB, player_name:newName, categoria, is_goalkeeper:isGk});
+        saveError = ins.error;
+      }
+      if(saveError){ statusEl.textContent = saveError.code==='23505' ? t('nombreYaEnLista') : tf('noSePudoGuardar',{e:saveError.message}); return; }
+      statusEl.textContent = t('guardadoCheck');
+      row.dataset.originalName = newName;
+      await refreshEverything();
+    };
+    row.querySelector('.mr-toggle').onclick = async ()=>{
+      const activandoDeNuevo = row.querySelector('.mr-toggle').textContent.includes(t('reactivar'));
+      const nuevoActivo = activandoDeNuevo;
+      statusEl.textContent = nuevoActivo ? t('reactivando') : t('archivando');
+      const {data:updated, error:updError} = await supabaseClient.from('roster_players')
+        .update({activo:nuevoActivo})
+        .eq('club', CURRENT_CLUB).eq('player_name', originalName)
+        .select();
+      let saveError = updError;
+      if(!saveError && (!updated || !updated.length)){
+        const ins = await supabaseClient.from('roster_players').insert({club:CURRENT_CLUB, player_name:originalName, activo:nuevoActivo});
+        saveError = ins.error;
+      }
+      if(saveError){ statusEl.textContent = tf('noSePudoGuardar',{e:saveError.message}); return; }
+      await refreshEverything();
+      buildManageRosterList(); // refresca toda la lista para reflejar el nuevo estado (opacidad, botón, etc.)
+    };
+  });
 }
 function setupAddPlayerBar(){
   if(!(myProfile && (myProfile.role==='admin' || myProfile.role==='owner'))) return;
@@ -3726,6 +3841,7 @@ async function startDashboard(){
   await loadWellnessWindow();
   CLUB_FEATURES = await loadClubFeatures(CURRENT_CLUB);
   await loadGkData();
+  await getRosterExtraNames(); // asegura tener ARCHIVED_PLAYERS listo antes de armar la lista de jugadores activos
   document.getElementById('authScreen').style.display='none';
   document.getElementById('nameScreen').style.display='none';
   if(myProfile && myProfile.role==='player'){
@@ -3758,6 +3874,7 @@ async function startDashboard(){
   setupPreviewBar();
   setupGkPreviewBar();
   setupAddPlayerBar();
+  setupManageRosterBar();
   setupUploadButtons();
   setupCategorySelector();
   setupNextMatchBar();
@@ -3884,6 +4001,10 @@ const I18N = {
     comoFueTuRecuperacion:'¿Cómo fue tu recuperación? (TQR)', malAbrev:'mal', bienAbrev:'bien',
     tienesAlgunaMolestia:'¿Tienes alguna molestia? Marca la zona en el cuerpo', frenteLabel:'Frente', espaldaLabel:'Espalda',
     enviarWellness:'Enviar Wellness', observacionesOpcional:'Observaciones (opcional)', observacionesPlaceholder:'Ej: molestia leve, dormí poco, etc.',
+    gestionarPlantel:'Gestionar plantel', gestionarPlantelDesc:'Edita el nombre, categoría o si es arquero. "Archivar" saca al jugador de las listas activas sin borrar su historial ya cargado.',
+    cerrar:'Cerrar', cargando:'Cargando…', sinJugadoresTodavia:'Todavía no hay jugadores cargados.', sinCategoria:'Sin categoría',
+    guardar:'Guardar', archivar:'Archivar', reactivar:'Reactivar', escribeUnNombre:'Escribe un nombre.',
+    guardando:'Guardando…', guardadoCheck:'✅ Guardado', reactivando:'Reactivando…', archivando:'Archivando…',
     objetivoEsteCiclo:'objetivo de este ciclo ({d}d)', objetivoProximoCiclo:'objetivo próximo ciclo ({d}d aprox.)',
     rangoConMargen:'rango {min}–{max}{u} (±{pct}%)', cumplidoCheck:'✓ cumplido', fueraCheck:'⚠ fuera',
     ultimoCicloResumen:'último ciclo ({d}d): {v}{u} ({s}{pct}%)', enCursoLabel:'● En curso ({d}d):', acumuladoLabel:'acumulado',
@@ -4007,6 +4128,10 @@ const I18N = {
     comoFueTuRecuperacion:'How was your recovery? (TQR)', malAbrev:'poor', bienAbrev:'good',
     tienesAlgunaMolestia:'Any discomfort? Mark the area on the body', frenteLabel:'Front', espaldaLabel:'Back',
     enviarWellness:'Submit Wellness', observacionesOpcional:'Notes (optional)', observacionesPlaceholder:'E.g.: mild discomfort, slept little, etc.',
+    gestionarPlantel:'Manage roster', gestionarPlantelDesc:'Edit the name, category, or goalkeeper status. "Archive" removes the player from active lists without deleting their existing history.',
+    cerrar:'Close', cargando:'Loading…', sinJugadoresTodavia:'No players loaded yet.', sinCategoria:'No category',
+    guardar:'Save', archivar:'Archive', reactivar:'Reactivate', escribeUnNombre:'Enter a name.',
+    guardando:'Saving…', guardadoCheck:'✅ Saved', reactivando:'Reactivating…', archivando:'Archiving…',
     objetivoEsteCiclo:'target for this cycle ({d}d)', objetivoProximoCiclo:'target for next cycle ({d}d approx.)',
     rangoConMargen:'range {min}–{max}{u} (±{pct}%)', cumplidoCheck:'✓ met', fueraCheck:'⚠ off target',
     ultimoCicloResumen:'last cycle ({d}d): {v}{u} ({s}{pct}%)', enCursoLabel:'● In progress ({d}d):', acumuladoLabel:'accumulated',
@@ -4130,6 +4255,10 @@ const I18N = {
     comoFueTuRecuperacion:'كيف كان تعافيك؟ (TQR)', malAbrev:'سيئ', bienAbrev:'جيد',
     tienesAlgunaMolestia:'هل تشعر بأي إزعاج؟ حدّد المنطقة على الجسم', frenteLabel:'أمامي', espaldaLabel:'خلفي',
     enviarWellness:'إرسال Wellness', observacionesOpcional:'ملاحظات (اختياري)', observacionesPlaceholder:'مثال: إزعاج خفيف، نمت قليلاً، إلخ.',
+    gestionarPlantel:'إدارة القائمة', gestionarPlantelDesc:'عدّل الاسم أو الفئة أو إن كان حارس مرمى. "أرشفة" يخرج اللاعب من القوائم النشطة دون حذف سجله السابق.',
+    cerrar:'إغلاق', cargando:'جارٍ التحميل…', sinJugadoresTodavia:'لا يوجد لاعبون بعد.', sinCategoria:'بدون فئة',
+    guardar:'حفظ', archivar:'أرشفة', reactivar:'إعادة تفعيل', escribeUnNombre:'أدخل اسمًا.',
+    guardando:'جارٍ الحفظ…', guardadoCheck:'✅ تم الحفظ', reactivando:'جارٍ إعادة التفعيل…', archivando:'جارٍ الأرشفة…',
     objetivoEsteCiclo:'هدف هذه الدورة ({d} يوم)', objetivoProximoCiclo:'هدف الدورة القادمة (~{d} يوم)',
     rangoConMargen:'النطاق {min}–{max}{u} (±{pct}%)', cumplidoCheck:'✓ محقق', fueraCheck:'⚠ خارج النطاق',
     ultimoCicloResumen:'الدورة الأخيرة ({d} يوم): {v}{u} ({s}{pct}%)', enCursoLabel:'● قيد التنفيذ ({d} يوم):', acumuladoLabel:'متراكم',
@@ -4270,9 +4399,11 @@ function isGoalkeeper(playerName){
 }
 
 let players=[], byPlayer={}, playerAvg={}, squadMax={}, squadAvg={}, RECORDS=[], recordByPlayer={};
+let ARCHIVED_PLAYERS = new Set(); // normalizeNameKey(nombre) de jugadores archivados (ya no están en el club) — se
+// sacan de todos lados donde se arma el plantel activo, pero su historial de GPS/RPE/Wellness no se toca.
 
 function deriveAll(events){
-  const filtered = events.filter(e=> matchesCurrentCategory(e.jugador));
+  const filtered = events.filter(e=> matchesCurrentCategory(e.jugador) && !ARCHIVED_PLAYERS.has(normalizeNameKey(e.jugador)));
   players = [...new Set(filtered.map(e=>e.jugador))].sort();
   byPlayer = {};
   players.forEach(p=>{ byPlayer[p] = filtered.filter(e=>e.jugador===p).sort((a,b)=>a.fecha.localeCompare(b.fecha)); });
@@ -4896,6 +5027,7 @@ async function switchToClub(clubName){
   // dejando el dashboard vacío sin razón aparente (todo queda filtrado a una categoría que no existe acá).
   CURRENT_CATEGORY = null;
   ROSTER_CATEGORIES = {};
+  ARCHIVED_PLAYERS = new Set(); // igual que las categorías, es propio de cada club
   try{
     await loadRemoteData();
   }catch(error){
@@ -4907,6 +5039,7 @@ async function switchToClub(clubName){
   await loadWellnessWindow();
   CLUB_FEATURES = await loadClubFeatures(CURRENT_CLUB);
   await loadGkData();
+  await getRosterExtraNames(); // asegura tener ARCHIVED_PLAYERS del club nuevo antes de armar la lista de jugadores
   deriveAll(ACTIVE_EVENTS);
   // RPE_REPORTS_CACHE es global y queda del club anterior — si no se limpia acá, Eficiencia (y otras vistas
   // que lo reusan sin volver a pedirlo) podrían mezclar el RPE de un club con el GPS de otro.
@@ -4924,6 +5057,7 @@ async function switchToClub(clubName){
   setupPreviewBar();
   setupGkPreviewBar();
   setupAddPlayerBar();
+  setupManageRosterBar();
   setupUploadButtons();
   setupCategorySelector();
   setupNextMatchBar();
