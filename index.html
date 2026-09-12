@@ -947,6 +947,7 @@
 
     <div class="panel team-only">
       <div id="wellnessAlerts"></div>
+      <div id="tqrLegend" style="padding:10px 18px;font-size:11px;color:var(--mist);line-height:1.6;border-bottom:1px solid var(--line);"></div>
       <div style="overflow-x:auto;"><div id="wellnessTable"></div></div>
     </div>
 
@@ -2601,7 +2602,19 @@ const WELLNESS_CATEGORIES = [
   {key:'animo', label:{es:'Ánimo / motivación', en:'Mood / motivation', ar:'الحالة المزاجية / الدافع'},
     opts:{es:['Muy enojado e irritable','Mal genio','Menos interesado de lo normal en mis actividades','Buen ánimo y humor','Muy positivo']}},
 ];
-const TQR_CAPTIONS = ['Muy mala, nada recuperado','Mala','Bastante mala','Regular, algo baja','Regular','Regular, algo mejor','Buena','Bastante buena','Muy buena','Excelente, totalmente recuperado'];
+// Escala oficial de TQR (Total Quality Recovery, Kenttä & Hassmén) — va de 0 a 10, y por diseño
+// solo los números "ancla" tienen descripción; los impares intermedios (1,3,7,9) quedan sin texto,
+// tal como en la escala original en papel que usan los preparadores físicos.
+const TQR_CAPTIONS = {
+  es: ['No recuperado / Extremadamente cansado','','Poco recuperado / Bastante cansado','','Algo recuperado','Adecuadamente recuperado','Bastante recuperado','','Bien recuperado / Con gran energía','','Muy bien recuperado / Con mucha energía'],
+  en: ['Not recovered / Extremely tired','','Poorly recovered / Quite tired','','Somewhat recovered','Adequately recovered','Well recovered','','Well recovered / Great energy','','Fully recovered / Great energy'],
+  ar: ['غير متعافٍ / متعب جدًا','','متعافٍ قليلًا / متعب جدًا','','متعافٍ إلى حد ما','متعافٍ بشكل مناسب','متعافٍ جيدًا','','متعافٍ جيدًا / طاقة عالية','','متعافٍ تمامًا / طاقة عالية جدًا'],
+};
+function tqrCaption(n){
+  if(n===null || n===undefined) return '';
+  const arr = TQR_CAPTIONS[currentLang] || TQR_CAPTIONS.es;
+  return arr[n] || '';
+}
 let wellnessState = { values:{}, zonas:[], view:'front' };
 function renderBodyMapSvg(){
   const zones = wellnessState.view==='front' ? BODY_ZONES_FRONT : BODY_ZONES_BACK;
@@ -2639,7 +2652,7 @@ function buildWellnessWidget(existing){
 
   if(existing){
     const zonas = existing.zonas_dolor || [];
-    const tqrDesc = (existing.tqr && TQR_CAPTIONS[existing.tqr-1]) ? TQR_CAPTIONS[existing.tqr-1] : '';
+    const tqrDesc = tqrCaption(existing.tqr);
     const tqrCard = `<div style="flex:1;min-width:130px;padding:10px 12px;border-radius:8px;border:2px solid var(--gold);background:rgba(255,255,255,.03);">
         <div style="font-size:11px;color:var(--mist);margin-bottom:4px;">🔋 Recuperación (TQR)</div>
         <div style="font-size:20px;font-weight:800;color:var(--bone);">${existing.tqr??'—'}<span style="font-size:12px;color:var(--mist);">/10</span></div>
@@ -2681,9 +2694,9 @@ function buildWellnessWidget(existing){
 
   const tqrRow = `
     <div style="margin-bottom:14px;">
-      <div style="font-size:12px;color:var(--mist);margin-bottom:5px;">🔋 ¿Cómo fue tu recuperación? (TQR) <span style="opacity:.6;">(1 mal · 10 bien)</span></div>
+      <div style="font-size:12px;color:var(--mist);margin-bottom:5px;">🔋 ¿Cómo fue tu recuperación? (TQR) <span style="opacity:.6;">(0 mal · 10 bien)</span></div>
       <div style="display:flex;gap:4px;flex-wrap:wrap;" data-cat="tqr">
-        ${[1,2,3,4,5,6,7,8,9,10].map(n=>`<button type="button" class="wcat-btn" data-cat="tqr" data-n="${n}" style="flex:1;min-width:26px;padding:9px 0;border-radius:8px;border:2px solid transparent;background:rgba(255,255,255,.03);color:var(--bone);font:700 12px 'IBM Plex Mono';cursor:pointer;">${n}</button>`).join('')}
+        ${[0,1,2,3,4,5,6,7,8,9,10].map(n=>`<button type="button" class="wcat-btn" data-cat="tqr" data-n="${n}" style="flex:1;min-width:26px;padding:9px 0;border-radius:8px;border:2px solid transparent;background:rgba(255,255,255,.03);color:var(--bone);font:700 12px 'IBM Plex Mono';cursor:pointer;">${n}</button>`).join('')}
       </div>
       <div id="wcap-tqr" style="font-size:11px;color:var(--gold);margin-top:5px;min-height:14px;font-style:italic;"></div>
     </div>`;
@@ -2723,7 +2736,7 @@ function buildWellnessWidget(existing){
           const opts = catDef.opts[currentLang] || catDef.opts.es;
           capEl.textContent = opts[n-1] || '';
         } else if(cat==='tqr' && capEl){
-          capEl.textContent = TQR_CAPTIONS[n-1] || '';
+          capEl.textContent = tqrCaption(n);
         }
         checkReady();
       });
@@ -3022,6 +3035,11 @@ async function buildWellnessTeamList(fecha){
   const kpiBox = document.getElementById('wellnessKpi');
   const tableBox = document.getElementById('wellnessTable');
   const alertBox = document.getElementById('wellnessAlerts');
+  const legendBox = document.getElementById('tqrLegend');
+  if(legendBox){
+    const anchors = [0,2,4,5,6,8,10].map(n=> `<b style="color:var(--gold);">${n}</b> = ${tqrCaption(n)}`).join(' &nbsp;·&nbsp; ');
+    legendBox.innerHTML = `🔋 <b>${t('leyendaTqrTitulo')}</b> ${anchors}`;
+  }
   if(!tableBox) return;
   const targetDate = fecha || todayISO();
   const isToday = targetDate === todayISO();
@@ -3094,7 +3112,7 @@ async function buildWellnessTeamList(fecha){
         <td class="mono">${r.animo??'—'}</td>
         <td class="mono" style="font-weight:800;font-size:15px;color:${scoreColor(sc)};">${sc!==null?sc.toFixed(1):'—'}</td>
         <td class="mono">${tm??'—'}<span style="color:var(--mist);font-size:10px;">/10</span></td>
-        <td class="mono">${r.tqr??'—'}<span style="color:var(--mist);font-size:10px;">/10</span></td>
+        <td class="mono" ${tqrCaption(r.tqr) ? `title="${tqrCaption(r.tqr)}"` : ''}>${r.tqr??'—'}<span style="color:var(--mist);font-size:10px;">/10</span></td>
         <td style="color:${zonas?'var(--bad)':'var(--mist)'};font-size:11.5px;">${zonas||'—'}</td>
         <td style="color:var(--mist);font-size:11.5px;">${r.observacion||''}</td>
       </tr>`;
@@ -3810,6 +3828,7 @@ const I18N = {
     subirCargaSimple:'Sube la carga — vas por debajo del último ciclo en todo.',
     mantenerCargaSimple:'Mantén la carga — vas dentro del margen del último ciclo.',
     metaTotalCiclo:'Meta total ({d} días)',
+    leyendaTqrTitulo:'Escala TQR (Recuperación) 0-10:',
     objetivoEsteCiclo:'objetivo de este ciclo ({d}d)', objetivoProximoCiclo:'objetivo próximo ciclo ({d}d aprox.)',
     rangoConMargen:'rango {min}–{max}{u} (±{pct}%)', cumplidoCheck:'✓ cumplido', fueraCheck:'⚠ fuera',
     ultimoCicloResumen:'último ciclo ({d}d): {v}{u} ({s}{pct}%)', enCursoLabel:'● En curso ({d}d):', acumuladoLabel:'acumulado',
@@ -3927,6 +3946,7 @@ const I18N = {
     subirCargaSimple:'Increase the load — you\'re below the last cycle across the board.',
     mantenerCargaSimple:'Keep the load as is — you\'re within the margin of the last cycle.',
     metaTotalCiclo:'Total target ({d} days)',
+    leyendaTqrTitulo:'TQR Scale (Recovery) 0-10:',
     objetivoEsteCiclo:'target for this cycle ({d}d)', objetivoProximoCiclo:'target for next cycle ({d}d approx.)',
     rangoConMargen:'range {min}–{max}{u} (±{pct}%)', cumplidoCheck:'✓ met', fueraCheck:'⚠ off target',
     ultimoCicloResumen:'last cycle ({d}d): {v}{u} ({s}{pct}%)', enCursoLabel:'● In progress ({d}d):', acumuladoLabel:'accumulated',
@@ -4044,6 +4064,7 @@ const I18N = {
     subirCargaSimple:'زِد الحمل — أنت أقل من الدورة الأخيرة في كل شيء.',
     mantenerCargaSimple:'حافظ على الحمل — أنت ضمن هامش الدورة الأخيرة.',
     metaTotalCiclo:'الهدف الإجمالي ({d} أيام)',
+    leyendaTqrTitulo:'مقياس TQR (التعافي) 0-10:',
     objetivoEsteCiclo:'هدف هذه الدورة ({d} يوم)', objetivoProximoCiclo:'هدف الدورة القادمة (~{d} يوم)',
     rangoConMargen:'النطاق {min}–{max}{u} (±{pct}%)', cumplidoCheck:'✓ محقق', fueraCheck:'⚠ خارج النطاق',
     ultimoCicloResumen:'الدورة الأخيرة ({d} يوم): {v}{u} ({s}{pct}%)', enCursoLabel:'● قيد التنفيذ ({d} يوم):', acumuladoLabel:'متراكم',
