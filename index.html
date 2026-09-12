@@ -925,8 +925,8 @@
     <div class="panel team-only" id="wellnessPlantelPanel" style="margin-bottom:18px;">
       <button type="button" class="panel-dl-btn" data-target="wellnessPlantelPanel" data-nombre="Wellness del plantel" title="Descargar esta sección como imagen">⬇</button>
       <div class="panel-head">
-        <h3>💚 Wellness del plantel</h3>
-        <span class="tag">reporte diario · antes de entrenar</span>
+        <h3>💚 <span class="i18n-text" data-i18n="wellnessDelPlantel">Wellness del plantel</span></h3>
+        <span class="tag i18n-text" data-i18n="reporteDiarioAntesEntrenar">reporte diario · antes de entrenar</span>
       </div>
       <div id="wellnessWindowWrap" style="position:relative;display:none;padding:0 18px 12px;">
         <button id="wellnessWindowBtn" class="upload-btn" style="padding:7px 10px;">🕐 Horario de Wellness</button>
@@ -1134,8 +1134,8 @@
 
   <div class="panel" id="wellnessPanel" style="display:none;margin-bottom:18px;">
     <div class="panel-head">
-      <h3>💚 ¿Cómo llegaste hoy?</h3>
-      <span class="tag">Wellness diario · antes de entrenar</span>
+      <h3>💚 <span class="i18n-text" data-i18n="comoLlegasteHoy">¿Cómo llegaste hoy?</span></h3>
+      <span class="tag i18n-text" data-i18n="wellnessDiarioAntesEntrenar">Wellness diario · antes de entrenar</span>
     </div>
     <div id="wellnessForm" style="margin:10px 0;"></div>
     <button id="wellnessSubmit" class="upload-btn" style="margin-top:4px;" disabled>Enviar Wellness</button>
@@ -2685,7 +2685,7 @@ function buildWellnessWidget(existing){
 
   const catRows = WELLNESS_CATEGORIES.map(c=>`
     <div style="margin-bottom:14px;">
-      <div style="font-size:12px;color:var(--mist);margin-bottom:5px;">${c.label[currentLang]||c.label.es} <span style="opacity:.6;">(1 mal · 5 bien)</span></div>
+      <div style="font-size:12px;color:var(--mist);margin-bottom:5px;">${c.label[currentLang]||c.label.es} <span style="opacity:.6;">(1 ${t('malAbrev')} · 5 ${t('bienAbrev')})</span></div>
       <div style="display:flex;gap:6px;" data-cat="${c.key}">
         ${[1,2,3,4,5].map(n=>`<button type="button" class="wcat-btn" data-cat="${c.key}" data-n="${n}" style="flex:1;padding:9px 0;border-radius:8px;border:2px solid transparent;background:rgba(255,255,255,.03);color:var(--bone);font:700 13px 'IBM Plex Mono';cursor:pointer;">${n}</button>`).join('')}
       </div>
@@ -2694,7 +2694,7 @@ function buildWellnessWidget(existing){
 
   const tqrRow = `
     <div style="margin-bottom:14px;">
-      <div style="font-size:12px;color:var(--mist);margin-bottom:5px;">🔋 ¿Cómo fue tu recuperación? (TQR) <span style="opacity:.6;">(0 mal · 10 bien)</span></div>
+      <div style="font-size:12px;color:var(--mist);margin-bottom:5px;">🔋 ${t('comoFueTuRecuperacion')} <span style="opacity:.6;">(0 ${t('malAbrev')} · 10 ${t('bienAbrev')})</span></div>
       <div style="display:flex;gap:4px;flex-wrap:wrap;" data-cat="tqr">
         ${[0,1,2,3,4,5,6,7,8,9,10].map(n=>`<button type="button" class="wcat-btn" data-cat="tqr" data-n="${n}" style="flex:1;min-width:26px;padding:9px 0;border-radius:8px;border:2px solid transparent;background:rgba(255,255,255,.03);color:var(--bone);font:700 12px 'IBM Plex Mono';cursor:pointer;">${n}</button>`).join('')}
       </div>
@@ -2706,10 +2706,10 @@ function buildWellnessWidget(existing){
     ${tqrRow}
     <div style="margin-top:14px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <span style="font-size:12px;color:var(--mist);">🩹 ¿Tienes alguna molestia? Marca la zona en el cuerpo</span>
+        <span style="font-size:12px;color:var(--mist);">🩹 ${t('tienesAlgunaMolestia')}</span>
         <span style="display:flex;gap:4px;">
-          <button type="button" id="bodyViewFront" class="upload-btn" style="padding:5px 10px;font-size:11px;">Frente</button>
-          <button type="button" id="bodyViewBack" class="upload-btn" style="padding:5px 10px;font-size:11px;">Espalda</button>
+          <button type="button" id="bodyViewFront" class="upload-btn" style="padding:5px 10px;font-size:11px;">${t('frenteLabel')}</button>
+          <button type="button" id="bodyViewBack" class="upload-btn" style="padding:5px 10px;font-size:11px;">${t('espaldaLabel')}</button>
         </span>
       </div>
       <div id="bodyMapWrap">${renderBodyMapSvg()}</div>
@@ -3833,6 +3833,10 @@ const I18N = {
     mantenerCargaSimple:'Mantén la carga — vas dentro del margen del último ciclo.',
     metaTotalCiclo:'Meta total ({d} días)',
     leyendaTqrTitulo:'Escala TQR (Recuperación) 0-10:',
+    comoLlegasteHoy:'¿Cómo llegaste hoy?', wellnessDiarioAntesEntrenar:'Wellness diario · antes de entrenar',
+    reporteDiarioAntesEntrenar:'reporte diario · antes de entrenar', wellnessDelPlantel:'Wellness del plantel',
+    comoFueTuRecuperacion:'¿Cómo fue tu recuperación? (TQR)', malAbrev:'mal', bienAbrev:'bien',
+    tienesAlgunaMolestia:'¿Tienes alguna molestia? Marca la zona en el cuerpo', frenteLabel:'Frente', espaldaLabel:'Espalda',
     objetivoEsteCiclo:'objetivo de este ciclo ({d}d)', objetivoProximoCiclo:'objetivo próximo ciclo ({d}d aprox.)',
     rangoConMargen:'rango {min}–{max}{u} (±{pct}%)', cumplidoCheck:'✓ cumplido', fueraCheck:'⚠ fuera',
     ultimoCicloResumen:'último ciclo ({d}d): {v}{u} ({s}{pct}%)', enCursoLabel:'● En curso ({d}d):', acumuladoLabel:'acumulado',
@@ -3951,6 +3955,10 @@ const I18N = {
     mantenerCargaSimple:'Keep the load as is — you\'re within the margin of the last cycle.',
     metaTotalCiclo:'Total target ({d} days)',
     leyendaTqrTitulo:'TQR Scale (Recovery) 0-10:',
+    comoLlegasteHoy:'How did you arrive today?', wellnessDiarioAntesEntrenar:'Daily wellness · before training',
+    reporteDiarioAntesEntrenar:'daily report · before training', wellnessDelPlantel:'Squad wellness',
+    comoFueTuRecuperacion:'How was your recovery? (TQR)', malAbrev:'poor', bienAbrev:'good',
+    tienesAlgunaMolestia:'Any discomfort? Mark the area on the body', frenteLabel:'Front', espaldaLabel:'Back',
     objetivoEsteCiclo:'target for this cycle ({d}d)', objetivoProximoCiclo:'target for next cycle ({d}d approx.)',
     rangoConMargen:'range {min}–{max}{u} (±{pct}%)', cumplidoCheck:'✓ met', fueraCheck:'⚠ off target',
     ultimoCicloResumen:'last cycle ({d}d): {v}{u} ({s}{pct}%)', enCursoLabel:'● In progress ({d}d):', acumuladoLabel:'accumulated',
@@ -4069,6 +4077,10 @@ const I18N = {
     mantenerCargaSimple:'حافظ على الحمل — أنت ضمن هامش الدورة الأخيرة.',
     metaTotalCiclo:'الهدف الإجمالي ({d} أيام)',
     leyendaTqrTitulo:'مقياس TQR (التعافي) 0-10:',
+    comoLlegasteHoy:'كيف وصلت اليوم؟', wellnessDiarioAntesEntrenar:'تقرير يومي · قبل التمرين',
+    reporteDiarioAntesEntrenar:'تقرير يومي · قبل التمرين', wellnessDelPlantel:'حالة الفريق',
+    comoFueTuRecuperacion:'كيف كان تعافيك؟ (TQR)', malAbrev:'سيئ', bienAbrev:'جيد',
+    tienesAlgunaMolestia:'هل تشعر بأي إزعاج؟ حدّد المنطقة على الجسم', frenteLabel:'أمامي', espaldaLabel:'خلفي',
     objetivoEsteCiclo:'هدف هذه الدورة ({d} يوم)', objetivoProximoCiclo:'هدف الدورة القادمة (~{d} يوم)',
     rangoConMargen:'النطاق {min}–{max}{u} (±{pct}%)', cumplidoCheck:'✓ محقق', fueraCheck:'⚠ خارج النطاق',
     ultimoCicloResumen:'الدورة الأخيرة ({d} يوم): {v}{u} ({s}{pct}%)', enCursoLabel:'● قيد التنفيذ ({d} يوم):', acumuladoLabel:'متراكم',
