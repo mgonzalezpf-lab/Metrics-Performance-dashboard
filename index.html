@@ -1138,7 +1138,7 @@
       <span class="tag i18n-text" data-i18n="wellnessDiarioAntesEntrenar">Wellness diario · antes de entrenar</span>
     </div>
     <div id="wellnessForm" style="margin:10px 0;"></div>
-    <button id="wellnessSubmit" class="upload-btn" style="margin-top:4px;" disabled>Enviar Wellness</button>
+    <button id="wellnessSubmit" class="upload-btn i18n-text" data-i18n="enviarWellness" style="margin-top:4px;" disabled>Enviar Wellness</button>
     <div id="wellnessStatus" class="rpe-status-msg" style="margin-top:8px;"></div>
   </div>
 
@@ -2671,7 +2671,7 @@ function buildWellnessWidget(existing){
       }).join('')}
       ${tqrCard}
     </div>
-    ${zonas.length ? `<div style="font-size:12px;color:var(--warn);margin-bottom:6px;">🩹 Zonas reportadas: ${zonas.map(z=>`${BODY_ZONE_LABELS[z.zona]||z.zona} (${z.tipo})`).join(', ')}</div>` : ''}
+    ${zonas.length ? `<div style="font-size:12px;color:var(--warn);margin-bottom:6px;">🩹 Zonas reportadas: ${zonas.map(z=>`${zoneLabel(z.zona)} (${painTypeLabel(z.tipo)})`).join(', ')}</div>` : ''}
     ${existing.observacion ? `<div style="font-size:12px;color:var(--mist);font-style:italic;">"${existing.observacion}"</div>` : ''}`;
     submitBtn.style.display = 'none';
     status.textContent = `✅ Ya enviaste tu Wellness de hoy. Podrás reportar de nuevo mañana.`;
@@ -2716,8 +2716,8 @@ function buildWellnessWidget(existing){
       <div id="zonasSeleccionadas" style="margin-top:8px;display:flex;flex-direction:column;gap:6px;"></div>
     </div>
     <div style="margin-top:14px;">
-      <div style="font-size:12px;color:var(--mist);margin-bottom:5px;">Observaciones (opcional)</div>
-      <textarea id="wellnessObs" rows="2" style="width:100%;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:8px;color:var(--bone);font:400 12.5px 'IBM Plex Mono';padding:8px;resize:vertical;" placeholder="Ej: molestia leve, dormí poco, etc."></textarea>
+      <div style="font-size:12px;color:var(--mist);margin-bottom:5px;">${t('observacionesOpcional')}</div>
+      <textarea id="wellnessObs" rows="2" style="width:100%;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:8px;color:var(--bone);font:400 12.5px 'IBM Plex Mono';padding:8px;resize:vertical;" placeholder="${t('observacionesPlaceholder')}"></textarea>
     </div>`;
 
   function wireCatButtons(){
@@ -2748,9 +2748,9 @@ function buildWellnessWidget(existing){
     if(!wellnessState.zonas.length){ wrap.innerHTML=''; return; }
     wrap.innerHTML = wellnessState.zonas.map((z,i)=>`
       <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(251,113,133,.08);border:1px solid rgba(251,113,133,.3);border-radius:6px;font-size:11.5px;">
-        <span style="flex:1;color:var(--bone);">${BODY_ZONE_LABELS[z.zona]||z.zona}</span>
+        <span style="flex:1;color:var(--bone);">${zoneLabel(z.zona)}</span>
         <select data-zi="${i}" class="zona-tipo-select" style="background:var(--pitch-800);color:var(--bone);border:1px solid var(--line);border-radius:5px;font:400 11px 'IBM Plex Mono';padding:2px 4px;">
-          ${PAIN_TYPES.map(t=>`<option value="${t}" ${z.tipo===t?'selected':''}>${t}</option>`).join('')}
+          ${PAIN_TYPE_KEYS.map(k=>`<option value="${k}" ${painTypeKey(z.tipo)===k?'selected':''}>${painTypeLabel(k)}</option>`).join('')}
         </select>
         <button type="button" data-zi="${i}" class="zona-quitar" style="background:none;border:none;color:var(--bad);cursor:pointer;font-size:14px;">✕</button>
       </div>`).join('');
@@ -2775,7 +2775,7 @@ function buildWellnessWidget(existing){
         const zonaId = el.dataset.zona;
         const existente = wellnessState.zonas.find(z=>z.zona===zonaId);
         if(existente){ wellnessState.zonas = wellnessState.zonas.filter(z=>z.zona!==zonaId); }
-        else{ wellnessState.zonas.push({zona:zonaId, tipo:PAIN_TYPES[0]}); }
+        else{ wellnessState.zonas.push({zona:zonaId, tipo:PAIN_TYPE_KEYS[0]}); }
         redrawBodyMap(); renderZonasList();
       });
     });
@@ -3078,7 +3078,7 @@ async function buildWellnessTeamList(fecha){
     alertBox.innerHTML = !conDolor.length ? '' : `<div style="padding:12px 14px;background:rgba(251,113,133,.08);border:1px solid rgba(251,113,133,.3);border-radius:10px;margin-bottom:14px;">
       <div style="font-size:12.5px;color:var(--bad);font-weight:700;margin-bottom:6px;">⚠️ ${tf('alertaDolor', {n:conDolor.length, d:diaTxt})}</div>
       ${conDolor.map(r=>`<div style="font-size:12px;color:var(--bone);margin-bottom:3px;">
-        <b>${r.player_name}</b>: ${(r.zonas_dolor||[]).map(z=>`${BODY_ZONE_LABELS[z.zona]||z.zona} (${z.tipo})`).join(', ')}
+        <b>${r.player_name}</b>: ${(r.zonas_dolor||[]).map(z=>`${zoneLabel(z.zona)} (${painTypeLabel(z.tipo)})`).join(', ')}
       </div>`).join('')}
     </div>`;
   }
@@ -3101,7 +3101,7 @@ async function buildWellnessTeamList(fecha){
       if(!r) return `<tr><td class="mono" style="color:var(--mist);">${num}</td><td><b>${p}</b></td><td colspan="10" style="color:var(--mist);">${isToday?t('sinReportarHoy'):t('sinReportarDia')}</td></tr>`;
       const sc = scoreOf(r);
       const tm = totalMuscularOf(r);
-      const zonas = (r.zonas_dolor||[]).map(z=> BODY_ZONE_LABELS[z.zona]||z.zona).join(', ');
+      const zonas = (r.zonas_dolor||[]).map(z=> zoneLabel(z.zona)).join(', ');
       return `<tr>
         <td class="mono" style="color:var(--mist);">${num}</td>
         <td><b>${p}</b></td>
@@ -3156,27 +3156,69 @@ let RPE_WINDOW_END = '23:59';
 let CLUB_FEATURES = {gps:true, rpe_wellness:true, active:true}; // por defecto, todo activo (compatibilidad con clubes ya existentes)
 let WELLNESS_WINDOW_START = '05:00';
 let WELLNESS_WINDOW_END = '11:00';
-const PAIN_TYPES = ['Muscular','Articular','Tendinoso','Óseo/Golpe','Otro'];
+const PAIN_TYPE_KEYS = ['muscular','articular','tendinoso','oseo','otro'];
+const PAIN_TYPE_LABELS_I18N = {
+  es: {muscular:'Muscular', articular:'Articular', tendinoso:'Tendinoso', oseo:'Óseo/Golpe', otro:'Otro'},
+  en: {muscular:'Muscular', articular:'Joint', tendinoso:'Tendon', oseo:'Bone/Impact', otro:'Other'},
+  ar: {muscular:'عضلي', articular:'مفصلي', tendinoso:'وتري', oseo:'عظمي/ضربة', otro:'آخر'},
+};
+// Compatibilidad con reportes guardados ANTES de este cambio, cuando se guardaba directo el texto en
+// español (ej. "Óseo/Golpe") en vez de una clave neutral de idioma (ej. "oseo") — así los reportes viejos
+// se siguen traduciendo bien, en vez de mostrar el texto crudo en español sin importar el idioma elegido.
+const PAIN_TYPE_LEGACY_MAP = {'Muscular':'muscular','Articular':'articular','Tendinoso':'tendinoso','Óseo/Golpe':'oseo','Otro':'otro'};
+function painTypeKey(raw){
+  if(!raw) return PAIN_TYPE_KEYS[0];
+  if(PAIN_TYPE_KEYS.includes(raw)) return raw;
+  return PAIN_TYPE_LEGACY_MAP[raw] || 'otro';
+}
+function painTypeLabel(raw){
+  const dict = PAIN_TYPE_LABELS_I18N[currentLang] || PAIN_TYPE_LABELS_I18N.es;
+  return dict[painTypeKey(raw)] || raw;
+}
 // Zonas compartidas: aparecen igual en la vista de frente y de espalda (misma articulación, se ve desde ambos lados)
-const BODY_ZONES_SHARED = {
-  hombro_izq:'Hombro Izq.', hombro_der:'Hombro Der.',
-  codo_izq:'Codo Izq.', codo_der:'Codo Der.',
-  cadera_izq:'Cadera Izq.', cadera_der:'Cadera Der.',
-  rodilla_izq:'Rodilla Izq.', rodilla_der:'Rodilla Der.',
-  tobillo_izq:'Tobillo Izq.', tobillo_der:'Tobillo Der.',
+const BODY_ZONE_LABELS_I18N = {
+  es: { hombro_izq:'Hombro Izq.', hombro_der:'Hombro Der.', codo_izq:'Codo Izq.', codo_der:'Codo Der.',
+    cadera_izq:'Cadera Izq.', cadera_der:'Cadera Der.', rodilla_izq:'Rodilla Izq.', rodilla_der:'Rodilla Der.',
+    tobillo_izq:'Tobillo Izq.', tobillo_der:'Tobillo Der.',
+    cabeza_cuello:'Cabeza/Cuello', pecho:'Pecho', abdomen:'Abdomen',
+    biceps_izq:'Bíceps Izq.', biceps_der:'Bíceps Der.',
+    cuadriceps_izq:'Cuádriceps Izq.', cuadriceps_der:'Cuádriceps Der.',
+    aductor_izq:'Aductor Izq.', aductor_der:'Aductor Der.', inguinal_pubis:'Inguinal/Pubis',
+    espinilla_izq:'Espinilla Izq.', espinilla_der:'Espinilla Der.',
+    cervical:'Cervical (nuca)', espalda_alta:'Espalda Alta', espalda_baja:'Espalda Baja/Lumbar',
+    gluteo_izq:'Glúteo Izq.', gluteo_der:'Glúteo Der.',
+    isquios_izq:'Isquiotibiales Izq.', isquios_der:'Isquiotibiales Der.',
+    gemelo_izq:'Gemelo Izq.', gemelo_der:'Gemelo Der.' },
+  en: { hombro_izq:'Left Shoulder', hombro_der:'Right Shoulder', codo_izq:'Left Elbow', codo_der:'Right Elbow',
+    cadera_izq:'Left Hip', cadera_der:'Right Hip', rodilla_izq:'Left Knee', rodilla_der:'Right Knee',
+    tobillo_izq:'Left Ankle', tobillo_der:'Right Ankle',
+    cabeza_cuello:'Head/Neck', pecho:'Chest', abdomen:'Abdomen',
+    biceps_izq:'Left Bicep', biceps_der:'Right Bicep',
+    cuadriceps_izq:'Left Quad', cuadriceps_der:'Right Quad',
+    aductor_izq:'Left Adductor', aductor_der:'Right Adductor', inguinal_pubis:'Groin/Pubis',
+    espinilla_izq:'Left Shin', espinilla_der:'Right Shin',
+    cervical:'Cervical (neck)', espalda_alta:'Upper Back', espalda_baja:'Lower Back/Lumbar',
+    gluteo_izq:'Left Glute', gluteo_der:'Right Glute',
+    isquios_izq:'Left Hamstring', isquios_der:'Right Hamstring',
+    gemelo_izq:'Left Calf', gemelo_der:'Right Calf' },
+  ar: { hombro_izq:'الكتف الأيسر', hombro_der:'الكتف الأيمن', codo_izq:'الكوع الأيسر', codo_der:'الكوع الأيمن',
+    cadera_izq:'الورك الأيسر', cadera_der:'الورك الأيمن', rodilla_izq:'الركبة اليسرى', rodilla_der:'الركبة اليمنى',
+    tobillo_izq:'الكاحل الأيسر', tobillo_der:'الكاحل الأيمن',
+    cabeza_cuello:'الرأس/الرقبة', pecho:'الصدر', abdomen:'البطن',
+    biceps_izq:'العضلة الأمامية اليسرى', biceps_der:'العضلة الأمامية اليمنى',
+    cuadriceps_izq:'الفخذ الأمامي الأيسر', cuadriceps_der:'الفخذ الأمامي الأيمن',
+    aductor_izq:'المقرّبة اليسرى', aductor_der:'المقرّبة اليمنى', inguinal_pubis:'الأربية/العانة',
+    espinilla_izq:'قصبة الساق اليسرى', espinilla_der:'قصبة الساق اليمنى',
+    cervical:'عنقي (الرقبة)', espalda_alta:'أعلى الظهر', espalda_baja:'أسفل الظهر/القطني',
+    gluteo_izq:'الأرداف اليسرى', gluteo_der:'الأرداف اليمنى',
+    isquios_izq:'أوتار الركبة اليسرى', isquios_der:'أوتار الركبة اليمنى',
+    gemelo_izq:'ربلة الساق اليسرى', gemelo_der:'ربلة الساق اليمنى' },
 };
-const BODY_ZONE_LABELS = {
-  ...BODY_ZONES_SHARED,
-  cabeza_cuello:'Cabeza/Cuello', pecho:'Pecho', abdomen:'Abdomen',
-  biceps_izq:'Bíceps Izq.', biceps_der:'Bíceps Der.',
-  cuadriceps_izq:'Cuádriceps Izq.', cuadriceps_der:'Cuádriceps Der.',
-  aductor_izq:'Aductor Izq.', aductor_der:'Aductor Der.', inguinal_pubis:'Inguinal/Pubis',
-  espinilla_izq:'Espinilla Izq.', espinilla_der:'Espinilla Der.',
-  cervical:'Cervical (nuca)', espalda_alta:'Espalda Alta', espalda_baja:'Espalda Baja/Lumbar',
-  gluteo_izq:'Glúteo Izq.', gluteo_der:'Glúteo Der.',
-  isquios_izq:'Isquiotibiales Izq.', isquios_der:'Isquiotibiales Der.',
-  gemelo_izq:'Gemelo Izq.', gemelo_der:'Gemelo Der.',
-};
+function zoneLabel(id){
+  if(!id) return '';
+  const dict = BODY_ZONE_LABELS_I18N[currentLang] || BODY_ZONE_LABELS_I18N.es;
+  return dict[id] || id;
+}
 // Posiciones (cx,cy,r) sobre un viewBox de 220x400, para cada vista
 const BODY_ZONES_FRONT = [
   {id:'cabeza_cuello', cx:110, cy:26, r:15},
@@ -3837,6 +3879,7 @@ const I18N = {
     reporteDiarioAntesEntrenar:'reporte diario · antes de entrenar', wellnessDelPlantel:'Wellness del plantel',
     comoFueTuRecuperacion:'¿Cómo fue tu recuperación? (TQR)', malAbrev:'mal', bienAbrev:'bien',
     tienesAlgunaMolestia:'¿Tienes alguna molestia? Marca la zona en el cuerpo', frenteLabel:'Frente', espaldaLabel:'Espalda',
+    enviarWellness:'Enviar Wellness', observacionesOpcional:'Observaciones (opcional)', observacionesPlaceholder:'Ej: molestia leve, dormí poco, etc.',
     objetivoEsteCiclo:'objetivo de este ciclo ({d}d)', objetivoProximoCiclo:'objetivo próximo ciclo ({d}d aprox.)',
     rangoConMargen:'rango {min}–{max}{u} (±{pct}%)', cumplidoCheck:'✓ cumplido', fueraCheck:'⚠ fuera',
     ultimoCicloResumen:'último ciclo ({d}d): {v}{u} ({s}{pct}%)', enCursoLabel:'● En curso ({d}d):', acumuladoLabel:'acumulado',
@@ -3959,6 +4002,7 @@ const I18N = {
     reporteDiarioAntesEntrenar:'daily report · before training', wellnessDelPlantel:'Squad wellness',
     comoFueTuRecuperacion:'How was your recovery? (TQR)', malAbrev:'poor', bienAbrev:'good',
     tienesAlgunaMolestia:'Any discomfort? Mark the area on the body', frenteLabel:'Front', espaldaLabel:'Back',
+    enviarWellness:'Submit Wellness', observacionesOpcional:'Notes (optional)', observacionesPlaceholder:'E.g.: mild discomfort, slept little, etc.',
     objetivoEsteCiclo:'target for this cycle ({d}d)', objetivoProximoCiclo:'target for next cycle ({d}d approx.)',
     rangoConMargen:'range {min}–{max}{u} (±{pct}%)', cumplidoCheck:'✓ met', fueraCheck:'⚠ off target',
     ultimoCicloResumen:'last cycle ({d}d): {v}{u} ({s}{pct}%)', enCursoLabel:'● In progress ({d}d):', acumuladoLabel:'accumulated',
@@ -4081,6 +4125,7 @@ const I18N = {
     reporteDiarioAntesEntrenar:'تقرير يومي · قبل التمرين', wellnessDelPlantel:'حالة الفريق',
     comoFueTuRecuperacion:'كيف كان تعافيك؟ (TQR)', malAbrev:'سيئ', bienAbrev:'جيد',
     tienesAlgunaMolestia:'هل تشعر بأي إزعاج؟ حدّد المنطقة على الجسم', frenteLabel:'أمامي', espaldaLabel:'خلفي',
+    enviarWellness:'إرسال Wellness', observacionesOpcional:'ملاحظات (اختياري)', observacionesPlaceholder:'مثال: إزعاج خفيف، نمت قليلاً، إلخ.',
     objetivoEsteCiclo:'هدف هذه الدورة ({d} يوم)', objetivoProximoCiclo:'هدف الدورة القادمة (~{d} يوم)',
     rangoConMargen:'النطاق {min}–{max}{u} (±{pct}%)', cumplidoCheck:'✓ محقق', fueraCheck:'⚠ خارج النطاق',
     ultimoCicloResumen:'الدورة الأخيرة ({d} يوم): {v}{u} ({s}{pct}%)', enCursoLabel:'● قيد التنفيذ ({d} يوم):', acumuladoLabel:'متراكم',
