@@ -93,6 +93,16 @@
   .upload-btn:hover{background:var(--gold);color:var(--pitch-950);}
   .upload-status{margin-top:6px;font-size:10.5px;max-width:260px;min-height:14px;transition:opacity .3s ease;opacity:0;}
   .mc-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:14px;}
+  .wtip{position:relative;cursor:help;}
+  .wtip::after{
+    content:attr(data-tip);
+    position:absolute; left:50%; bottom:calc(100% + 6px); transform:translateX(-50%) translateY(4px);
+    background:rgba(20,20,58,.96); color:var(--bone); border:1px solid var(--line-strong);
+    border-radius:8px; padding:6px 10px; font:400 11px 'IBM Plex Sans'; white-space:nowrap;
+    box-shadow:0 6px 18px rgba(0,0,0,.4); opacity:0; pointer-events:none; z-index:30;
+    transition:opacity .15s ease, transform .15s ease;
+  }
+  .wtip:hover::after, .wtip.wtip-active::after{ opacity:1; transform:translateX(-50%) translateY(0); }
   .mc-table th{text-align:left;font-family:'IBM Plex Mono';font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mist);padding:8px 10px;border-bottom:1px solid var(--line-strong);}
   .mc-table td{padding:7px 10px;border-bottom:1px solid var(--line);color:var(--bone);}
   .mc-table tr.mc-match td{color:var(--gold-bright);font-weight:600;border-left:3px solid var(--gold);}
@@ -2706,16 +2716,45 @@ function buildRpeWidget(existing){
 // ---------- Wellness: formulario diario del jugador (sueño, fatiga, dolor muscular, estrés, ánimo + mapa de dolor) ----------
 const WELLNESS_CATEGORIES = [
   {key:'sueno', label:{es:'Calidad del sueño', en:'Sleep quality', ar:'جودة النوم'},
-    opts:{es:['Muy mal, no pude dormir','Mal, sueño muy inquieto','Más o menos, me costó dormirme / me desperté','Bien','Muy bien']}},
+    opts:{
+      es:['Muy mal, no pude dormir','Mal, sueño muy inquieto','Más o menos, me costó dormirme / me desperté','Bien','Muy bien'],
+      en:['Very bad, couldn\'t sleep','Bad, very restless sleep','So-so, hard to fall asleep / woke up','Good','Very good'],
+      ar:['سيئ جدًا، لم أستطع النوم','سيئ، نوم مضطرب جدًا','متوسط، صعوبة في النوم / استيقظت','جيد','جيد جدًا'],
+    }},
   {key:'fatiga', label:{es:'Nivel de fatiga', en:'Fatigue level', ar:'مستوى التعب'},
-    opts:{es:['Muy fatigado','Algo cansado','Normal','Bien','Al 100%']}},
+    opts:{
+      es:['Muy fatigado','Algo cansado','Normal','Bien','Al 100%'],
+      en:['Very fatigued','Somewhat tired','Normal','Good','100%'],
+      ar:['متعب جدًا','متعب نوعًا ما','طبيعي','جيد','100%'],
+    }},
   {key:'dolor_muscular', label:{es:'Dolor muscular', en:'Muscle soreness', ar:'ألم عضلي'},
-    opts:{es:['Mucho dolor','Bastante dolor','Algunas molestias','Leve o casi nada','Nada de dolor']}},
+    opts:{
+      es:['Mucho dolor','Bastante dolor','Algunas molestias','Leve o casi nada','Nada de dolor'],
+      en:['A lot of pain','Quite a bit of pain','Some discomfort','Mild or almost none','No pain at all'],
+      ar:['ألم شديد','ألم كبير','بعض الانزعاج','خفيف أو شبه معدوم','لا يوجد ألم إطلاقًا'],
+    }},
   {key:'estres', label:{es:'Estrés', en:'Stress', ar:'التوتر'},
-    opts:{es:['Muy estresado','Estresado','Normal','Relajado','Muy relajado']}},
+    opts:{
+      es:['Muy estresado','Estresado','Normal','Relajado','Muy relajado'],
+      en:['Very stressed','Stressed','Normal','Relaxed','Very relaxed'],
+      ar:['متوتر جدًا','متوتر','طبيعي','مسترخٍ','مسترخٍ جدًا'],
+    }},
   {key:'animo', label:{es:'Ánimo / motivación', en:'Mood / motivation', ar:'الحالة المزاجية / الدافع'},
-    opts:{es:['Muy enojado e irritable','Mal genio','Menos interesado de lo normal en mis actividades','Buen ánimo y humor','Muy positivo']}},
+    opts:{
+      es:['Muy enojado e irritable','Mal genio','Menos interesado de lo normal en mis actividades','Buen ánimo y humor','Muy positivo'],
+      en:['Very angry and irritable','Bad mood','Less interested than usual in my activities','Good mood','Very positive'],
+      ar:['غاضب جدًا وسريع الانفعال','مزاج سيء','أقل اهتمامًا من المعتاد بأنشطتي','مزاج جيد','إيجابي جدًا'],
+    }},
 ];
+// Descripción de un valor (1-5) de una de las 5 categorías de Wellness, en el idioma actual —
+// para mostrar en el tooltip "fantasma" de la tabla de Wellness del admin.
+function wellnessCatCaption(key, value){
+  if(value===null || value===undefined) return '';
+  const cat = WELLNESS_CATEGORIES.find(c=>c.key===key);
+  if(!cat) return '';
+  const arr = cat.opts[currentLang] || cat.opts.es;
+  return arr[value-1] || '';
+}
 // Escala oficial de TQR (Total Quality Recovery, Kenttä & Hassmén) — va de 0 a 10, y por diseño
 // solo los números "ancla" tienen descripción; los impares intermedios (1,3,7,9) quedan sin texto,
 // tal como en la escala original en papel que usan los preparadores físicos.
@@ -3216,17 +3255,20 @@ async function buildWellnessTeamList(fecha){
       const sc = scoreOf(r);
       const tm = totalMuscularOf(r);
       const zonas = (r.zonas_dolor||[]).map(z=> zoneLabel(z.zona)).join(', ');
+      // Solo agrega la clase/tooltip "fantasma" si hay una descripción real que mostrar (evita un
+      // globito vacío si esa categoría puntual quedó sin responder).
+      const wtipAttrs = (val, caption) => caption ? `class="mono wtip" data-tip="${caption}"` : `class="mono"`;
       return `<tr>
         <td class="mono" style="color:var(--mist);">${num}</td>
         <td><b>${p}</b></td>
-        <td class="mono">${r.sueno??'—'}</td>
-        <td class="mono">${r.fatiga??'—'}</td>
-        <td class="mono">${r.dolor_muscular??'—'}</td>
-        <td class="mono">${r.estres??'—'}</td>
-        <td class="mono">${r.animo??'—'}</td>
+        <td ${wtipAttrs(r.sueno, wellnessCatCaption('sueno', r.sueno))}>${r.sueno??'—'}</td>
+        <td ${wtipAttrs(r.fatiga, wellnessCatCaption('fatiga', r.fatiga))}>${r.fatiga??'—'}</td>
+        <td ${wtipAttrs(r.dolor_muscular, wellnessCatCaption('dolor_muscular', r.dolor_muscular))}>${r.dolor_muscular??'—'}</td>
+        <td ${wtipAttrs(r.estres, wellnessCatCaption('estres', r.estres))}>${r.estres??'—'}</td>
+        <td ${wtipAttrs(r.animo, wellnessCatCaption('animo', r.animo))}>${r.animo??'—'}</td>
         <td class="mono" style="font-weight:800;font-size:15px;color:${scoreColor(sc)};">${sc!==null?sc.toFixed(1):'—'}</td>
         <td class="mono">${tm??'—'}<span style="color:var(--mist);font-size:10px;">/10</span></td>
-        <td class="mono" ${tqrCaption(r.tqr) ? `title="${tqrCaption(r.tqr)}"` : ''}>${r.tqr??'—'}<span style="color:var(--mist);font-size:10px;">/10</span></td>
+        <td ${wtipAttrs(r.tqr, tqrCaption(r.tqr))}>${r.tqr??'—'}<span style="color:var(--mist);font-size:10px;">/10</span></td>
         <td style="color:${zonas?'var(--bad)':'var(--mist)'};font-size:11.5px;">${zonas||'—'}</td>
         <td style="color:var(--mist);font-size:11.5px;">${r.observacion||''}</td>
       </tr>`;
@@ -3246,6 +3288,20 @@ async function buildWellnessTeamList(fecha){
       <td></td>
     </tr></tfoot>
   </table>`;
+  // Tocar/tap en celular (el hover de CSS no sirve ahí) — abre el tooltip "fantasma" al tocar,
+  // y lo cierra si se toca en cualquier otro lado o se toca de nuevo la misma celda.
+  tableBox.querySelectorAll('.wtip').forEach(cell=>{
+    cell.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const wasActive = cell.classList.contains('wtip-active');
+      tableBox.querySelectorAll('.wtip-active').forEach(el=> el.classList.remove('wtip-active'));
+      if(!wasActive) cell.classList.add('wtip-active');
+    });
+  });
+  if(!window._wtipDocListenerAdded){
+    document.addEventListener('click', ()=>{ document.querySelectorAll('.wtip-active').forEach(el=> el.classList.remove('wtip-active')); });
+    window._wtipDocListenerAdded = true;
+  }
 }
 
 // ---------- Carga interna (RPE × minutos), aguda:crónica ----------
