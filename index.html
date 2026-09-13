@@ -19,6 +19,17 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+  // Ajustes globales de rendimiento para TODOS los gráficos: en pantallas Retina/alta densidad (como en
+  // Mac), pintar cada gráfico al doble o triple de la resolución real de fábrica puede sentirse "pesado"
+  // o "a los saltos" al scrollear — sobre todo con varios gráficos anchos en la misma pestaña, como pasa
+  // en "Jugadores de Campo" (Evolución del plantel + Radar + Evolución por sesión, todos a la vez).
+  if(typeof Chart !== 'undefined'){
+    Chart.defaults.devicePixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+    Chart.defaults.animation = false;
+    Chart.defaults.animations = false;
+  }
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
