@@ -49,16 +49,26 @@
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
-    background:
-      repeating-linear-gradient(90deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 68px),
-      radial-gradient(ellipse 1200px 700px at 15% -10%, rgba(34,211,238,.07), transparent 60%),
-      radial-gradient(ellipse 1000px 800px at 110% 10%, rgba(124,92,252,.10), transparent 55%),
-      var(--pitch-950);
+    background:var(--pitch-950);
     color:var(--bone);
     font-family:'IBM Plex Sans',sans-serif;
     min-height:100vh;
     -webkit-font-smoothing:antialiased;
     overflow-x:hidden;
+  }
+  /* El fondo decorativo (grilla fina + degradés) va en una capa fija aparte, en vez de ser parte del
+     contenido que se desplaza — así el navegador la pinta una sola vez y no tiene que recalcularla en
+     cada cuadro del scroll. En Mac (con trackpad de alta frecuencia y pantallas grandes/retina) un fondo
+     complejo pintado como contenido normal puede sentirse "pesado" o "a los saltos" al deslizar; en el
+     celular no se nota porque la pantalla es más chica y hay menos píxeles que recalcular. */
+  body::before{
+    content:'';
+    position:fixed; inset:0; z-index:-1;
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 68px),
+      radial-gradient(ellipse 1200px 700px at 15% -10%, rgba(34,211,238,.07), transparent 60%),
+      radial-gradient(ellipse 1000px 800px at 110% 10%, rgba(124,92,252,.10), transparent 55%);
+    pointer-events:none;
   }
   ::selection{background:var(--gold);color:var(--pitch-950);}
   .wrap{max-width:1400px;margin:0 auto;padding:28px 36px 80px;}
