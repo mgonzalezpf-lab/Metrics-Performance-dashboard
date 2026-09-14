@@ -484,7 +484,10 @@
   /* match comparison */
   .match-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:16px 18px 20px;}
   .match-card{background:var(--pitch-950);border:1px solid var(--line);border-radius:10px;padding:14px;}
-  .match-card h4{margin:0 0 3px;font-family:'Big Shoulders Display';font-size:16px;letter-spacing:.02em;color:var(--gold-bright);}
+  .match-card h4{margin:0 0 3px;font-family:'Big Shoulders Display';font-size:16px;letter-spacing:.02em;color:var(--gold-bright);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .mc-report-btn{font-family:'IBM Plex Mono';font-size:9.5px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--bone);background:rgba(255,255,255,.05);border:1px solid var(--line-strong);border-radius:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:background .15s ease;}
+  .mc-report-btn:hover{background:rgba(34,211,238,.12);border-color:var(--gold-bright);}
+  .mc-report-btn:disabled{opacity:.6;cursor:wait;}
   .match-card .dt{font-family:'IBM Plex Mono';font-size:10.5px;color:var(--mist);margin-bottom:10px;}
   .mm-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px dashed var(--line);}
   .mm-row:last-child{border:none;}
@@ -1944,7 +1947,7 @@ function buildGkPlayerView(playerName){
   </table>`;
 }
 
-// ---------- Campana de notificaciones: nuevos jugadores registrados ----------
+// ---------- Campana de notificaciones: nuevos jugadores registrados + alertas de riesgo (ACWR/TQR/dolor/RHIE) ----------
 const SEEN_SIGNUPS_KEY = 'seen_player_signups';
 function getSeenSignups(){
   try{ return JSON.parse(localStorage.getItem(SEEN_SIGNUPS_KEY) || '[]'); }catch{ return []; }
@@ -1952,35 +1955,76 @@ function getSeenSignups(){
 function markAllSignupsSeen(ids){
   localStorage.setItem(SEEN_SIGNUPS_KEY, JSON.stringify(ids));
 }
-async function checkNewPlayerSignups(){
-  if(!(myProfile && (myProfile.role==='admin' || myProfile.role==='owner'))) return;
-  const {data,error} = await supabaseClient.from('player_profiles')
-    .select('user_id,player_name,created_at')
-    .eq('club',CURRENT_CLUB).eq('role','player').not('player_name','is',null)
-    .order('created_at',{ascending:false});
-  if(error){ console.warn(error); return; }
+// El id incluye la fecha de hoy a propósito: así la alerta "renace" como nueva cada día si el jugador
+// sigue en riesgo, en vez de quedar marcada como "ya vista" para siempre después de la primera vez.
+function computeRiskAlerts(){
+  if(!players || !players.length) return [];
+  const today = todayISO();
+  const alerts = [];
+  players.forEach(p=>{
+    const risk = computePlayerRisk(p);
+    if(risk.level==='red' || risk.level==='yellow'){
+      alerts.push({ id:`risk:${today}:${p}`, player:p, level:risk.level, reasons:risk.reasons });
+    }
+  });
+  alerts.sort((a,b)=> (a.level==='red'?0:1) - (b.level==='red'?0:1));
+  return alerts;
+}
+let LATEST_RISK_ALERTS = [];
+async function refreshNotifications(){
+  if(!myProfile) return;
+  const role = myProfile.role;
+  const canSeeRisk = role && role!=='player' && !String(role).startsWith('pending');
+  const canSeeSignups = role==='admin' || role==='owner';
+  if(!canSeeRisk && !canSeeSignups) return;
+
+  LATEST_RISK_ALERTS = canSeeRisk ? computeRiskAlerts() : [];
+
+  let signups = [];
+  if(canSeeSignups){
+    const {data,error} = await supabaseClient.from('player_profiles')
+      .select('user_id,player_name,created_at')
+      .eq('club',CURRENT_CLUB).eq('role','player').not('player_name','is',null)
+      .order('created_at',{ascending:false});
+    if(!error) signups = data || [];
+  }
+
   const wrap = document.getElementById('notifBellWrap');
   wrap.style.display = 'inline-block';
   const seen = getSeenSignups();
-  const unseen = (data||[]).filter(r=> !seen.includes(r.user_id));
+  const unseenRisk = LATEST_RISK_ALERTS.filter(a=> !seen.includes(a.id));
+  const unseenSignups = signups.filter(r=> !seen.includes(r.user_id));
   const badge = document.getElementById('notifBadge');
-  badge.style.display = unseen.length ? 'block' : 'none';
-  badge.textContent = unseen.length;
+  const totalUnseen = unseenRisk.length + unseenSignups.length;
+  badge.style.display = totalUnseen ? 'block' : 'none';
+  badge.textContent = totalUnseen;
+
+  const sectionTitle = (txt)=> `<div style="padding:8px 14px 4px;font-size:10px;font-weight:700;color:var(--mist);text-transform:uppercase;letter-spacing:.05em;">${txt}</div>`;
+  const riskHtml = !LATEST_RISK_ALERTS.length ? '' : sectionTitle(t('alertasRendimientoTitulo')) + LATEST_RISK_ALERTS.map(a=>{
+    const isNew = !seen.includes(a.id);
+    const color = a.level==='red' ? 'var(--bad)' : 'var(--warn)';
+    return `<div style="padding:9px 14px;border-bottom:1px solid var(--line);font-size:12px;${isNew?'background:rgba(34,211,238,.06);':''}">
+      <div style="color:var(--bone);font-weight:600;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:6px;vertical-align:middle;"></span>${isNew?'🆕 ':''}${a.player}</div>
+      <div style="color:var(--mist);font-size:11px;margin-top:2px;margin-left:14px;">${a.reasons.join(' · ')}</div>
+    </div>`;
+  }).join('');
+
+  const signupsHtml = !canSeeSignups ? '' : (!signups.length ? '' : sectionTitle(t('solicitudesTitulo')) + signups.map(r=>{
+    const isNew = !seen.includes(r.user_id);
+    const fecha = new Date(r.created_at).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    return `<div style="padding:10px 14px;border-bottom:1px solid var(--line);font-size:12.5px;${isNew?'background:rgba(34,211,238,.06);':''}">
+      <div style="color:var(--bone);font-weight:600;">${isNew?'🆕 ':''}${r.player_name}</div>
+      <div style="color:var(--mist);font-size:11px;margin-top:2px;">${t('cuentaCreada')} · ${fecha}</div>
+    </div>`;
+  }).join(''));
+
   const dropdown = document.getElementById('notifDropdown');
-  dropdown.innerHTML = (data && data.length)
-    ? data.map(r=>{
-        const isNew = !seen.includes(r.user_id);
-        const fecha = new Date(r.created_at).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-        return `<div style="padding:10px 14px;border-bottom:1px solid var(--line);font-size:12.5px;${isNew?'background:rgba(34,211,238,.06);':''}">
-          <div style="color:var(--bone);font-weight:600;">${isNew?'🆕 ':''}${r.player_name}</div>
-          <div style="color:var(--mist);font-size:11px;margin-top:2px;">Cuenta creada · ${fecha}</div>
-        </div>`;
-      }).join('')
-    : `<div style="padding:14px;color:var(--mist);font-size:12px;">Todavía no se registró ningún jugador.</div>`;
+  dropdown.innerHTML = (riskHtml + signupsHtml) || `<div style="padding:14px;color:var(--mist);font-size:12px;">${t('sinNotificaciones')}</div>`;
+
   document.getElementById('notifBell').onclick = ()=>{
     dropdown.style.display = dropdown.style.display==='block' ? 'none' : 'block';
     if(dropdown.style.display==='block'){
-      markAllSignupsSeen((data||[]).map(r=>r.user_id));
+      markAllSignupsSeen([...LATEST_RISK_ALERTS.map(a=>a.id), ...signups.map(r=>r.user_id)]);
       badge.style.display='none';
     }
   };
@@ -3962,7 +4006,7 @@ async function startDashboard(){
   setupWellnessWindowBar();
   applyClubFeaturesToTabs();
   setupCsvImportModal();
-  checkNewPlayerSignups();
+  refreshNotifications();
   buildPendingRequestsPanel();
 }
 
@@ -4065,6 +4109,11 @@ const I18N = {
     promedioDiarioPlantel:'promedio diario del plantel', clubesRegistradosCount:'{n} club(es) registrado(s)',
     acwrLow:'Carga baja', acwrOptimal:'Óptima', acwrCaution:'Precaución', acwrHigh:'Riesgo alto', acwrInsuf:'Datos insuf.',
     riskTooltipTitulo:'Riesgo', riskRazonAcwr:'ACWR: {v}', riskRazonTqr:'Recuperación baja (TQR {v}/10)', riskRazonDolor:'Dolor muscular reportado hoy', riskRazonRhie:'RHIE muy por debajo de su promedio', riskLeyendaAlto:'Riesgo alto', riskLeyendaAtencion:'Atención', riskLeyendaOk:'OK',
+    alertasRendimientoTitulo:'Alertas de rendimiento', solicitudesTitulo:'Altas de jugadores', cuentaCreada:'Cuenta creada', sinNotificaciones:'No hay notificaciones nuevas.',
+    generarInforme:'Generar informe', generando:'Generando…', noSePudoPdf:'No se pudo generar el PDF. Revisa tu conexión e intenta de nuevo.',
+    informeDePartido:'Informe de partido', informeSubtituloConRef:'vs {r} · {d} · Comparación vs. promedio de los últimos {n} partido(s)', informeSubtituloSinRef:'vs {r} · {d} · Sin partidos anteriores para comparar',
+    informeAltaIntensidad:'Alta intensidad', informeDetalleMetrica:'Detalle por métrica', colMetrica:'Métrica', informeEstePartido:'Este partido', informePromedioAnterior:'Promedio anterior', colDiferencia:'Diferencia',
+    informePie:'Fuente: Metrics Performance Dashboard · {c} · Generado el {f}',
     caidaMarcada:'Caída marcada — riesgo alto', caidaModerada:'Caída moderada — atención', caidaLeve:'Caída leve — normal', sinCaida:'Sin caída — rendimiento sostenido',
     mmDistTotal:'Distancia total', mmHsr:'HSR', mmSprintDist:'Sprint distancia', mmSprintCount:'Sprint conteo', mmAccB23:'Acc B2-3', mmDesaB23:'Desa B2-3', mmRhie:'RHIE Bouts', mmPlayerLoad:'Player Load', mmIndiceFatiga:'Índice de fatiga (2T vs 1T)',
     sinValoresAtipicos:'Sin valores atípicos detectados — todos los datos están dentro de rangos esperados.',
@@ -4194,6 +4243,11 @@ const I18N = {
     promedioDiarioPlantel:'squad daily average', clubesRegistradosCount:'{n} club(s) registered',
     acwrLow:'Low load', acwrOptimal:'Optimal', acwrCaution:'Caution', acwrHigh:'High risk', acwrInsuf:'Insuf. data',
     riskTooltipTitulo:'Risk', riskRazonAcwr:'ACWR: {v}', riskRazonTqr:'Low recovery (TQR {v}/10)', riskRazonDolor:'Muscle pain reported today', riskRazonRhie:'RHIE well below their average', riskLeyendaAlto:'High risk', riskLeyendaAtencion:'Attention', riskLeyendaOk:'OK',
+    alertasRendimientoTitulo:'Performance alerts', solicitudesTitulo:'New player signups', sinNotificaciones:'No new notifications.',
+    generarInforme:'Generate report', generando:'Generating…', noSePudoPdf:'Could not generate the PDF. Check your connection and try again.',
+    informeDePartido:'Match report', informeSubtituloConRef:'vs {r} · {d} · Comparison vs. average of the last {n} match(es)', informeSubtituloSinRef:'vs {r} · {d} · No previous matches to compare',
+    informeAltaIntensidad:'High intensity', informeDetalleMetrica:'Metric detail', colMetrica:'Metric', informeEstePartido:'This match', informePromedioAnterior:'Previous average', colDiferencia:'Difference',
+    informePie:'Source: Metrics Performance Dashboard · {c} · Generated on {f}',
     caidaMarcada:'Marked drop — high risk', caidaModerada:'Moderate drop — attention', caidaLeve:'Slight drop — normal', sinCaida:'No drop — sustained performance',
     mmDistTotal:'Total distance', mmHsr:'HSR', mmSprintDist:'Sprint distance', mmSprintCount:'Sprint count', mmAccB23:'Acc B2-3', mmDesaB23:'Dec B2-3', mmRhie:'RHIE Bouts', mmPlayerLoad:'Player Load', mmIndiceFatiga:'Fatigue index (2H vs 1H)',
     sinValoresAtipicos:'No outliers detected — all data is within expected ranges.',
@@ -4323,6 +4377,11 @@ const I18N = {
     promedioDiarioPlantel:'المتوسط اليومي للفريق', clubesRegistradosCount:'{n} نادٍ مسجّل',
     acwrLow:'حمل منخفض', acwrOptimal:'مثالي', acwrCaution:'تنبيه', acwrHigh:'خطر مرتفع', acwrInsuf:'بيانات غير كافية',
     riskTooltipTitulo:'الخطر', riskRazonAcwr:'ACWR: {v}', riskRazonTqr:'تعافٍ منخفض (TQR {v}/10)', riskRazonDolor:'أُبلغ عن ألم عضلي اليوم', riskRazonRhie:'RHIE أقل بكثير من متوسطه', riskLeyendaAlto:'خطر مرتفع', riskLeyendaAtencion:'تنبيه', riskLeyendaOk:'جيد',
+    alertasRendimientoTitulo:'تنبيهات الأداء', solicitudesTitulo:'طلبات انضمام لاعبين جدد', sinNotificaciones:'لا توجد إشعارات جديدة.',
+    generarInforme:'إنشاء تقرير', generando:'جارٍ الإنشاء…', noSePudoPdf:'تعذّر إنشاء ملف PDF. تحقق من اتصالك وحاول مرة أخرى.',
+    informeDePartido:'تقرير المباراة', informeSubtituloConRef:'ضد {r} · {d} · مقارنة بمتوسط آخر {n} مباراة (مباريات)', informeSubtituloSinRef:'ضد {r} · {d} · لا توجد مباريات سابقة للمقارنة',
+    informeAltaIntensidad:'الشدة العالية', informeDetalleMetrica:'تفاصيل كل مقياس', colMetrica:'المقياس', informeEstePartido:'هذه المباراة', informePromedioAnterior:'المتوسط السابق', colDiferencia:'الفرق',
+    informePie:'المصدر: Metrics Performance Dashboard · {c} · تم الإنشاء في {f}',
     caidaMarcada:'انخفاض ملحوظ — خطر مرتفع', caidaModerada:'انخفاض معتدل — انتباه', caidaLeve:'انخفاض طفيف — طبيعي', sinCaida:'لا يوجد انخفاض — أداء مستدام',
     mmDistTotal:'المسافة الإجمالية', mmHsr:'HSR', mmSprintDist:'مسافة السرعات القصوى', mmSprintCount:'عدد السرعات القصوى', mmAccB23:'تسارع B2-3', mmDesaB23:'تباطؤ B2-3', mmRhie:'RHIE Bouts', mmPlayerLoad:'Player Load', mmIndiceFatiga:'مؤشر التعب (الشوط 2 مقابل 1)',
     sinValoresAtipicos:'لم يتم رصد قيم شاذة — جميع البيانات ضمن النطاقات المتوقعة.',
@@ -5713,6 +5772,7 @@ async function refreshWellnessRiskCache(){
     LATEST_WELLNESS_BY_PLAYER = byPlayer;
     LATEST_WELLNESS_FETCHED_AT = fecha;
     buildPlayerList(document.getElementById('searchInput')?.value || ''); // repinta los puntitos ya con wellness
+    refreshNotifications(); // recalcula alertas ya con el factor TQR/dolor incluido
   } catch(e){ /* silencioso: el semáforo simplemente queda sin el factor wellness */ }
 }
 
@@ -6104,7 +6164,7 @@ function buildMatchGrid(){
     const h = row.halves || {};
     return `
     <div class="match-card">
-      <h4>${name}</h4>
+      <h4>${name}<button type="button" class="mc-report-btn" data-match="${name.replace(/"/g,'&quot;')}" title="${t('generarInforme')}">📄 ${t('generarInforme')}</button></h4>
       <div class="dt">${row.fecha.split('-').reverse().join('/')}</div>
       <div class="mm-row"><span class="k">${t('mmDistTotal')}</span><span class="v">${fmt(row.dist)} m${diffBadge(h.dist && h.dist.diff)}</span></div>
       <div class="mm-row"><span class="k">${t('mmHsr')}</span><span class="v">${fmt(row.hsr)} m${diffBadge(h.hsr && h.hsr.diff)}</span></div>
@@ -6117,7 +6177,150 @@ function buildMatchGrid(){
       ${row.fatiga!==undefined && row.fatiga!==null ? `<div class="mm-row"><span class="k">${t('mmIndiceFatiga')}</span><span class="v" style="color:${row.fatiga<=-8?'var(--bad)':row.fatiga<=-4?'var(--warn)':'var(--good)'};">${row.fatiga>0?'+':''}${fmt(row.fatiga,1)}% <span style="font-size:10.5px;font-weight:400;opacity:.85;">(${fatigaLabel(row.fatiga)})</span></span></div>` : ''}
     </div>`;
   }).join('');
+  box.querySelectorAll('.mc-report-btn').forEach(btn=>{
+    btn.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      const original = btn.textContent;
+      btn.disabled = true; btn.textContent = '⏳ ' + t('generando');
+      setTimeout(()=>{ // pequeño delay para que se vea el estado "generando" antes de que el navegador arme el PDF
+        try{ generateMatchReportPDF(btn.dataset.match); }
+        catch(err){ console.error('Error generando informe PDF:', err); alert(t('noSePudoPdf')); }
+        finally{ btn.disabled = false; btn.textContent = original; }
+      }, 50);
+    });
+  });
 }
+
+// ---------- informe PDF automático de partido (genera en el navegador, sin backend) ----------
+const MATCH_REPORT_METRICS = [
+  {key:'dist', label:()=>t('mmDistTotal'), unit:' m'},
+  {key:'hsr', label:()=>t('mmHsr'), unit:' m'},
+  {key:'sprint_dist', label:()=>t('mmSprintDist'), unit:' m'},
+  {key:'sprint_count', label:()=>t('mmSprintCount'), unit:''},
+  {key:'acc', label:()=>t('mmAccB23'), unit:''},
+  {key:'desa', label:()=>t('mmDesaB23'), unit:''},
+  {key:'rhie', label:()=>t('mmRhie'), unit:''},
+  {key:'pl', label:()=>t('mmPlayerLoad'), unit:''},
+];
+function getSortedMatchEntries(){
+  return Object.entries(ACTIVE_TEAMTOTALS)
+    .filter(([,row]) => !CURRENT_CATEGORY || !row.categoria || row.categoria===CURRENT_CATEGORY)
+    .sort((a,b)=> (a[1].fecha||'').localeCompare(b[1].fecha||''));
+}
+function generateMatchReportPDF(matchName){
+  if(typeof window.jspdf === 'undefined'){ alert(t('noSePudoPdf')); return; }
+  const entries = getSortedMatchEntries();
+  const idx = entries.findIndex(([name])=> name===matchName);
+  if(idx===-1) return;
+  const [rival, row] = entries[idx];
+  const prevEntries = entries.slice(Math.max(0, idx-5), idx); // hasta 5 partidos anteriores como referencia
+  const hayReferencia = prevEntries.length>0;
+
+  const baseline = {};
+  MATCH_REPORT_METRICS.forEach(m=>{
+    const vals = prevEntries.map(([,r])=>r[m.key]).filter(v=>v!==null && v!==undefined && !isNaN(v));
+    baseline[m.key] = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+  });
+  const diffPct = {};
+  MATCH_REPORT_METRICS.forEach(m=>{
+    const base = baseline[m.key], val = row[m.key];
+    diffPct[m.key] = (base && val!==null && val!==undefined) ? ((val-base)/base*100) : null;
+  });
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:'mm', format:'a4'});
+  const pageW = doc.internal.pageSize.getWidth();
+  const marginX = 16;
+  let y = 20;
+
+  // ---- encabezado ----
+  doc.setFont('helvetica','bold'); doc.setFontSize(17); doc.setTextColor(18,33,59);
+  doc.text(`${CURRENT_CLUB} — ${t('informeDePartido')}`, marginX, y);
+  y += 7;
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(90,90,90);
+  const fechaTxt = (row.fecha||'').split('-').reverse().join('/');
+  const subt = hayReferencia
+    ? tf('informeSubtituloConRef', {r:rival, d:fechaTxt, n:prevEntries.length})
+    : tf('informeSubtituloSinRef', {r:rival, d:fechaTxt});
+  doc.text(doc.splitTextToSize(subt, pageW-marginX*2), marginX, y);
+  y += 10;
+  doc.setDrawColor(220,220,220); doc.line(marginX, y, pageW-marginX, y);
+  y += 8;
+
+  // ---- resumen alta intensidad (si hay referencia) ----
+  if(hayReferencia){
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
+    doc.text(t('informeAltaIntensidad'), marginX, y);
+    y += 5;
+    const hiKeys = ['hsr','sprint_dist','sprint_count'];
+    const boxColors = [[192,87,15],[108,52,131],[164,41,31]];
+    const boxW = (pageW - marginX*2 - 8)/3;
+    hiKeys.forEach((k,i)=>{
+      const m = MATCH_REPORT_METRICS.find(mm=>mm.key===k);
+      const x = marginX + i*(boxW+4);
+      const [r,g,b] = boxColors[i];
+      doc.setFillColor(r,g,b);
+      doc.roundedRect(x, y, boxW, 24, 2, 2, 'F');
+      doc.setTextColor(255,255,255);
+      const pct = diffPct[k];
+      doc.setFont('helvetica','bold'); doc.setFontSize(15);
+      doc.text(pct===null ? '—' : `${pct>=0?'+':''}${pct.toFixed(1)}%`, x+boxW/2, y+11, {align:'center'});
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+      doc.text(doc.splitTextToSize(m.label().toUpperCase(), boxW-6), x+boxW/2, y+16.5, {align:'center'});
+      doc.setFontSize(7);
+      doc.text(`${fmt(row[k])}${m.unit} vs ${fmt(Math.round(baseline[k]))}${m.unit} prom.`, x+boxW/2, y+21.5, {align:'center'});
+    });
+    y += 30;
+  }
+
+  // ---- tabla de métricas ----
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
+  doc.text(t('informeDetalleMetrica'), marginX, y);
+  y += 6;
+  const colX = [marginX, marginX+62, marginX+95, marginX+130, marginX+162];
+  const rowH = 7;
+  doc.setFillColor(18,33,59);
+  doc.rect(marginX, y, pageW-marginX*2, rowH, 'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+  doc.text(t('colMetrica'), colX[0]+2, y+4.8);
+  doc.text(t('informeEstePartido'), colX[1], y+4.8);
+  doc.text(hayReferencia ? t('informePromedioAnterior') : t('sinDatosTooltip'), colX[2], y+4.8);
+  doc.text(t('colDiferencia'), colX[3], y+4.8);
+  y += rowH;
+  MATCH_REPORT_METRICS.forEach((m,i)=>{
+    if(i%2===1){ doc.setFillColor(242,245,250); doc.rect(marginX, y, pageW-marginX*2, rowH, 'F'); }
+    doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(30,30,30);
+    doc.text(m.label(), colX[0]+2, y+4.8);
+    doc.setFont('helvetica','normal');
+    doc.text(row[m.key]!==null && row[m.key]!==undefined ? `${fmt(row[m.key])}${m.unit}` : '—', colX[1], y+4.8);
+    doc.text(baseline[m.key]!==null ? `${fmt(Math.round(baseline[m.key]))}${m.unit}` : '—', colX[2], y+4.8);
+    const pct = diffPct[m.key];
+    if(pct!==null){ doc.setTextColor(pct>=0?46:194, pct>=0?139:57, pct>=0?87:47); doc.setFont('helvetica','bold'); }
+    doc.text(pct!==null ? `${pct>=0?'+':''}${pct.toFixed(1)}%` : '—', colX[3], y+4.8);
+    y += rowH;
+  });
+  doc.setDrawColor(220,220,220); doc.rect(marginX, y-rowH*MATCH_REPORT_METRICS.length, pageW-marginX*2, rowH*MATCH_REPORT_METRICS.length);
+  y += 8;
+
+  // ---- índice de fatiga (2T vs 1T) ----
+  if(row.fatiga!==undefined && row.fatiga!==null){
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
+    doc.text(t('mmIndiceFatiga'), marginX, y);
+    y += 6;
+    doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(50,50,50);
+    doc.text(`${row.fatiga>0?'+':''}${fmt(row.fatiga,1)}% (${fatigaLabel(row.fatiga)})`, marginX, y);
+    y += 8;
+  }
+
+  // ---- pie ----
+  doc.setDrawColor(220,220,220); doc.line(marginX, y, pageW-marginX, y);
+  y += 5;
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(140,140,140);
+  doc.text(tf('informePie', {c:CURRENT_CLUB, f:new Date().toLocaleDateString('es-AR')}), marginX, y);
+
+  doc.save(`Informe_${CURRENT_CLUB.replace(/\s+/g,'_')}_vs_${rival.replace(/\s+/g,'_')}_${row.fecha}.pdf`);
+}
+
 
 // ---------- ACWR panel ----------
 function acwrLabel(status){ const map={low:'acwrLow',optimal:'acwrOptimal',caution:'acwrCaution',high:'acwrHigh',insuf:'acwrInsuf'}; return t(map[status]); }
@@ -6835,6 +7038,7 @@ function renderAll(keepPlayer){
   buildWeeklyTarget();
   buildPlayerList(document.getElementById('searchInput')?.value || '');
   refreshWellnessRiskCache(); // fire-and-forget: cuando llegue, repinta los puntitos de riesgo con el factor wellness
+  refreshNotifications(); // fire-and-forget: recalcula alertas ACWR/TQR/dolor/RHIE + solicitudes pendientes
   buildLeaderboard();
   buildRecordsTable();
   buildMatchGrid();
