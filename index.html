@@ -124,6 +124,8 @@
     transition:opacity .15s ease, transform .15s ease;
   }
   .wtip:hover::after, .wtip.wtip-active::after{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .risk-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-left:7px;flex-shrink:0;vertical-align:middle;box-shadow:0 0 0 2px rgba(10,26,19,.5);}
+  .risk-dot.wtip::after{white-space:normal;max-width:210px;text-align:left;line-height:1.45;font-size:10.5px;}
   .mc-table th{text-align:left;font-family:'IBM Plex Mono';font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mist);padding:8px 10px;border-bottom:1px solid var(--line-strong);}
   .mc-table td{padding:7px 10px;border-bottom:1px solid var(--line);color:var(--bone);}
   .mc-table tr.mc-match td{color:var(--gold-bright);font-weight:600;border-left:3px solid var(--gold);}
@@ -1200,6 +1202,11 @@
     <div class="panel team-only staff-ok">
       <div class="panel-head"><h3 data-i18n="plantel">Plantel</h3><span class="tag" id="railCount">23</span></div>
       <div class="rail-search"><input id="searchInput" data-i18n-placeholder="buscarJugador" placeholder="Buscar jugador…" /></div>
+      <div style="display:flex;gap:10px;align-items:center;padding:2px 4px 8px;font-size:10px;color:var(--mist);font-family:'IBM Plex Mono';flex-wrap:wrap;">
+        <span><span class="risk-dot" style="background:var(--bad);position:static;margin:0 4px 0 0;"></span><span data-i18n="riskLeyendaAlto">Riesgo alto</span></span>
+        <span><span class="risk-dot" style="background:var(--warn);position:static;margin:0 4px 0 0;"></span><span data-i18n="riskLeyendaAtencion">Atención</span></span>
+        <span><span class="risk-dot" style="background:var(--good);position:static;margin:0 4px 0 0;"></span><span data-i18n="riskLeyendaOk">OK</span></span>
+      </div>
       <div class="player-list" id="playerList"></div>
     </div>
 
@@ -4057,6 +4064,7 @@ const I18N = {
     diasCargados:'{n} día(s) cargado(s)', promedioPlantelRpe:'Promedio del plantel (RPE)', sinDatosCargados:'Sin datos cargados', sinReportesRpe:'Sin reportes de RPE cargados',
     promedioDiarioPlantel:'promedio diario del plantel', clubesRegistradosCount:'{n} club(es) registrado(s)',
     acwrLow:'Carga baja', acwrOptimal:'Óptima', acwrCaution:'Precaución', acwrHigh:'Riesgo alto', acwrInsuf:'Datos insuf.',
+    riskTooltipTitulo:'Riesgo', riskRazonAcwr:'ACWR: {v}', riskRazonTqr:'Recuperación baja (TQR {v}/10)', riskRazonDolor:'Dolor muscular reportado hoy', riskRazonRhie:'RHIE muy por debajo de su promedio', riskLeyendaAlto:'Riesgo alto', riskLeyendaAtencion:'Atención', riskLeyendaOk:'OK',
     caidaMarcada:'Caída marcada — riesgo alto', caidaModerada:'Caída moderada — atención', caidaLeve:'Caída leve — normal', sinCaida:'Sin caída — rendimiento sostenido',
     mmDistTotal:'Distancia total', mmHsr:'HSR', mmSprintDist:'Sprint distancia', mmSprintCount:'Sprint conteo', mmAccB23:'Acc B2-3', mmDesaB23:'Desa B2-3', mmRhie:'RHIE Bouts', mmPlayerLoad:'Player Load', mmIndiceFatiga:'Índice de fatiga (2T vs 1T)',
     sinValoresAtipicos:'Sin valores atípicos detectados — todos los datos están dentro de rangos esperados.',
@@ -4185,6 +4193,7 @@ const I18N = {
     diasCargados:'{n} day(s) loaded', promedioPlantelRpe:'Squad average (RPE)', sinDatosCargados:'No data loaded', sinReportesRpe:'No RPE reports loaded',
     promedioDiarioPlantel:'squad daily average', clubesRegistradosCount:'{n} club(s) registered',
     acwrLow:'Low load', acwrOptimal:'Optimal', acwrCaution:'Caution', acwrHigh:'High risk', acwrInsuf:'Insuf. data',
+    riskTooltipTitulo:'Risk', riskRazonAcwr:'ACWR: {v}', riskRazonTqr:'Low recovery (TQR {v}/10)', riskRazonDolor:'Muscle pain reported today', riskRazonRhie:'RHIE well below their average', riskLeyendaAlto:'High risk', riskLeyendaAtencion:'Attention', riskLeyendaOk:'OK',
     caidaMarcada:'Marked drop — high risk', caidaModerada:'Moderate drop — attention', caidaLeve:'Slight drop — normal', sinCaida:'No drop — sustained performance',
     mmDistTotal:'Total distance', mmHsr:'HSR', mmSprintDist:'Sprint distance', mmSprintCount:'Sprint count', mmAccB23:'Acc B2-3', mmDesaB23:'Dec B2-3', mmRhie:'RHIE Bouts', mmPlayerLoad:'Player Load', mmIndiceFatiga:'Fatigue index (2H vs 1H)',
     sinValoresAtipicos:'No outliers detected — all data is within expected ranges.',
@@ -4313,6 +4322,7 @@ const I18N = {
     diasCargados:'{n} يوم محمّل', promedioPlantelRpe:'متوسط الفريق (RPE)', sinDatosCargados:'لا توجد بيانات محمّلة', sinReportesRpe:'لا توجد تقارير RPE محمّلة',
     promedioDiarioPlantel:'المتوسط اليومي للفريق', clubesRegistradosCount:'{n} نادٍ مسجّل',
     acwrLow:'حمل منخفض', acwrOptimal:'مثالي', acwrCaution:'تنبيه', acwrHigh:'خطر مرتفع', acwrInsuf:'بيانات غير كافية',
+    riskTooltipTitulo:'الخطر', riskRazonAcwr:'ACWR: {v}', riskRazonTqr:'تعافٍ منخفض (TQR {v}/10)', riskRazonDolor:'أُبلغ عن ألم عضلي اليوم', riskRazonRhie:'RHIE أقل بكثير من متوسطه', riskLeyendaAlto:'خطر مرتفع', riskLeyendaAtencion:'تنبيه', riskLeyendaOk:'جيد',
     caidaMarcada:'انخفاض ملحوظ — خطر مرتفع', caidaModerada:'انخفاض معتدل — انتباه', caidaLeve:'انخفاض طفيف — طبيعي', sinCaida:'لا يوجد انخفاض — أداء مستدام',
     mmDistTotal:'المسافة الإجمالية', mmHsr:'HSR', mmSprintDist:'مسافة السرعات القصوى', mmSprintCount:'عدد السرعات القصوى', mmAccB23:'تسارع B2-3', mmDesaB23:'تباطؤ B2-3', mmRhie:'RHIE Bouts', mmPlayerLoad:'Player Load', mmIndiceFatiga:'مؤشر التعب (الشوط 2 مقابل 1)',
     sinValoresAtipicos:'لم يتم رصد قيم شاذة — جميع البيانات ضمن النطاقات المتوقعة.',
@@ -5688,6 +5698,73 @@ function buildKPIs(){
 }
 
 // ---------- player rail ----------
+// ---------- Semáforo de riesgo por jugador (ACWR + Wellness/TQR + dolor + caída de RHIE) ----------
+// Wellness vive en Supabase y se carga async — guardamos acá el último snapshot conocido (hoy) para
+// poder pintar el semáforo de forma síncrona en buildPlayerList sin tener que esperar el fetch cada vez.
+let LATEST_WELLNESS_BY_PLAYER = {};
+let LATEST_WELLNESS_FETCHED_AT = null;
+async function refreshWellnessRiskCache(){
+  try{
+    const fecha = todayISO();
+    const {data, error} = await supabaseClient.from('wellness_reports').select('*').eq('club',CURRENT_CLUB).eq('fecha',fecha);
+    if(error) return;
+    const byPlayer = {};
+    (data||[]).filter(r=> matchesCurrentCategory(r.player_name)).forEach(r=> byPlayer[normalizeNameKey(r.player_name)] = r);
+    LATEST_WELLNESS_BY_PLAYER = byPlayer;
+    LATEST_WELLNESS_FETCHED_AT = fecha;
+    buildPlayerList(document.getElementById('searchInput')?.value || ''); // repinta los puntitos ya con wellness
+  } catch(e){ /* silencioso: el semáforo simplemente queda sin el factor wellness */ }
+}
+
+// Devuelve {level:'red'|'yellow'|'green'|'unknown', reasons:[...]} para un jugador puntual.
+// No reemplaza criterio médico/técnico — es una señal compuesta para priorizar a quién mirar primero.
+function computePlayerRisk(p){
+  const reasons = [];
+  let score = 0;
+  let dataPoints = 0;
+
+  // 1) ACWR (agudo:crónico de Player Load) — ya se calcula para la lista de ACWR, lo reusamos.
+  const dates = [...new Set(categoryFilteredEvents().map(e=>e.fecha))].sort();
+  const refDate = dates[dates.length-1];
+  const acwr = refDate ? computeACWR(byPlayer[p], refDate) : {status:'insuf'};
+  if(acwr.status && acwr.status!=='insuf'){
+    dataPoints++;
+    if(acwr.status==='high'){ score += 3; reasons.push(tf('riskRazonAcwr',{v:acwrLabel('high')})); }
+    else if(acwr.status==='caution'){ score += 1.5; reasons.push(tf('riskRazonAcwr',{v:acwrLabel('caution')})); }
+    else if(acwr.status==='low'){ score += 0.75; }
+  }
+
+  // 2) TQR (recuperación 0-10, según escala Kenttä & Hassmén) del último reporte de wellness disponible (hoy).
+  const wr = LATEST_WELLNESS_BY_PLAYER[normalizeNameKey(p)];
+  if(wr && wr.tqr!==null && wr.tqr!==undefined){
+    dataPoints++;
+    if(wr.tqr<=2){ score += 2; reasons.push(tf('riskRazonTqr',{v:wr.tqr})); }
+    else if(wr.tqr<=5){ score += 1; reasons.push(tf('riskRazonTqr',{v:wr.tqr})); }
+  }
+  // 3) Dolor muscular reportado hoy.
+  if(wr && (wr.zonas_dolor||[]).length>0){
+    dataPoints++;
+    score += 1.5;
+    reasons.push(t('riskRazonDolor'));
+  }
+
+  // 4) Caída de RHIE (explosividad) vs. el propio promedio histórico del jugador — mismo criterio que
+  // "récords logrados hoy", pero mirando si está MUY por debajo en vez de por encima.
+  const sesiones = (byPlayer[p]||[]).filter(e=> e.rhie!==null && e.rhie!==undefined && !isNaN(e.rhie)).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  const pAvgRhie = playerAvg[p] ? playerAvg[p].rhie : null;
+  if(sesiones.length && pAvgRhie){
+    dataPoints++;
+    const ultimoRhie = sesiones[sesiones.length-1].rhie;
+    const ratio = ultimoRhie / pAvgRhie;
+    if(ratio < 0.7){ score += 1.5; reasons.push(t('riskRazonRhie')); }
+  }
+
+  if(!dataPoints) return {level:'unknown', reasons:[]};
+  const level = score>=3.5 ? 'red' : score>=1.5 ? 'yellow' : 'green';
+  return {level, reasons};
+}
+const RISK_COLOR = {red:'var(--bad)', yellow:'var(--warn)', green:'var(--good)', unknown:'var(--mist)'};
+
 function buildPlayerList(filter=''){
   const list = document.getElementById('playerList');
   const f = filter.trim().toLowerCase();
@@ -5697,14 +5774,26 @@ function buildPlayerList(filter=''){
     const rec = recordByPlayer[p];
     const lastDate = [...new Set(categoryFilteredEvents().map(e=>e.fecha))].sort().pop();
     const isNew = rec && METRIC_ORDER.some(m=>rec[m] && rec[m].fecha===lastDate);
+    const risk = computePlayerRisk(p);
+    const riskDot = risk.level==='unknown' ? '' :
+      `<span class="risk-dot${risk.reasons.length?' wtip':''}" style="background:${RISK_COLOR[risk.level]};" ${risk.reasons.length?`data-tip="${t('riskTooltipTitulo')}: ${risk.reasons.join(' · ')}"`:''}></span>`;
     return `<div class="p-item ${p===state.player?'active':''}" data-p="${p}">
       <div class="ini">${initials(p)}</div>
       <div class="nm"><b>${p}</b><small>${byPlayer[p].length} sesiones</small></div>
+      ${riskDot}
       ${isNew?'<span class="fire" title="Récord en la última sesión">🔥</span>':''}
     </div>`;
   }).join('');
   list.querySelectorAll('.p-item').forEach(el=>{
     el.addEventListener('click',()=>{ selectPlayer(el.dataset.p); });
+  });
+  list.querySelectorAll('.risk-dot.wtip').forEach(dot=>{
+    dot.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      const wasActive = dot.classList.contains('wtip-active');
+      list.querySelectorAll('.wtip-active').forEach(el=> el.classList.remove('wtip-active'));
+      if(!wasActive) dot.classList.add('wtip-active');
+    });
   });
 }
 
@@ -6745,6 +6834,7 @@ function renderAll(keepPlayer){
   buildKPIs();
   buildWeeklyTarget();
   buildPlayerList(document.getElementById('searchInput')?.value || '');
+  refreshWellnessRiskCache(); // fire-and-forget: cuando llegue, repinta los puntitos de riesgo con el factor wellness
   buildLeaderboard();
   buildRecordsTable();
   buildMatchGrid();
