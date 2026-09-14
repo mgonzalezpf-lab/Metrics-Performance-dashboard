@@ -2262,7 +2262,7 @@ function setupRestDayBar(){
     const nuevosEventos = players.map(p=>({
       fecha:dateVal, jugador:p, tipo:'Entreno', detalle:'Día libre',
       dist:null, hsr:null, vel:null, acc:null, desa:null, pl:null, min:null,
-      alta_int:null, sprint:null, sprint_count:null,
+      alta_int:null, sprint:null, sprint_count:null, rhie:null,
     }));
     const eventosFinales = [...ACTIVE_EVENTS, ...nuevosEventos];
     try{
@@ -3987,13 +3987,14 @@ const METRICS = {
   pl:   {label:'Player Load', unit:'', dec:0, key:'pl'},
   sprint: {label:'Sprint Distancia', unit:'m', dec:0, key:'sprint'},
   sprint_count: {label:'Sprint Conteo', unit:'', dec:0, key:'sprint_count'},
+  rhie: {label:'RHIE', unit:'', dec:0, key:'rhie'},
 };
-const METRIC_ORDER = ['dist','hsr','vel','acc','desa','pl','sprint','sprint_count'];
+const METRIC_ORDER = ['dist','hsr','vel','acc','desa','pl','sprint','sprint_count','rhie'];
 
 // ---------- i18n ----------
 const I18N = {
   es: {
-    metrics:{dist:'Distancia Total',hsr:'HSR',vel:'Vel. Máxima',acc:'Acc',desa:'Desa',pl:'Player Load',sprint:'Sprint Distancia',sprint_count:'Sprint Conteo'},
+    metrics:{dist:'Distancia Total',hsr:'HSR',vel:'Vel. Máxima',acc:'Acc',desa:'Desa',pl:'Player Load',sprint:'Sprint Distancia',sprint_count:'Sprint Conteo',rhie:'RHIE'},
     authTitleLogin:'Acceso al dashboard', authTitleSignup:'Crear acceso',
     authDescLogin:'Inicia sesión para consultar y actualizar los datos del equipo.',
     authDescSignup:'Registra tu email y contraseña para crear tu acceso.',
@@ -4121,7 +4122,7 @@ const I18N = {
     sinDatosSuficientes:'Sin datos suficientes todavía',
   },
   en: {
-    metrics:{dist:'Total Distance',hsr:'HSR',vel:'Max Speed',acc:'Acc',desa:'Dec',pl:'Player Load',sprint:'Sprint Distance',sprint_count:'Sprint Count'},
+    metrics:{dist:'Total Distance',hsr:'HSR',vel:'Max Speed',acc:'Acc',desa:'Dec',pl:'Player Load',sprint:'Sprint Distance',sprint_count:'Sprint Count',rhie:'RHIE'},
     authTitleLogin:'Dashboard access', authTitleSignup:'Create access',
     authDescLogin:'Log in to view and update the team data.',
     authDescSignup:'Register your email and password to create your access.',
@@ -4249,7 +4250,7 @@ const I18N = {
     sinDatosSuficientes:'Not enough data yet',
   },
   ar: {
-    metrics:{dist:'المسافة الإجمالية',hsr:'الجري عالي السرعة',vel:'السرعة القصوى',acc:'تسارع',desa:'تباطؤ',pl:'حمل اللاعب',sprint:'مسافة السرعات القصوى',sprint_count:'عدد السرعات القصوى'},
+    metrics:{dist:'المسافة الإجمالية',hsr:'الجري عالي السرعة',vel:'السرعة القصوى',acc:'تسارع',desa:'تباطؤ',pl:'حمل اللاعب',sprint:'مسافة السرعات القصوى',sprint_count:'عدد السرعات القصوى',rhie:'RHIE'},
     authTitleLogin:'الدخول إلى لوحة التحكم', authTitleSignup:'إنشاء حساب',
     authDescLogin:'سجّل الدخول للاطلاع على بيانات الفريق وتحديثها.',
     authDescSignup:'سجّل بريدك الإلكتروني وكلمة المرور لإنشاء حسابك.',
@@ -5561,6 +5562,7 @@ function buildWeeklyTarget(){
     {key:'dist', label:t('mtDistancia'), unit:'m'},
     {key:'hsr', label:'HSR', unit:'m'},
     {key:'pl', label:t('mtPlayerLoad'), unit:''},
+    {key:'rhie', label:'RHIE', unit:''},
   ];
 
   const diffs = []; // {label, diffPct, within} de cada métrica, para la recomendación final
@@ -5646,7 +5648,7 @@ function buildKPIs(){
   document.getElementById('lastDate').textContent = lastDate ? lastDate.split('-').reverse().join('/') : '—';
   const rangeMetaCountEl = document.getElementById('rangeMetaCount');
   if(rangeMetaCountEl) rangeMetaCountEl.textContent = players.length;
-  const todays = lastDate ? RECORDS.filter(r=>['dist','hsr','vel','acc','desa','pl'].some(m=>r[m].fecha===lastDate)) : [];
+  const todays = lastDate ? RECORDS.filter(r=>['dist','hsr','vel','acc','desa','pl','rhie'].some(m=>r[m] && r[m].fecha===lastDate)) : [];
   const lastMatch = getLastMatchInfo(catEvents);
   const cycleDistTotal = computeCurrentCycleTotal('dist');
   const cycleHsrTotal = computeCurrentCycleTotal('hsr');
@@ -6324,7 +6326,7 @@ function buildRpeAcwrChart(){
 }
 
 // ---------- team-wide daily evolution (dist / hsr / pl) ----------
-const TEAM_METRICS = ['dist','hsr','vel','acc','desa','pl','sprint','sprint_count'];
+const TEAM_METRICS = ['dist','hsr','vel','acc','desa','pl','sprint','sprint_count','rhie'];
 // Plugin reutilizable: dibuja el valor numérico SOLO sobre los puntos de partido (no en cada sesión de entreno),
 // para no saturar el gráfico — usado en Evolución del plantel y en el gráfico individual de cada jugador.
 function matchValueLabelPlugin(evsRef, fmtFn, opts){
@@ -6358,10 +6360,10 @@ let teamDailySeries = [];
 function computeTeamDailySeries(){
   const map = {};
   categoryFilteredEvents().forEach(e=>{
-    if(!map[e.fecha]) map[e.fecha] = { fecha:e.fecha, tipos:new Set(), dist:[], hsr:[], vel:[], pl:[], acc:[], desa:[], sprint:[], sprint_count:[], detalles:{} };
+    if(!map[e.fecha]) map[e.fecha] = { fecha:e.fecha, tipos:new Set(), dist:[], hsr:[], vel:[], pl:[], acc:[], desa:[], sprint:[], sprint_count:[], rhie:[], detalles:{} };
     const rec = map[e.fecha];
     rec.tipos.add(e.tipo);
-    ['dist','hsr','vel','pl','acc','desa','sprint','sprint_count'].forEach(k=>{
+    ['dist','hsr','vel','pl','acc','desa','sprint','sprint_count','rhie'].forEach(k=>{
       if(e[k]!==null && e[k]!==undefined && !isNaN(e[k])) rec[k].push(e[k]);
     });
     if(e.detalle){ const key=String(e.detalle).trim(); if(key) rec.detalles[key]=(rec.detalles[key]||0)+1; }
@@ -6386,6 +6388,7 @@ function computeTeamDailySeries(){
       desa: avg(rec.desa),
       sprint: avg(rec.sprint),
       sprint_count: avg(rec.sprint_count),
+      rhie: avg(rec.rhie),
     };
   });
 }
@@ -7025,7 +7028,7 @@ async function handleFile(file){
         const r = rows[i]; if(!r || !r[1] || !r[0]) continue;
         events.push({ fecha:toISO(r[0]), jugador:String(r[1]).trim(), tipo:'Entreno', detalle:r[2]||'',
           dist:num(r[3]), hsr:num(r[4]), vel:num(r[5]), acc:num(r[6]), desa:num(r[7]), pl:num(r[8]),
-          alta_int:num(r[16]), sprint:num(r[17]), sprint_count:num(r[18]), min:null });
+          alta_int:num(r[16]), sprint:num(r[17]), sprint_count:num(r[18]), rhie:num(r[19]), min:null });
       }
     }
     if(wb.SheetNames.includes('Partidos')){
@@ -7034,7 +7037,7 @@ async function handleFile(file){
         const r = rows[i]; if(!r || !r[2] || !r[0]) continue;
         events.push({ fecha:toISO(r[0]), jugador:String(r[2]).trim(), tipo:'Partido', detalle:r[1]||'',
           dist:num(r[4]), hsr:num(r[5]), vel:num(r[6]), acc:num(r[7]), desa:num(r[8]), pl:num(r[9]),
-          alta_int:num(r[17]), sprint:num(r[18]), sprint_count:num(r[19]), min:num(r[3]) });
+          alta_int:num(r[17]), sprint:num(r[18]), sprint_count:num(r[19]), rhie:num(r[20]), min:num(r[3]) });
       }
     }
     if(!events.length) throw new Error('No se encontraron filas en las hojas "Session" ni "Partidos".');
@@ -7150,7 +7153,7 @@ async function confirmCatapultImport(){
       .map(r=>({
         fecha, jugador:r.jugador, tipo, detalle:detalleFinal, categoria: categoriaSeleccionada,
         dist:r.dist, hsr:r.hsr, vel:r.vel, acc:r.acc, desa:r.desa, pl:r.pl, min:r.min,
-        alta_int:r.hsr, sprint:r.sprint, sprint_count:r.sprint_count,
+        alta_int:r.hsr, sprint:r.sprint, sprint_count:r.sprint_count, rhie:r.rhie,
       }));
 
     // Arqueros del mismo CSV: se guardan aparte en gk_data. Impactos y buzos ya vienen del reporte completo de Catapult.
