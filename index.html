@@ -3570,21 +3570,8 @@ function loadSavedData(){
   return false;
 }
 
-const METRICS = {
-  dist: {label:'Distancia Total', unit:'m', dec:0, key:'dist'},
-  hsr:  {label:'HSR', unit:'m', dec:0, key:'hsr'},
-  vel:  {label:'Vel. Máxima', unit:'km/h', dec:1, key:'vel'},
-  acc:  {label:'Acc', unit:'n°', dec:0, key:'acc'},
-  desa: {label:'Desa', unit:'n°', dec:0, key:'desa'},
-  pl:   {label:'Player Load', unit:'', dec:0, key:'pl'},
-  sprint: {label:'Sprint Distancia', unit:'m', dec:0, key:'sprint'},
-  sprint_count: {label:'Sprint Conteo', unit:'', dec:0, key:'sprint_count'},
-  rhie: {label:'RHIE Bouts', unit:'', dec:0, key:'rhie'},
-};
-const METRIC_ORDER = ['dist','hsr','vel','acc','desa','pl','sprint','sprint_count','rhie'];
-
-// ---------- i18n ----------
 </script>
+<script src="metrics.js"></script>
 <script src="i18n.js"></script>
 <script>
 function applyI18nStatic(){
@@ -6600,19 +6587,9 @@ function showStatus(msg, kind){
   showStatus._t = setTimeout(()=>{ el.style.opacity='0'; }, 7000);
 }
 // ---------- Arqueros: datos separados de los jugadores de campo (tabla gk_data en Supabase) ----------
-const GK_METRICS = {
-  dist: {label:'Distancia Total', unit:'m', dec:0},
-  impact_left: {label:'Impacto Izq.', unit:'', dec:0},
-  impact_right: {label:'Impacto Der.', unit:'', dec:0},
-  impact_total: {label:'Impactos Total', unit:'', dec:0},
-  dives_left: {label:'Buzos Izq.', unit:'', dec:0},
-  dives_right: {label:'Buzos Der.', unit:'', dec:0},
-  pl: {label:'Player Load', unit:'', dec:0},
-  vel: {label:'Vel. Máxima', unit:'km/h', dec:1},
-  acc: {label:'Acc', unit:'', dec:0},
-  dece: {label:'Dece', unit:'', dec:0},
-};
-const GK_METRIC_ORDER = ['dist','impact_left','impact_right','impact_total','dives_left','dives_right','pl','vel','acc','dece'];
+</script>
+<script src="gk-metrics.js"></script>
+<script>
 
 function withGkDerivedFields(e){
   return {...e};
