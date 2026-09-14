@@ -4197,6 +4197,20 @@ const I18N = {
     informeDePartido:'Informe de partido', informeSubtituloConRef:'vs {r} · {d} · Comparación vs. promedio de los últimos {n} partido(s)', informeSubtituloSinRef:'vs {r} · {d} · Sin partidos anteriores para comparar',
     informeAltaIntensidad:'Alta intensidad', informeDetalleMetrica:'Detalle por métrica', colMetrica:'Métrica', informeEstePartido:'Este partido', informePromedioAnterior:'Promedio anterior', colDiferencia:'Diferencia',
     informePie:'Fuente: Metrics Performance Dashboard · {c} · Generado el {f}',
+    informeVsUltimo:'Dif. vs último', informePerfilIntensidad:'Perfil de intensidad', informePrimerVsSegundo:'Primer tiempo vs. segundo tiempo',
+    col1T:'1T', col2T:'2T', informePromedio:'Promedio', informeRangoReciente:'Rango últ. {n}: {min}–{max}{u}',
+    metricaHsrPctDist:'HSR como % de la distancia total', metricaSprintProm:'Distancia promedio por sprint', metricaAccDesaTotal:'Acc + Desa combinadas',
+    informeResumenIntro:'Resumen del partido', informeSinHalvesNota:'Este partido no tiene desglose de 1T/2T por métrica cargado (solo el índice de fatiga general).',
+    resumenAltaIntensidad:'Frente a {r}, el equipo mostró un perfil de mayor exigencia en acciones de alta intensidad, con el HSR en {hsr} respecto al promedio de los partidos recientes.',
+    resumenVolumenSimilar:'Ese mayor esfuerzo fue puntual (sprints/HSR) y no vino acompañado de más volumen total — el desgaste puede no notarse en la distancia recorrida.',
+    resumenVolumenBajo:'El volumen total de este partido quedó por debajo de lo habitual, lo que sugiere un partido de menor exigencia general para el plantel.',
+    resumenParametrosHabituales:'En líneas generales, las métricas de este partido se mantuvieron dentro de los parámetros habituales del equipo, sin desvíos marcados respecto al promedio reciente.',
+    resumenFatiga:'El índice de fatiga (2T vs 1T) fue de {v} ({l}).',
+    resumenVsUltimo:'Respecto al partido anterior, el Player Load varió {v}.',
+    insightSprintCortos:'Los sprints fueron más cortos en promedio que lo habitual — podría indicar menor capacidad de sostener la velocidad máxima en cada arrancada.',
+    insightSprintLargos:'Los sprints fueron más largos en promedio que lo habitual — arrancadas más sostenidas en velocidad máxima que en partidos recientes.',
+    insightCaidaConcentradaHsr:'La caída del segundo tiempo se concentra en HSR (velocidad), más que en el volumen total — atención puntual a la intensidad, no solo al volumen general.',
+    insightCaidaConcentradaSprint:'La cantidad de sprints bajó marcadamente en el segundo tiempo — señal de fatiga en la capacidad de repetir esfuerzos explosivos.',
     informePuntosATener:'Puntos a tener en cuenta',
     insightHighIntensity:'Mayor exigencia en acciones de alta intensidad (HSR/sprints) que el promedio reciente — conviene vigilar la recuperación en las próximas 48-72 horas.',
     insightVolumenFlat:'El esfuerzo extra fue puntual (sprints/HSR), no de volumen total — el desgaste puede no notarse en la distancia recorrida ni en el Player Load.',
@@ -4347,6 +4361,20 @@ const I18N = {
     informeDePartido:'Match report', informeSubtituloConRef:'vs {r} · {d} · Comparison vs. average of the last {n} match(es)', informeSubtituloSinRef:'vs {r} · {d} · No previous matches to compare',
     informeAltaIntensidad:'High intensity', informeDetalleMetrica:'Metric detail', colMetrica:'Metric', informeEstePartido:'This match', informePromedioAnterior:'Previous average', colDiferencia:'Difference',
     informePie:'Source: Metrics Performance Dashboard · {c} · Generated on {f}',
+    informeVsUltimo:'Diff. vs last', informePerfilIntensidad:'Intensity profile', informePrimerVsSegundo:'First half vs. second half',
+    col1T:'1H', col2T:'2H', informePromedio:'Average', informeRangoReciente:'Range last {n}: {min}–{max}{u}',
+    metricaHsrPctDist:'HSR as % of total distance', metricaSprintProm:'Average distance per sprint', metricaAccDesaTotal:'Acc + Dec combined',
+    informeResumenIntro:'Match summary', informeSinHalvesNota:'This match has no 1H/2H breakdown loaded per metric (only the overall fatigue index).',
+    resumenAltaIntensidad:'Against {r}, the team showed a higher-demand profile in high-intensity actions, with HSR at {hsr} versus the average of recent matches.',
+    resumenVolumenSimilar:'That extra effort was punctual (sprints/HSR) and was not accompanied by more total volume — the load may not show up in total distance covered.',
+    resumenVolumenBajo:'The total volume of this match was below usual, suggesting a lower overall demand match for the squad.',
+    resumenParametrosHabituales:'Overall, this match metrics stayed within the team usual parameters, without marked deviations from the recent average.',
+    resumenFatiga:'The fatigue index (2H vs 1H) was {v} ({l}).',
+    resumenVsUltimo:'Compared to the previous match, Player Load changed {v}.',
+    insightSprintCortos:'Sprints were shorter on average than usual — could indicate a lower ability to sustain top speed on each run.',
+    insightSprintLargos:'Sprints were longer on average than usual — more sustained top-speed runs than in recent matches.',
+    insightCaidaConcentradaHsr:'The second-half drop is concentrated in HSR (speed), more than in total volume — worth a specific look at intensity, not just overall volume.',
+    insightCaidaConcentradaSprint:'Sprint count dropped markedly in the second half — a sign of fatigue in the ability to repeat explosive efforts.',
     informePuntosATener:'Points to keep in mind',
     insightHighIntensity:'Higher demand in high-intensity actions (HSR/sprints) than the recent average — worth monitoring recovery over the next 48-72 hours.',
     insightVolumenFlat:'The extra effort was punctual (sprints/HSR), not total volume — the load may not show up in total distance or Player Load.',
@@ -4497,6 +4525,20 @@ const I18N = {
     informeDePartido:'تقرير المباراة', informeSubtituloConRef:'ضد {r} · {d} · مقارنة بمتوسط آخر {n} مباراة (مباريات)', informeSubtituloSinRef:'ضد {r} · {d} · لا توجد مباريات سابقة للمقارنة',
     informeAltaIntensidad:'الشدة العالية', informeDetalleMetrica:'تفاصيل كل مقياس', colMetrica:'المقياس', informeEstePartido:'هذه المباراة', informePromedioAnterior:'المتوسط السابق', colDiferencia:'الفرق',
     informePie:'المصدر: Metrics Performance Dashboard · {c} · تم الإنشاء في {f}',
+    informeVsUltimo:'الفرق مقابل الأخيرة', informePerfilIntensidad:'ملف الشدة', informePrimerVsSegundo:'الشوط الأول مقابل الشوط الثاني',
+    col1T:'ش1', col2T:'ش2', informePromedio:'المتوسط', informeRangoReciente:'نطاق آخر {n}: {min}–{max}{u}',
+    metricaHsrPctDist:'HSR كنسبة % من المسافة الإجمالية', metricaSprintProm:'متوسط مسافة كل سرعة قصوى', metricaAccDesaTotal:'Acc + Desa مجتمعتين',
+    informeResumenIntro:'ملخص المباراة', informeSinHalvesNota:'لا يوجد تفصيل للشوط الأول/الثاني لكل مقياس في هذه المباراة (فقط مؤشر التعب العام).',
+    resumenAltaIntensidad:'أمام {r}، أظهر الفريق ملفًا بمتطلبات أعلى في إجراءات الشدة العالية، حيث بلغ HSR {hsr} مقارنة بمتوسط المباريات الأخيرة.',
+    resumenVolumenSimilar:'كان هذا الجهد الإضافي في لحظات محددة (سرعات قصوى/HSR) ولم يترافق مع زيادة في الحجم الكلي — قد لا يظهر الإجهاد في المسافة المقطوعة.',
+    resumenVolumenBajo:'كان الحجم الإجمالي لهذه المباراة أقل من المعتاد، ما يشير إلى مباراة بمتطلبات عامة أقل للفريق.',
+    resumenParametrosHabituales:'بشكل عام، بقيت مقاييس هذه المباراة ضمن المعايير المعتادة للفريق، دون انحرافات ملحوظة عن المتوسط الأخير.',
+    resumenFatiga:'كان مؤشر التعب (الشوط الثاني مقابل الأول) {v} ({l}).',
+    resumenVsUltimo:'مقارنة بالمباراة السابقة، تغيّر Player Load بنسبة {v}.',
+    insightSprintCortos:'كانت السرعات القصوى أقصر في المتوسط من المعتاد — قد يشير إلى قدرة أقل على الحفاظ على السرعة القصوى في كل انطلاقة.',
+    insightSprintLargos:'كانت السرعات القصوى أطول في المتوسط من المعتاد — انطلاقات بسرعة قصوى أكثر استمرارية مقارنة بالمباريات الأخيرة.',
+    insightCaidaConcentradaHsr:'ينحصر انخفاض الشوط الثاني في HSR (السرعة)، أكثر من الحجم الإجمالي — يستحق الانتباه تحديدًا للشدة، لا للحجم العام فقط.',
+    insightCaidaConcentradaSprint:'انخفض عدد السرعات القصوى بشكل ملحوظ في الشوط الثاني — إشارة إلى التعب في القدرة على تكرار الجهود الانفجارية.',
     informePuntosATener:'نقاط يجب الانتباه إليها',
     insightHighIntensity:'مطالب أعلى في إجراءات الشدة العالية (HSR/سرعات قصوى) مقارنة بالمتوسط الأخير — يُنصح بمراقبة التعافي خلال 48-72 ساعة القادمة.',
     insightVolumenFlat:'كان الجهد الإضافي في لحظات محددة (سرعات قصوى/HSR) لا في الحجم الكلي — قد لا يظهر الإجهاد في المسافة الإجمالية أو في Player Load.',
@@ -6346,31 +6388,59 @@ function getSortedMatchEntries(){
     .filter(([,row]) => !CURRENT_CATEGORY || !row.categoria || row.categoria===CURRENT_CATEGORY)
     .sort((a,b)=> (a[1].fecha||'').localeCompare(b[1].fecha||''));
 }
+// Los nombres de partido en ACTIVE_TEAMTOTALS ya vienen como "vs Rival" (así se muestran las tarjetas de
+// la pestaña Partidos) — si no se limpia ese prefijo antes de armar "vs {rival}" en el informe, queda
+// duplicado como "vs vs Rival".
+function cleanRivalName(name){
+  return String(name||'').replace(/^\s*vs\.?\s+/i, '').trim();
+}
 function generateMatchReportPDF(matchName){
   if(typeof window.jspdf === 'undefined'){ alert(t('noSePudoPdf')); return; }
   const entries = getSortedMatchEntries();
   const idx = entries.findIndex(([name])=> name===matchName);
   if(idx===-1) return;
-  const [rival, row] = entries[idx];
+  const [rivalRaw, row] = entries[idx];
+  const rival = cleanRivalName(rivalRaw);
   const prevEntries = entries.slice(Math.max(0, idx-5), idx); // hasta 5 partidos anteriores como referencia
   const hayReferencia = prevEntries.length>0;
+  const lastEntry = idx>0 ? entries[idx-1] : null; // el partido inmediatamente anterior (no el promedio)
 
   const baseline = {};
+  const rango = {}; // {min,max} de cada métrica dentro de prevEntries, para dar contexto de "dónde cae" este partido
   MATCH_REPORT_METRICS.forEach(m=>{
     const vals = prevEntries.map(([,r])=>r[m.key]).filter(v=>v!==null && v!==undefined && !isNaN(v));
     baseline[m.key] = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+    rango[m.key] = vals.length ? {min:Math.min(...vals), max:Math.max(...vals)} : null;
   });
   const diffPct = {};
+  const diffPctLast = {};
   MATCH_REPORT_METRICS.forEach(m=>{
     const base = baseline[m.key], val = row[m.key];
     diffPct[m.key] = (base && val!==null && val!==undefined) ? ((val-base)/base*100) : null;
+    const lastVal = lastEntry ? lastEntry[1][m.key] : null;
+    diffPctLast[m.key] = (lastVal && val!==null && val!==undefined) ? ((val-lastVal)/lastVal*100) : null;
   });
+
+  // ---- métricas derivadas: perfil de intensidad, no solo números sueltos ----
+  const derived = computeMatchDerivedMetrics(row);
+  const derivedBase = computeMatchDerivedMetricsAvg(prevEntries);
+  const derivedDiff = {};
+  Object.keys(derived).forEach(k=>{
+    const b = derivedBase[k];
+    derivedDiff[k] = (b && derived[k]!==null) ? ((derived[k]-b)/b*100) : null;
+  });
+
+  // ---- 1T vs 2T por métrica (solo si esta carga vino del CSV crudo de Catapult, que trae ese detalle) ----
+  const halvesKeys = ['dist','hsr','acc','desa','pl','sprint_dist','sprint_count','rhie'];
+  const halvesMap = { dist:'dist', hsr:'hsr', acc:'acc', desa:'desa', pl:'pl', sprint_dist:'sprint', sprint_count:'sprint_count', rhie:'rhie' };
+  const hasHalves = !!(row.halves && halvesKeys.some(k=>{ const h = row.halves[halvesMap[k]]; return h && h.t1!==null && h.t1!==undefined && h.t2!==null && h.t2!==undefined; }));
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({unit:'mm', format:'a4'});
   const pageW = doc.internal.pageSize.getWidth();
   const marginX = 16;
   let y = 20;
+  const ensureSpace = (needed)=>{ if(y + needed > 282){ doc.addPage(); y = 20; } };
 
   // ---- encabezado ----
   doc.setFont('helvetica','bold'); doc.setFontSize(17); doc.setTextColor(18,33,59);
@@ -6386,82 +6456,176 @@ function generateMatchReportPDF(matchName){
   doc.setDrawColor(220,220,220); doc.line(marginX, y, pageW-marginX, y);
   y += 8;
 
+  // ---- resumen ejecutivo (texto corrido, sintetiza el partido antes de entrar a los cuadros) ----
+  const resumenTxt = buildMatchReportSummary(row, diffPct, diffPctLast, hayReferencia, !!lastEntry, rival);
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
+  doc.text(t('informeResumenIntro'), marginX, y);
+  y += 5.5;
+  doc.setFont('helvetica','normal'); doc.setFontSize(9.3); doc.setTextColor(60,60,60);
+  const resumenLines = doc.splitTextToSize(resumenTxt, pageW-marginX*2);
+  doc.text(resumenLines, marginX, y);
+  y += resumenLines.length*4.4 + 6;
+
   // ---- resumen alta intensidad (si hay referencia) ----
   if(hayReferencia){
+    ensureSpace(36);
     doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
     doc.text(t('informeAltaIntensidad'), marginX, y);
     y += 5;
     const hiKeys = ['hsr','sprint_dist','sprint_count'];
     const boxColors = [[192,87,15],[108,52,131],[164,41,31]];
     const boxW = (pageW - marginX*2 - 8)/3;
+    const boxH = 30;
     hiKeys.forEach((k,i)=>{
       const m = MATCH_REPORT_METRICS.find(mm=>mm.key===k);
       const x = marginX + i*(boxW+4);
       const [r,g,b] = boxColors[i];
       doc.setFillColor(r,g,b);
-      doc.roundedRect(x, y, boxW, 24, 2, 2, 'F');
+      doc.roundedRect(x, y, boxW, boxH, 2, 2, 'F');
       doc.setTextColor(255,255,255);
       const pct = diffPct[k];
       doc.setFont('helvetica','bold'); doc.setFontSize(15);
-      doc.text(pct===null ? '—' : `${pct>=0?'+':''}${pct.toFixed(1)}%`, x+boxW/2, y+11, {align:'center'});
-      doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
-      doc.text(doc.splitTextToSize(m.label().toUpperCase(), boxW-6), x+boxW/2, y+16.5, {align:'center'});
-      doc.setFontSize(7);
-      doc.text(`${fmt(row[k])}${m.unit} vs ${fmt(Math.round(baseline[k]))}${m.unit} prom.`, x+boxW/2, y+21.5, {align:'center'});
+      doc.text(pct===null ? '—' : `${pct>=0?'+':''}${pct.toFixed(1)}%`, x+boxW/2, y+10, {align:'center'});
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.2);
+      doc.text(doc.splitTextToSize(m.label().toUpperCase(), boxW-6), x+boxW/2, y+15, {align:'center'});
+      doc.setFontSize(6.6);
+      doc.text(`${fmt(row[k])}${m.unit} vs ${fmt(Math.round(baseline[k]))}${m.unit} prom.`, x+boxW/2, y+20.5, {align:'center'});
+      const rg = rango[k];
+      if(rg){
+        doc.text(tf('informeRangoReciente', {n:prevEntries.length, min:fmt(Math.round(rg.min)), max:fmt(Math.round(rg.max)), u:m.unit}), x+boxW/2, y+25.5, {align:'center'});
+      }
     });
-    y += 30;
+    y += boxH + 6;
   }
 
-  // ---- tabla de métricas ----
+  // ---- tabla de métricas: vs promedio Y vs último partido ----
+  ensureSpace(12 + MATCH_REPORT_METRICS.length*7);
   doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
   doc.text(t('informeDetalleMetrica'), marginX, y);
   y += 6;
-  const colX = [marginX, marginX+62, marginX+95, marginX+130, marginX+162];
+  const tableW = pageW-marginX*2;
+  const colX = [marginX, marginX+48, marginX+80, marginX+112, marginX+145];
   const rowH = 7;
   doc.setFillColor(18,33,59);
-  doc.rect(marginX, y, pageW-marginX*2, rowH, 'F');
-  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+  doc.rect(marginX, y, tableW, rowH, 'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(8);
   doc.text(t('colMetrica'), colX[0]+2, y+4.8);
   doc.text(t('informeEstePartido'), colX[1], y+4.8);
   doc.text(hayReferencia ? t('informePromedioAnterior') : t('sinDatosTooltip'), colX[2], y+4.8);
   doc.text(t('colDiferencia'), colX[3], y+4.8);
+  doc.text(t('informeVsUltimo'), colX[4], y+4.8);
   y += rowH;
   MATCH_REPORT_METRICS.forEach((m,i)=>{
-    if(i%2===1){ doc.setFillColor(242,245,250); doc.rect(marginX, y, pageW-marginX*2, rowH, 'F'); }
-    doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(30,30,30);
+    if(i%2===1){ doc.setFillColor(242,245,250); doc.rect(marginX, y, tableW, rowH, 'F'); }
+    doc.setFont('helvetica','bold'); doc.setFontSize(8.2); doc.setTextColor(30,30,30);
     doc.text(m.label(), colX[0]+2, y+4.8);
     doc.setFont('helvetica','normal');
     doc.text(row[m.key]!==null && row[m.key]!==undefined ? `${fmt(row[m.key])}${m.unit}` : '—', colX[1], y+4.8);
     doc.text(baseline[m.key]!==null ? `${fmt(Math.round(baseline[m.key]))}${m.unit}` : '—', colX[2], y+4.8);
     const pct = diffPct[m.key];
+    doc.setTextColor(30,30,30); doc.setFont('helvetica','normal');
     if(pct!==null){ doc.setTextColor(pct>=0?46:194, pct>=0?139:57, pct>=0?87:47); doc.setFont('helvetica','bold'); }
     doc.text(pct!==null ? `${pct>=0?'+':''}${pct.toFixed(1)}%` : '—', colX[3], y+4.8);
+    const pctL = diffPctLast[m.key];
+    doc.setTextColor(30,30,30); doc.setFont('helvetica','normal');
+    if(pctL!==null){ doc.setTextColor(pctL>=0?46:194, pctL>=0?139:57, pctL>=0?87:47); doc.setFont('helvetica','bold'); }
+    doc.text(pctL!==null ? `${pctL>=0?'+':''}${pctL.toFixed(1)}%` : '—', colX[4], y+4.8);
     y += rowH;
   });
-  doc.setDrawColor(220,220,220); doc.rect(marginX, y-rowH*MATCH_REPORT_METRICS.length, pageW-marginX*2, rowH*MATCH_REPORT_METRICS.length);
-  y += 8;
+  doc.setDrawColor(220,220,220); doc.rect(marginX, y-rowH*MATCH_REPORT_METRICS.length, tableW, rowH*MATCH_REPORT_METRICS.length);
+  y += 9;
 
-  // ---- índice de fatiga (2T vs 1T) ----
-  if(row.fatiga!==undefined && row.fatiga!==null){
-    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
-    doc.text(t('mmIndiceFatiga'), marginX, y);
-    y += 6;
-    doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(50,50,50);
-    doc.text(`${row.fatiga>0?'+':''}${fmt(row.fatiga,1)}% (${fatigaLabel(row.fatiga)})`, marginX, y);
+  // ---- perfil de intensidad: métricas derivadas, no solo las crudas ----
+  ensureSpace(10 + 3*7);
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
+  doc.text(t('informePerfilIntensidad'), marginX, y);
+  y += 6;
+  const derivedRows = [
+    {key:'hsrShare', label:t('metricaHsrPctDist'), unit:'%', dec:1},
+    {key:'sprintLen', label:t('metricaSprintProm'), unit:' m', dec:0},
+    {key:'accDesaTotal', label:t('metricaAccDesaTotal'), unit:'', dec:0},
+  ];
+  const colX2 = [marginX, marginX+75, marginX+118, marginX+150];
+  doc.setFillColor(18,33,59); doc.rect(marginX, y, tableW, rowH, 'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(8);
+  doc.text(t('colMetrica'), colX2[0]+2, y+4.8);
+  doc.text(t('informeEstePartido'), colX2[1], y+4.8);
+  doc.text(hayReferencia ? t('informePromedio') : t('sinDatosTooltip'), colX2[2], y+4.8);
+  doc.text(t('colDiferencia'), colX2[3], y+4.8);
+  y += rowH;
+  derivedRows.forEach((dr,i)=>{
+    if(i%2===1){ doc.setFillColor(242,245,250); doc.rect(marginX, y, tableW, rowH, 'F'); }
+    doc.setFont('helvetica','bold'); doc.setFontSize(8.2); doc.setTextColor(30,30,30);
+    doc.text(dr.label, colX2[0]+2, y+4.8);
+    doc.setFont('helvetica','normal');
+    const val = derived[dr.key];
+    doc.text(val!==null && val!==undefined ? `${fmt(val,dr.dec)}${dr.unit}` : '—', colX2[1], y+4.8);
+    const bv = derivedBase[dr.key];
+    doc.text(bv!==null && bv!==undefined ? `${fmt(bv,dr.dec)}${dr.unit}` : '—', colX2[2], y+4.8);
+    const dpct = derivedDiff[dr.key];
+    doc.setTextColor(30,30,30); doc.setFont('helvetica','normal');
+    if(dpct!==null){ doc.setTextColor(dpct>=0?46:194, dpct>=0?139:57, dpct>=0?87:47); doc.setFont('helvetica','bold'); }
+    doc.text(dpct!==null ? `${dpct>=0?'+':''}${dpct.toFixed(1)}%` : '—', colX2[3], y+4.8);
+    y += rowH;
+  });
+  doc.setDrawColor(220,220,220); doc.rect(marginX, y-rowH*derivedRows.length, tableW, rowH*derivedRows.length);
+  y += 9;
+
+  // ---- 1T vs 2T por métrica ----
+  ensureSpace(10 + (hasHalves ? halvesKeys.length*7 : 10));
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
+  doc.text(t('informePrimerVsSegundo'), marginX, y);
+  y += 6;
+  if(hasHalves){
+    const hColX = [marginX, marginX+70, marginX+105, marginX+140];
+    doc.setFillColor(18,33,59); doc.rect(marginX, y, tableW, rowH, 'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(8);
+    doc.text(t('colMetrica'), hColX[0]+2, y+4.8);
+    doc.text(t('col1T'), hColX[1], y+4.8);
+    doc.text(t('col2T'), hColX[2], y+4.8);
+    doc.text(t('colDiferencia'), hColX[3], y+4.8);
+    y += rowH;
+    halvesKeys.forEach((k,i)=>{
+      const m = MATCH_REPORT_METRICS.find(mm=>mm.key===k);
+      const h = row.halves[halvesMap[k]];
+      if(i%2===1){ doc.setFillColor(242,245,250); doc.rect(marginX, y, tableW, rowH, 'F'); }
+      doc.setFont('helvetica','bold'); doc.setFontSize(8.2); doc.setTextColor(30,30,30);
+      doc.text(m.label(), hColX[0]+2, y+4.8);
+      doc.setFont('helvetica','normal');
+      const t1 = h ? h.t1 : null, t2 = h ? h.t2 : null, hd = h ? h.diff : null;
+      doc.text(t1!==null && t1!==undefined ? `${fmt(t1)}${m.unit}` : '—', hColX[1], y+4.8);
+      doc.text(t2!==null && t2!==undefined ? `${fmt(t2)}${m.unit}` : '—', hColX[2], y+4.8);
+      doc.setTextColor(30,30,30); doc.setFont('helvetica','normal');
+      if(hd!==null && hd!==undefined){ doc.setTextColor(hd>=0?46:194, hd>=0?139:57, hd>=0?87:47); doc.setFont('helvetica','bold'); }
+      doc.text(hd!==null && hd!==undefined ? `${hd>=0?'+':''}${hd.toFixed(1)}%` : '—', hColX[3], y+4.8);
+      y += rowH;
+    });
+    doc.setDrawColor(220,220,220); doc.rect(marginX, y-rowH*halvesKeys.length, tableW, rowH*halvesKeys.length);
     y += 8;
+  } else {
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(120,120,120);
+    const lines = doc.splitTextToSize(t('informeSinHalvesNota'), tableW);
+    doc.text(lines, marginX, y);
+    y += lines.length*4.4 + 3;
+    if(row.fatiga!==undefined && row.fatiga!==null){
+      doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(50,50,50);
+      doc.text(`${t('mmIndiceFatiga')}: ${row.fatiga>0?'+':''}${fmt(row.fatiga,1)}% (${fatigaLabel(row.fatiga)})`, marginX, y);
+      y += 7;
+    }
   }
+  y += 2;
 
-  // ---- puntos a tener en cuenta: lectura en texto, no solo el cuadro de números ----
-  const insights = buildMatchReportInsights(row, diffPct, hayReferencia);
+  // ---- puntos a tener en cuenta: lectura en texto, no solo los cuadros de números ----
+  const insights = buildMatchReportInsights(row, diffPct, hayReferencia, derived, derivedDiff, hasHalves);
   if(insights.length){
-    if(y > 245){ doc.addPage(); y = 20; } // por si el resto ya casi llenó la página
+    ensureSpace(10);
     doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
     doc.text(t('informePuntosATener'), marginX, y);
     y += 6;
     doc.setFontSize(9);
     insights.forEach(txt=>{
-      const lines = doc.splitTextToSize(`•  ${txt}`, pageW-marginX*2-2);
-      if(y + lines.length*4.6 > 280){ doc.addPage(); y = 20; }
+      const lines = doc.splitTextToSize(`•  ${txt}`, tableW-2);
+      ensureSpace(lines.length*4.6);
       doc.setFont('helvetica','normal'); doc.setTextColor(50,50,50);
       doc.text(lines, marginX+1, y);
       y += lines.length*4.6 + 2.5;
@@ -6470,6 +6634,7 @@ function generateMatchReportPDF(matchName){
   }
 
   // ---- pie ----
+  ensureSpace(12);
   doc.setDrawColor(220,220,220); doc.line(marginX, y, pageW-marginX, y);
   y += 5;
   doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(140,140,140);
@@ -6478,10 +6643,48 @@ function generateMatchReportPDF(matchName){
   doc.save(`Informe_${CURRENT_CLUB.replace(/\s+/g,'_')}_vs_${rival.replace(/\s+/g,'_')}_${row.fecha}.pdf`);
 }
 
+// Métricas derivadas de un partido puntual: no son datos crudos del CSV, se calculan a partir de ellos
+// para dar una lectura de "perfil" (qué tan explosivo/largo fue el esfuerzo), no solo el volumen total.
+function computeMatchDerivedMetrics(row){
+  const hsrShare = (row.hsr!==null && row.hsr!==undefined && row.dist) ? (row.hsr/row.dist*100) : null;
+  const sprintLen = (row.sprint_dist!==null && row.sprint_dist!==undefined && row.sprint_count) ? (row.sprint_dist/row.sprint_count) : null;
+  const accDesaTotal = (row.acc!==null && row.acc!==undefined && row.desa!==null && row.desa!==undefined) ? (row.acc+row.desa) : null;
+  return {hsrShare, sprintLen, accDesaTotal};
+}
+function computeMatchDerivedMetricsAvg(entriesArr){
+  const list = entriesArr.map(([,r])=>computeMatchDerivedMetrics(r));
+  const avgOf = (key)=>{ const vals = list.map(d=>d[key]).filter(v=>v!==null && v!==undefined && !isNaN(v)); return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null; };
+  return { hsrShare:avgOf('hsrShare'), sprintLen:avgOf('sprintLen'), accDesaTotal:avgOf('accDesaTotal') };
+}
 
-// Traduce los números del informe en 3-5 frases concretas de "qué mirar", no solo el cuadro con los datos.
+// Arma el párrafo de "resumen del partido" que abre el informe, sintetizando intensidad + volumen +
+// fatiga + comparación con el último partido en 3-4 oraciones concretas, no una lista de números sueltos.
+function buildMatchReportSummary(row, diffPct, diffPctLast, hayReferencia, hayUltimo, rival){
+  if(!hayReferencia) return t('insightSinHistorial');
+  const partes = [];
+  const hsrUp = diffPct.hsr!==null && diffPct.hsr>=15;
+  const sprintUp = (diffPct.sprint_dist!==null && diffPct.sprint_dist>=15) || (diffPct.sprint_count!==null && diffPct.sprint_count>=15);
+  const distFlat = diffPct.dist===null || Math.abs(diffPct.dist)<=5;
+  if(hsrUp || sprintUp){
+    partes.push(tf('resumenAltaIntensidad', {r:rival, hsr: diffPct.hsr!==null? `${diffPct.hsr>=0?'+':''}${diffPct.hsr.toFixed(1)}%` : '—'}));
+    if(distFlat) partes.push(t('resumenVolumenSimilar'));
+  } else if(diffPct.dist!==null && diffPct.dist<=-10){
+    partes.push(t('resumenVolumenBajo'));
+  } else {
+    partes.push(t('resumenParametrosHabituales'));
+  }
+  if(row.fatiga!==undefined && row.fatiga!==null){
+    partes.push(tf('resumenFatiga', {v:`${row.fatiga>0?'+':''}${fmt(row.fatiga,1)}%`, l:fatigaLabel(row.fatiga).toLowerCase()}));
+  }
+  if(hayUltimo && diffPctLast.pl!==null){
+    partes.push(tf('resumenVsUltimo', {v:`${diffPctLast.pl>=0?'+':''}${diffPctLast.pl.toFixed(1)}%`}));
+  }
+  return partes.join(' ');
+}
+
+// Traduce los números del informe en 3-7 frases concretas de "qué mirar", no solo el cuadro con los datos.
 // Reglas simples basadas en umbrales — no reemplaza el criterio del cuerpo técnico, es una primera lectura.
-function buildMatchReportInsights(row, diffPct, hayReferencia){
+function buildMatchReportInsights(row, diffPct, hayReferencia, derived, derivedDiff, hasHalves){
   const out = [];
   if(!hayReferencia){
     out.push(t('insightSinHistorial'));
@@ -6496,14 +6699,23 @@ function buildMatchReportInsights(row, diffPct, hayReferencia){
     if(diffPct.rhie!==null && diffPct.rhie<=-20) out.push(t('insightRhieBajo'));
     if(diffPct.pl!==null && diffPct.pl<=-15) out.push(t('insightCargaBaja'));
     else if(diffPct.pl!==null && diffPct.pl>=15 && !hsrUp && !sprintUp) out.push(t('insightCargaAlta'));
+    if(derivedDiff && derivedDiff.sprintLen!==null){
+      if(derivedDiff.sprintLen<=-15) out.push(t('insightSprintCortos'));
+      else if(derivedDiff.sprintLen>=15) out.push(t('insightSprintLargos'));
+    }
   }
   if(row.fatiga!==undefined && row.fatiga!==null){
     if(row.fatiga<=-8) out.push(t('insightFatigaAlta'));
     else if(row.fatiga<=-4) out.push(t('insightFatigaModerada'));
     else out.push(t('insightFatigaOk'));
   }
+  if(hasHalves && row.halves){
+    const hsrH = row.halves.hsr, sprintCountH = row.halves.sprint_count;
+    if(hsrH && hsrH.diff!==null && hsrH.diff<=-20) out.push(t('insightCaidaConcentradaHsr'));
+    if(sprintCountH && sprintCountH.diff!==null && sprintCountH.diff<=-25) out.push(t('insightCaidaConcentradaSprint'));
+  }
   if(hayReferencia && !out.length) out.push(t('insightTodoNormal'));
-  return out.slice(0,5);
+  return out.slice(0,7);
 }
 
 // ---------- ACWR panel ----------
