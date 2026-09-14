@@ -2302,20 +2302,46 @@ function setupRestDayBar(){
   const input = document.getElementById('restDayInput');
   const status = document.getElementById('restDayStatus');
   if(!btn || !form || !input || !status) return;
-  btn.onclick = ()=>{ form.style.display = form.style.display==='block' ? 'none' : 'block'; };
+  const refreshSubmitLabelRef = { current: null };
+  btn.onclick = ()=>{
+    form.style.display = form.style.display==='block' ? 'none' : 'block';
+    if(form.style.display==='block' && refreshSubmitLabelRef.current) refreshSubmitLabelRef.current();
+  };
+  // Si la fecha elegida ya está marcada como día libre, el botón pasa a "Desmarcar" — mismo input,
+  // mismo botón, sin tener que ir a buscar otra pantalla para deshacerlo.
+  const submitBtn = document.getElementById('restDaySubmit');
+  const refreshSubmitLabel = ()=>{
+    const dateVal = input.value;
+    const eventosDelDia = dateVal ? ACTIVE_EVENTS.filter(e=>e.fecha===dateVal) : [];
+    const esDiaLibreActual = eventosDelDia.length>0 && eventosDelDia.every(isRestDayEvent);
+    submitBtn.textContent = esDiaLibreActual ? t('desmarcarDiaLibre') : t('marcarDiaLibreBtn');
+  };
+  input.addEventListener('input', refreshSubmitLabel);
+  input.addEventListener('change', refreshSubmitLabel);
+  refreshSubmitLabelRef.current = refreshSubmitLabel;
   document.getElementById('restDaySubmit').onclick = async ()=>{
     const dateVal = input.value;
     if(!dateVal){ status.textContent=t('eligeUnaFecha'); return; }
-    const yaHayDatos = ACTIVE_EVENTS.some(e=>e.fecha===dateVal);
-    if(yaHayDatos){ status.textContent=t('sesionYaCargadaEseDia'); return; }
-    if(!players.length){ status.textContent=t('noHayJugadoresCargados'); return; }
+    const eventosDelDia = ACTIVE_EVENTS.filter(e=>e.fecha===dateVal);
+    const esDiaLibreActual = eventosDelDia.length>0 && eventosDelDia.every(isRestDayEvent);
+    // Si ya hay datos reales cargados ese día (entreno/partido con GPS), no lo tocamos — solo se puede
+    // marcar/desmarcar libremente cuando el día está vacío o ya es un día libre puesto por acá mismo.
+    if(eventosDelDia.length>0 && !esDiaLibreActual){ status.textContent=t('sesionYaCargadaEseDia'); return; }
+    if(!esDiaLibreActual && !players.length){ status.textContent=t('noHayJugadoresCargados'); return; }
     status.textContent = t('guardando');
-    const nuevosEventos = players.map(p=>({
-      fecha:dateVal, jugador:p, tipo:'Entreno', detalle:'Día libre',
-      dist:null, hsr:null, vel:null, acc:null, desa:null, pl:null, min:null,
-      alta_int:null, sprint:null, sprint_count:null, rhie:null,
-    }));
-    const eventosFinales = [...ACTIVE_EVENTS, ...nuevosEventos];
+    let eventosFinales, mensajeExito;
+    if(esDiaLibreActual){
+      eventosFinales = ACTIVE_EVENTS.filter(e=>e.fecha!==dateVal);
+      mensajeExito = t('diaLibreDesmarcado');
+    } else {
+      const nuevosEventos = players.map(p=>({
+        fecha:dateVal, jugador:p, tipo:'Entreno', detalle:'Día libre',
+        dist:null, hsr:null, vel:null, acc:null, desa:null, pl:null, min:null,
+        alta_int:null, sprint:null, sprint_count:null, rhie:null,
+      }));
+      eventosFinales = [...ACTIVE_EVENTS, ...nuevosEventos];
+      mensajeExito = t('diaLibreMarcado');
+    }
     try{
       const prevPlayer = state.player;
       ACTIVE_EVENTS = eventosFinales;
@@ -2323,8 +2349,9 @@ function setupRestDayBar(){
       saveData(ACTIVE_EVENTS, ACTIVE_TEAMTOTALS);
       deriveAll(ACTIVE_EVENTS);
       renderAll(prevPlayer);
-      status.textContent = t('diaLibreMarcado');
+      status.textContent = mensajeExito;
       input.value = '';
+      refreshSubmitLabel();
       setTimeout(()=>{ form.style.display='none'; status.textContent=''; }, 1500);
     }catch(err){
       status.textContent = tf('noSePudoGuardar',{e:err.message});
@@ -2434,10 +2461,25 @@ function exitPlayerPreview(){
   resizeAllCharts();
   switchAdminTab(currentAdminTab);
 }
+// Si la conexión se corta justo en medio del signUp/login, antes el fetch podía quedarse "colgado" sin
+// nunca resolver ni rechazar — la persona veía "Comprobando acceso…" para siempre, sin ningún botón para
+// reintentar (aunque el submit de abajo seguía técnicamente clickeable, no había ninguna pista de que debía
+// volver a intentar). Este helper le pone un límite de tiempo a cualquier llamada a Supabase del login/registro:
+// si no responde en ese tiempo, se corta y se le avisa a la persona que reintente, en vez de dejarla en limbo.
+function withTimeout(promise, ms, timeoutMessage){
+  return Promise.race([
+    promise,
+    new Promise((_, reject)=> setTimeout(()=> reject(new Error(timeoutMessage)), ms)),
+  ]);
+}
+let isAuthSubmitting = false;
 async function handleAuthSubmit(event){
   event.preventDefault();
+  if(isAuthSubmitting) return; // evita disparar un segundo signUp/login mientras el primero sigue en vuelo
   const email=document.getElementById('authEmail').value.trim();
   const password=document.getElementById('authPassword').value;
+  isAuthSubmitting = true;
+  try{
 
   if(authMode==='signup'){
     const passwordConfirm = document.getElementById('authPasswordConfirm').value;
@@ -2446,35 +2488,76 @@ async function handleAuthSubmit(event){
     const roleEl = document.getElementById('authRoleSelect');
     const clubName = clubNameEl ? clubNameEl.value.trim() : '';
     const selectedRole = roleEl ? roleEl.value : 'player';
-    if(!clubName){ authMessage('Ingresa el nombre de tu club para continuar.','error'); return; }
+    if(!clubName){ authMessage(t('ingresaNombreClub'),'error'); return; }
 
     // El rol y el club quedan en Auth metadata para que sobrevivan a la confirmación del email.
     pendingSignupClub = clubName;
-    authMessage('Comprobando acceso…');
-    const result = await supabaseClient.auth.signUp({
-      email,
-      password,
-      options:{
-        data:{
-          club_name:clubName,
-          requested_role:selectedRole,
-          club_request_status:'pending'
-        }
+    authMessage(t('comprobandoAcceso'));
+    let result;
+    try{
+      result = await withTimeout(
+        supabaseClient.auth.signUp({
+          email, password,
+          options:{ data:{ club_name:clubName, requested_role:selectedRole, club_request_status:'pending' } }
+        }),
+        20000, t('timeoutIntentaDeNuevo')
+      );
+    }catch(err){
+      // Corte de señal / timeout: NO asumimos nada sobre si la cuenta quedó creada del lado del servidor.
+      // Solo avisamos con claridad y la dejamos reintentar tocando el mismo botón de nuevo.
+      authMessage(err.message || t('timeoutIntentaDeNuevo'), 'error');
+      return;
+    }
+    if(result.error){
+      // Caso típico del corte de señal: el signUp anterior sí llegó a crear la cuenta del lado del
+      // servidor, pero la respuesta nunca volvió (o la persona cerró/perdió señal antes de verla) y
+      // ahora Supabase dice "ya existe". En vez de dejarla trabada con un error críptico, la obligamos
+      // a seguir el proceso: cambiamos solo a Iniciar sesión con el mismo mail/contraseña ya cargados.
+      const yaExiste = /already registered|already exists|user already/i.test(result.error.message || '');
+      if(yaExiste){
+        authMode = 'login';
+        updateAuthForm();
+        document.getElementById('authEmail').value = email;
+        document.getElementById('authPassword').value = password;
+        authMessage(t('cuentaYaExisteIniciaSesion'), 'error');
+        return;
       }
-    });
-    if(result.error){ authMessage(result.error.message,'error'); return; }
+      authMessage(result.error.message,'error');
+      return;
+    }
     if(!result.data.session){
       authMessage(t('cuentaCreadaReintentar'),'ok');
       return;
     }
-    await routeAfterLogin();
+    try{
+      await withTimeout(routeAfterLogin(), 20000, t('timeoutPerfilIntentaDeNuevo'));
+    }catch(err){
+      // No des por sentado que ya quedó todo guardado: si esto se corta, se lo decimos claro y puede
+      // reintentar con el mismo botón — la cuenta de Auth ya existe, así que alcanza con reintentar el
+      // login (no hace falta registrarse de nuevo).
+      authMessage(err.message || t('timeoutPerfilIntentaDeNuevo'), 'error');
+    }
     return;
   }
 
-  authMessage('Comprobando acceso…');
-  const result=await supabaseClient.auth.signInWithPassword({email,password});
+  authMessage(t('comprobandoAcceso'));
+  let result;
+  try{
+    result = await withTimeout(supabaseClient.auth.signInWithPassword({email,password}), 20000, t('timeoutIntentaDeNuevo'));
+  }catch(err){
+    authMessage(err.message || t('timeoutIntentaDeNuevo'), 'error');
+    return;
+  }
   if(result.error){ authMessage(result.error.message,'error'); return; }
-  await routeAfterLogin();
+  try{
+    await withTimeout(routeAfterLogin(), 20000, t('timeoutPerfilIntentaDeNuevo'));
+  }catch(err){
+    authMessage(err.message || t('timeoutPerfilIntentaDeNuevo'), 'error');
+  }
+
+  }finally{
+    isAuthSubmitting = false;
+  }
 }
 function applyOwnerMode(){
   const authCard = document.getElementById('authForm');
@@ -2493,7 +2576,7 @@ function applyOwnerMode(){
    // Si llegamos hasta acá sin perfil (típicamente por un corte de señal en un momento muy puntual),
    // avisamos claro y dejamos reintentar en vez de romper en silencio con una pantalla en blanco o
    // trabada — la cuenta de acceso ya existe, así que con volver a intentar alcanza, sin crear nada de nuevo.
-   authMessage('No se pudo terminar de cargar tu perfil (puede ser un corte de señal). Vuelve a intentar en un momento.','error');
+   authMessage(t('perfilNoCargoReintenta'),'error');
    return;
  }
  CURRENT_CLUB = myProfile.club || CURRENT_CLUB; // a partir de acá, todo el dashboard usa el club de quien inició sesión
@@ -4114,6 +4197,17 @@ const I18N = {
     informeDePartido:'Informe de partido', informeSubtituloConRef:'vs {r} · {d} · Comparación vs. promedio de los últimos {n} partido(s)', informeSubtituloSinRef:'vs {r} · {d} · Sin partidos anteriores para comparar',
     informeAltaIntensidad:'Alta intensidad', informeDetalleMetrica:'Detalle por métrica', colMetrica:'Métrica', informeEstePartido:'Este partido', informePromedioAnterior:'Promedio anterior', colDiferencia:'Diferencia',
     informePie:'Fuente: Metrics Performance Dashboard · {c} · Generado el {f}',
+    informePuntosATener:'Puntos a tener en cuenta',
+    insightHighIntensity:'Mayor exigencia en acciones de alta intensidad (HSR/sprints) que el promedio reciente — conviene vigilar la recuperación en las próximas 48-72 horas.',
+    insightVolumenFlat:'El esfuerzo extra fue puntual (sprints/HSR), no de volumen total — el desgaste puede no notarse en la distancia recorrida ni en el Player Load.',
+    insightFatigaAlta:'Caída marcada de rendimiento en el segundo tiempo — revisar la carga de la semana previa y el estado de recuperación (Wellness) del plantel.',
+    insightFatigaModerada:'Caída moderada de rendimiento en el segundo tiempo — conviene monitorear en el próximo microciclo.',
+    insightFatigaOk:'Sin caída de rendimiento en el segundo tiempo — buena señal sobre la carga de la semana previa al partido.',
+    insightRhieBajo:'RHIE por debajo del promedio reciente — podría reflejar menor participación en duelos y presión, o fatiga acumulada.',
+    insightCargaBaja:'Player Load por debajo del promedio reciente — partido de menor exigencia física general para el plantel.',
+    insightCargaAlta:'Player Load por encima del promedio reciente — partido de mayor exigencia física general, sumar a la carga acumulada de la semana.',
+    insightSinHistorial:'Es el primer partido cargado con datos para este equipo — todavía no hay historial suficiente para comparar tendencias.',
+    insightTodoNormal:'Ninguna métrica se aleja de forma marcada del promedio reciente — partido dentro de los parámetros habituales del equipo.',
     caidaMarcada:'Caída marcada — riesgo alto', caidaModerada:'Caída moderada — atención', caidaLeve:'Caída leve — normal', sinCaida:'Sin caída — rendimiento sostenido',
     mmDistTotal:'Distancia total', mmHsr:'HSR', mmSprintDist:'Sprint distancia', mmSprintCount:'Sprint conteo', mmAccB23:'Acc B2-3', mmDesaB23:'Desa B2-3', mmRhie:'RHIE Bouts', mmPlayerLoad:'Player Load', mmIndiceFatiga:'Índice de fatiga (2T vs 1T)',
     sinValoresAtipicos:'Sin valores atípicos detectados — todos los datos están dentro de rangos esperados.',
@@ -4161,8 +4255,13 @@ const I18N = {
     recordSuperadoBanner:'🔥 ¡Récord superado en {m}! {n} alcanzó un nuevo máximo personal en la última sesión.',
     sinJugadoresComparar:'Sin jugadores todavía para comparar.', radarVueloSinJugadores:'sin jugadores todavía',
     faltaLaFecha:'Falta la fecha.', passwordActualizada:'¡Listo! Tu contraseña se actualizó. Inicia sesión de nuevo.', diaLibreMarcado:'✅ Día libre marcado.',
+    diaLibreDesmarcado:'✅ Día libre quitado.', marcarDiaLibreBtn:'Marcar día libre', desmarcarDiaLibre:'Desmarcar día libre',
     nombreYaTomado:'Ese nombre ya fue tomado por otra cuenta, elige otro.', noHayDatosParaCargar:'No hay datos para cargar.', faltaNombreRival:'Falta el nombre del rival.',
     cuentaCreadaReintentar:'Tu cuenta fue creada. Si no ingresas automáticamente, actualiza la página e intenta iniciar sesión.',
+    comprobandoAcceso:'Comprobando acceso…', timeoutIntentaDeNuevo:'Esto está tardando más de lo normal — puede ser un corte de señal. Toca el botón de nuevo para reintentar.',
+    timeoutPerfilIntentaDeNuevo:'Tu cuenta ya está creada, pero se cortó la señal terminando de cargar tu perfil. Toca "Ingresar" de nuevo para continuar — no hace falta registrarte otra vez.',
+    cuentaYaExisteIniciaSesion:'Esta cuenta ya existe (puede ser de un intento anterior con corte de señal). Cambiamos a Iniciar sesión — toca "Ingresar" con tu misma contraseña para continuar.',
+    perfilNoCargoReintenta:'No se pudo terminar de cargar tu perfil (puede ser un corte de señal). Vuelve a intentar en un momento — no hace falta registrarte de nuevo.',
     nombreAgregado:'✅ "{n}" agregado. Ya puede crear su cuenta y elegirlo.', cuentaCreada:'Cuenta creada', seleccionaNombreValido:'Selecciona un nombre válido.',
     contrasenasNoCoinciden:'Las contraseñas no coinciden. Revisa e intenta de nuevo.', seleccionaTuNombre:'Elige tu nombre', sinNombresDisponibles:'— No hay nombres disponibles, contacta al staff —',
     yaRechazadoAntes:'⚠ Este mail o nombre de club ya fue rechazado antes',
@@ -4248,6 +4347,17 @@ const I18N = {
     informeDePartido:'Match report', informeSubtituloConRef:'vs {r} · {d} · Comparison vs. average of the last {n} match(es)', informeSubtituloSinRef:'vs {r} · {d} · No previous matches to compare',
     informeAltaIntensidad:'High intensity', informeDetalleMetrica:'Metric detail', colMetrica:'Metric', informeEstePartido:'This match', informePromedioAnterior:'Previous average', colDiferencia:'Difference',
     informePie:'Source: Metrics Performance Dashboard · {c} · Generated on {f}',
+    informePuntosATener:'Points to keep in mind',
+    insightHighIntensity:'Higher demand in high-intensity actions (HSR/sprints) than the recent average — worth monitoring recovery over the next 48-72 hours.',
+    insightVolumenFlat:'The extra effort was punctual (sprints/HSR), not total volume — the load may not show up in total distance or Player Load.',
+    insightFatigaAlta:'Marked performance drop in the second half — review last week load and the squad recovery (Wellness) status.',
+    insightFatigaModerada:'Moderate performance drop in the second half — worth monitoring in the next microcycle.',
+    insightFatigaOk:'No performance drop in the second half — a good sign about the load in the week leading up to the match.',
+    insightRhieBajo:'RHIE below the recent average — could reflect fewer duels/pressing actions, or accumulated fatigue.',
+    insightCargaBaja:'Player Load below the recent average — a lower overall physical demand match for the squad.',
+    insightCargaAlta:'Player Load above the recent average — a higher overall physical demand match, factor into the accumulated weekly load.',
+    insightSinHistorial:'This is the first match loaded with data for this team — not enough history yet to compare trends.',
+    insightTodoNormal:'No metric strays markedly from the recent average — a match within the usual team parameters.',
     caidaMarcada:'Marked drop — high risk', caidaModerada:'Moderate drop — attention', caidaLeve:'Slight drop — normal', sinCaida:'No drop — sustained performance',
     mmDistTotal:'Total distance', mmHsr:'HSR', mmSprintDist:'Sprint distance', mmSprintCount:'Sprint count', mmAccB23:'Acc B2-3', mmDesaB23:'Dec B2-3', mmRhie:'RHIE Bouts', mmPlayerLoad:'Player Load', mmIndiceFatiga:'Fatigue index (2H vs 1H)',
     sinValoresAtipicos:'No outliers detected — all data is within expected ranges.',
@@ -4295,8 +4405,13 @@ const I18N = {
     recordSuperadoBanner:'🔥 Record broken in {m}! {n} reached a new personal best in the last session.',
     sinJugadoresComparar:'No players yet to compare.', radarVueloSinJugadores:'no players yet',
     faltaLaFecha:'Date is missing.', passwordActualizada:'Done! Your password was updated. Log in again.', diaLibreMarcado:'✅ Rest day marked.',
+    diaLibreDesmarcado:'✅ Rest day removed.', marcarDiaLibreBtn:'Mark rest day', desmarcarDiaLibre:'Unmark rest day',
     nombreYaTomado:'That name has already been taken by another account, choose another.', noHayDatosParaCargar:'No data to load.', faltaNombreRival:'Opponent name is missing.',
     cuentaCreadaReintentar:'Your account was created. If you are not signed in automatically, refresh the page and try logging in.',
+    comprobandoAcceso:'Checking access…', timeoutIntentaDeNuevo:'This is taking longer than usual — it may be a connection issue. Tap the button again to retry.',
+    timeoutPerfilIntentaDeNuevo:'Your account was already created, but the connection dropped while loading your profile. Tap "Log in" again to continue — no need to sign up again.',
+    cuentaYaExisteIniciaSesion:'This account already exists (maybe from an earlier attempt that lost connection). We switched to Log in — tap "Log in" with your same password to continue.',
+    perfilNoCargoReintenta:'Could not finish loading your profile (may be a connection drop). Try again in a moment — no need to sign up again.',
     nombreAgregado:'✅ "{n}" added. They can now create their account and select it.', cuentaCreada:'Account created', seleccionaNombreValido:'Select a valid name.',
     contrasenasNoCoinciden:'Passwords do not match. Check and try again.', seleccionaTuNombre:'Choose your name', sinNombresDisponibles:'— No names available, contact staff —',
     yaRechazadoAntes:'⚠ This email or club name was already rejected before',
@@ -4382,6 +4497,17 @@ const I18N = {
     informeDePartido:'تقرير المباراة', informeSubtituloConRef:'ضد {r} · {d} · مقارنة بمتوسط آخر {n} مباراة (مباريات)', informeSubtituloSinRef:'ضد {r} · {d} · لا توجد مباريات سابقة للمقارنة',
     informeAltaIntensidad:'الشدة العالية', informeDetalleMetrica:'تفاصيل كل مقياس', colMetrica:'المقياس', informeEstePartido:'هذه المباراة', informePromedioAnterior:'المتوسط السابق', colDiferencia:'الفرق',
     informePie:'المصدر: Metrics Performance Dashboard · {c} · تم الإنشاء في {f}',
+    informePuntosATener:'نقاط يجب الانتباه إليها',
+    insightHighIntensity:'مطالب أعلى في إجراءات الشدة العالية (HSR/سرعات قصوى) مقارنة بالمتوسط الأخير — يُنصح بمراقبة التعافي خلال 48-72 ساعة القادمة.',
+    insightVolumenFlat:'كان الجهد الإضافي في لحظات محددة (سرعات قصوى/HSR) لا في الحجم الكلي — قد لا يظهر الإجهاد في المسافة الإجمالية أو في Player Load.',
+    insightFatigaAlta:'انخفاض ملحوظ في الأداء بالشوط الثاني — راجع حمل الأسبوع السابق وحالة تعافي الفريق (Wellness).',
+    insightFatigaModerada:'انخفاض معتدل في الأداء بالشوط الثاني — يُنصح بالمتابعة في الدورة التدريبية القادمة.',
+    insightFatigaOk:'لا يوجد انخفاض في الأداء بالشوط الثاني — إشارة جيدة حول حمل الأسبوع السابق للمباراة.',
+    insightRhieBajo:'RHIE أقل من المتوسط الأخير — قد يعكس مشاركة أقل في المواجهات والضغط، أو تعبًا متراكمًا.',
+    insightCargaBaja:'Player Load أقل من المتوسط الأخير — مباراة بمتطلبات بدنية عامة أقل للفريق.',
+    insightCargaAlta:'Player Load أعلى من المتوسط الأخير — مباراة بمتطلبات بدنية عامة أعلى، يجب إضافتها إلى الحمل التراكمي للأسبوع.',
+    insightSinHistorial:'هذه أول مباراة تم تحميل بياناتها لهذا الفريق — لا يوجد سجل كافٍ بعد لمقارنة الاتجاهات.',
+    insightTodoNormal:'لا يوجد مقياس يبتعد بشكل ملحوظ عن المتوسط الأخير — مباراة ضمن المعايير المعتادة للفريق.',
     caidaMarcada:'انخفاض ملحوظ — خطر مرتفع', caidaModerada:'انخفاض معتدل — انتباه', caidaLeve:'انخفاض طفيف — طبيعي', sinCaida:'لا يوجد انخفاض — أداء مستدام',
     mmDistTotal:'المسافة الإجمالية', mmHsr:'HSR', mmSprintDist:'مسافة السرعات القصوى', mmSprintCount:'عدد السرعات القصوى', mmAccB23:'تسارع B2-3', mmDesaB23:'تباطؤ B2-3', mmRhie:'RHIE Bouts', mmPlayerLoad:'Player Load', mmIndiceFatiga:'مؤشر التعب (الشوط 2 مقابل 1)',
     sinValoresAtipicos:'لم يتم رصد قيم شاذة — جميع البيانات ضمن النطاقات المتوقعة.',
@@ -4429,8 +4555,13 @@ const I18N = {
     recordSuperadoBanner:'🔥 تم تحطيم الرقم القياسي في {m}! حقق {n} رقمًا شخصيًا جديدًا في آخر حصة.',
     sinJugadoresComparar:'لا يوجد لاعبون بعد للمقارنة.', radarVueloSinJugadores:'لا يوجد لاعبون بعد',
     faltaLaFecha:'التاريخ مفقود.', passwordActualizada:'تم! تم تحديث كلمة المرور. سجّل الدخول مجددًا.', diaLibreMarcado:'✅ تم تحديد يوم الراحة.',
+    diaLibreDesmarcado:'✅ تمت إزالة يوم الراحة.', marcarDiaLibreBtn:'تحديد يوم راحة', desmarcarDiaLibre:'إلغاء يوم الراحة',
     nombreYaTomado:'هذا الاسم مُستخدم بالفعل من حساب آخر، اختر اسمًا آخر.', noHayDatosParaCargar:'لا توجد بيانات لتحميلها.', faltaNombreRival:'اسم الخصم مفقود.',
     cuentaCreadaReintentar:'تم إنشاء حسابك. إذا لم يتم تسجيل دخولك تلقائيًا، حدّث الصفحة وحاول تسجيل الدخول.',
+    comprobandoAcceso:'جارٍ التحقق من الوصول…', timeoutIntentaDeNuevo:'هذا يستغرق وقتًا أطول من المعتاد — قد يكون انقطاعًا في الاتصال. اضغط الزر مرة أخرى للمحاولة من جديد.',
+    timeoutPerfilIntentaDeNuevo:'تم إنشاء حسابك بالفعل، لكن انقطع الاتصال أثناء تحميل ملفك الشخصي. اضغط "تسجيل الدخول" مرة أخرى للمتابعة — لا حاجة للتسجيل مجددًا.',
+    cuentaYaExisteIniciaSesion:'هذا الحساب موجود بالفعل (ربما من محاولة سابقة انقطع فيها الاتصال). قمنا بالتبديل إلى تسجيل الدخول — اضغط "تسجيل الدخول" بنفس كلمة المرور للمتابعة.',
+    perfilNoCargoReintenta:'تعذّر إكمال تحميل ملفك الشخصي (قد يكون انقطاعًا في الاتصال). حاول مرة أخرى بعد قليل — لا حاجة للتسجيل مجددًا.',
     nombreAgregado:'✅ تمت إضافة "{n}". يمكنه الآن إنشاء حسابه واختياره.', cuentaCreada:'تم إنشاء الحساب', seleccionaNombreValido:'اختر اسمًا صالحًا.',
     contrasenasNoCoinciden:'كلمتا المرور غير متطابقتين. راجعهما وحاول مجددًا.', seleccionaTuNombre:'اختر اسمك', sinNombresDisponibles:'— لا توجد أسماء متاحة، تواصل مع الطاقم —',
     yaRechazadoAntes:'⚠ هذا البريد أو اسم النادي تم رفضه من قبل',
@@ -4573,6 +4704,10 @@ function deriveAll(events){
 deriveAll(ACTIVE_EVENTS);
 
 // ---------- ACWR (Acute:Chronic Workload Ratio) on Player Load ----------
+function avgOrNull(arr,key){
+  const vals = arr.map(e=>e[key]).filter(v=>v!==null && v!==undefined && !isNaN(v));
+  return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+}
 function computeACWR(evs, refDateStr){
   if(!evs || evs.length<2) return {status:'insuf', ratio:null, acute:null, chronic:null};
   const ref = new Date(refDateStr+'T00:00:00');
@@ -4584,9 +4719,13 @@ function computeACWR(evs, refDateStr){
   const acuteEvs = evs.filter(e=>within(e,7));
   const chronicEvs = evs.filter(e=>within(e,28));
   if(!acuteEvs.length || !chronicEvs.length) return {status:'insuf', ratio:null, acute:null, chronic:null};
-  const acute = avg(acuteEvs,'pl');
-  const chronic = avg(chronicEvs,'pl');
-  if(!chronic) return {status:'insuf', ratio:null, acute, chronic};
+  // OJO: usamos avgOrNull (no avg) a propósito. Si los últimos 7 días son solo días libres/partido futuro
+  // sin GPS real todavía (ej. se marcaron varios "Día libre" seguidos por adelantado), avg() devolvía 0 en
+  // vez de "sin dato" — y un acute de 0 hacía ratio=0, mostrando "Carga baja" en TODO el plantel por error,
+  // en vez de "Datos insuficientes" que es lo que realmente pasa (todavía no hay carga real para medir).
+  const acute = avgOrNull(acuteEvs,'pl');
+  const chronic = avgOrNull(chronicEvs,'pl');
+  if(acute===null || !chronic) return {status:'insuf', ratio:null, acute, chronic};
   const ratio = acute/chronic;
   let status;
   if(ratio<0.8) status='low';
@@ -6312,6 +6451,24 @@ function generateMatchReportPDF(matchName){
     y += 8;
   }
 
+  // ---- puntos a tener en cuenta: lectura en texto, no solo el cuadro de números ----
+  const insights = buildMatchReportInsights(row, diffPct, hayReferencia);
+  if(insights.length){
+    if(y > 245){ doc.addPage(); y = 20; } // por si el resto ya casi llenó la página
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
+    doc.text(t('informePuntosATener'), marginX, y);
+    y += 6;
+    doc.setFontSize(9);
+    insights.forEach(txt=>{
+      const lines = doc.splitTextToSize(`•  ${txt}`, pageW-marginX*2-2);
+      if(y + lines.length*4.6 > 280){ doc.addPage(); y = 20; }
+      doc.setFont('helvetica','normal'); doc.setTextColor(50,50,50);
+      doc.text(lines, marginX+1, y);
+      y += lines.length*4.6 + 2.5;
+    });
+    y += 2;
+  }
+
   // ---- pie ----
   doc.setDrawColor(220,220,220); doc.line(marginX, y, pageW-marginX, y);
   y += 5;
@@ -6321,6 +6478,33 @@ function generateMatchReportPDF(matchName){
   doc.save(`Informe_${CURRENT_CLUB.replace(/\s+/g,'_')}_vs_${rival.replace(/\s+/g,'_')}_${row.fecha}.pdf`);
 }
 
+
+// Traduce los números del informe en 3-5 frases concretas de "qué mirar", no solo el cuadro con los datos.
+// Reglas simples basadas en umbrales — no reemplaza el criterio del cuerpo técnico, es una primera lectura.
+function buildMatchReportInsights(row, diffPct, hayReferencia){
+  const out = [];
+  if(!hayReferencia){
+    out.push(t('insightSinHistorial'));
+  } else {
+    const hsrUp = diffPct.hsr!==null && diffPct.hsr>=15;
+    const sprintUp = (diffPct.sprint_dist!==null && diffPct.sprint_dist>=15) || (diffPct.sprint_count!==null && diffPct.sprint_count>=15);
+    if(hsrUp || sprintUp){
+      out.push(t('insightHighIntensity'));
+      const distFlat = diffPct.dist===null || diffPct.dist<=5;
+      if(distFlat) out.push(t('insightVolumenFlat'));
+    }
+    if(diffPct.rhie!==null && diffPct.rhie<=-20) out.push(t('insightRhieBajo'));
+    if(diffPct.pl!==null && diffPct.pl<=-15) out.push(t('insightCargaBaja'));
+    else if(diffPct.pl!==null && diffPct.pl>=15 && !hsrUp && !sprintUp) out.push(t('insightCargaAlta'));
+  }
+  if(row.fatiga!==undefined && row.fatiga!==null){
+    if(row.fatiga<=-8) out.push(t('insightFatigaAlta'));
+    else if(row.fatiga<=-4) out.push(t('insightFatigaModerada'));
+    else out.push(t('insightFatigaOk'));
+  }
+  if(hayReferencia && !out.length) out.push(t('insightTodoNormal'));
+  return out.slice(0,5);
+}
 
 // ---------- ACWR panel ----------
 function acwrLabel(status){ const map={low:'acwrLow',optimal:'acwrOptimal',caution:'acwrCaution',high:'acwrHigh',insuf:'acwrInsuf'}; return t(map[status]); }
