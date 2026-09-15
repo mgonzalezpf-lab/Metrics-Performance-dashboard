@@ -153,13 +153,56 @@ function parseComparativoSheet(ws){
     'Sprint conteo':'sprint_count', 'Acc B2-3':'acc', 'Desa B2-3':'desa',
     'RHIE bouts':'rhie', 'Player Load':'pl', 'Índice de fatiga (%)':'fatiga'
   };
+  // Filas OPCIONALES de 1T/2T por métrica — si el club las completa en la hoja, quedan calculadas acá
+  // igual que si vinieran del CSV crudo de Catapult (el mismo objeto "halves" que ya usan las tarjetas de
+  // Partidos y el informe PDF). Si no están, simplemente no aparece esa fila y sigue funcionando como antes.
+  const halfKeyMap = {
+    'Distancia total 1T (m)':['dist','t1'], 'Distancia total 2T (m)':['dist','t2'],
+    'HSR 1T':['hsr','t1'], 'HSR 2T':['hsr','t2'],
+    'Sprint distancia 1T (m)':['sprint','t1'], 'Sprint distancia 2T (m)':['sprint','t2'],
+    'Sprint conteo 1T':['sprint_count','t1'], 'Sprint conteo 2T':['sprint_count','t2'],
+    'Acc B2-3 1T':['acc','t1'], 'Acc B2-3 2T':['acc','t2'],
+    'Desa B2-3 1T':['desa','t1'], 'Desa B2-3 2T':['desa','t2'],
+    'RHIE bouts 1T':['rhie','t1'], 'RHIE bouts 2T':['rhie','t2'],
+    'Player Load 1T':['pl','t1'], 'Player Load 2T':['pl','t2'],
+  };
   const totals = {};
-  cols.forEach(c=> totals[c.name] = {fecha: dateFor[c.name] || null});
+  const halvesRaw = {};
+  cols.forEach(c=>{ totals[c.name] = {fecha: dateFor[c.name] || null}; halvesRaw[c.name] = {}; });
   for(let i=headerRow+1;i<rows.length;i++){
     const r = rows[i]; if(!r || !r[0]) continue;
-    const key = keyMap[String(r[0]).trim()];
-    if(!key) continue;
-    cols.forEach(c=>{ if(key in totals[c.name]) return; totals[c.name][key] = num(r[c.idx]); });
+    const label = String(r[0]).trim();
+    const key = keyMap[label];
+    if(key){
+      cols.forEach(c=>{ if(key in totals[c.name]) return; totals[c.name][key] = num(r[c.idx]); });
+      continue;
+    }
+    const halfEntry = halfKeyMap[label];
+    if(halfEntry){
+      const [metricKey, half] = halfEntry;
+      cols.forEach(c=>{
+        const v = num(r[c.idx]);
+        if(v===null) return;
+        if(!halvesRaw[c.name][metricKey]) halvesRaw[c.name][metricKey] = {};
+        halvesRaw[c.name][metricKey][half] = v;
+      });
+    }
   }
+  // armar el objeto "halves" final (con % de diferencia 2T vs 1T) solo para las métricas que sí tengan
+  // ambos tiempos cargados — igual formato que computeCatapultTeamTotals, para que todo lo que ya lee
+  // row.halves (tarjetas de Partidos, informe PDF) funcione igual sin importar de dónde vino el dato.
+  cols.forEach(c=>{
+    const raw = halvesRaw[c.name];
+    const halves = {};
+    let tieneAlgo = false;
+    Object.keys(raw).forEach(metricKey=>{
+      const {t1, t2} = raw[metricKey];
+      if(t1===undefined || t2===undefined) return;
+      const diff = t1 ? ((t2-t1)/t1*100) : null;
+      halves[metricKey] = {t1, t2, diff};
+      tieneAlgo = true;
+    });
+    if(tieneAlgo) totals[c.name].halves = halves;
+  });
   return totals;
 }
