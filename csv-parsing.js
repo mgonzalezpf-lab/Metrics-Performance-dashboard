@@ -36,7 +36,7 @@ function parseCsvLine(line){
 // los datos. Reconoce variantes en español e inglés, con o sin tildes/números/símbolos.
 function classifyPeriodName(periodName){
   const p = normalizeVarLabel(periodName);
-  if(p === 'session' || p === 'total' || p === 'partido completo' || p === 'full match') return 'session';
+  if(p === 'session' || p === 'total' || p === 'partido completo' || p === 'full match' || p === 'game') return 'session';
   const pareceMitad = p.includes('half') || p.includes('tiempo') || p.includes('parte') || p.includes('period') || p.includes('mitad');
   if(!pareceMitad) return null;
   const esPrimero = p.startsWith('1') || p.includes('1st') || p.includes('1er') || p.includes('1ra') || p.includes('primer');
@@ -130,6 +130,120 @@ function parseCatapultCSV(text){
   ];
   const columnasNoEncontradas = opcionales.filter(o => cols[o.key]<0).map(o => o.label);
   return { fecha, bySession, byHalf1, byHalf2, columnasNoEncontradas };
+}
+
+// ---------- Importación de CSV crudo de PlayerTek ----------
+// Formato de una fila por jugador por "Split" (a diferencia de Catapult, sin preámbulo de metadatos
+// antes del encabezado). Arma la MISMA estructura de salida que parseCatapultCSV — {fecha, bySession,
+// byHalf1, byHalf2, columnasNoEncontradas} — así computeCatapultTeamTotals sirve para los dos proveedores
+// sin duplicar esa lógica de suma/comparación de mitades.
+//
+// PlayerTek trae un Split "all" (toda la sesión rastreada, incluye calentamiento y tiempo fuera del
+// partido) además de "game" (el partido en sí) y "1st.half"/"2nd.half". Se usa "game" como equivalente a
+// la "Session" de Catapult — se descarta "all" a propósito por incluir tiempo de más.
+//
+// Dos métricas no tienen columna directa en PlayerTek y se aproximan:
+// - HSR: se suma la distancia de las 2 zonas de velocidad más altas (Zona 4 + Zona 5). Si tu club define
+//   HSR con otro umbral de zona, avisá y se ajusta.
+// - RHIE: se usa "Power Plays" (la métrica propia de PlayerTek para esfuerzos explosivos) como el
+//   equivalente más cercano — PlayerTek no tiene una métrica llamada "RHIE".
+function parsePlayerTekCSV(text){
+  const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/);
+  if(!lines.length || !lines[0].trim()) throw new Error('El archivo está vacío.');
+
+  const headers = parseCsvLine(lines[0]);
+  const idx = (name) => headers.indexOf(name);
+
+  const cols = {
+    date: idx('Date'), name: idx('Player Name'), split: idx('Split Name'),
+    sessionTitle: idx('Session Title'),
+    dist: idx('Distance (metres)'), sprintDist: idx('Sprint Distance (m)'),
+    sprints: idx('Sprints'), acc: idx('Accelerations'), desa: idx('Decelerations'),
+    pl: idx('Player Load'), powerPlays: idx('Power Plays'),
+    z3: idx('Distance in Speed Zone 3  (metres)'),
+    z4: idx('Distance in Speed Zone 4  (metres)'), z5: idx('Distance in Speed Zone 5  (metres)'),
+  };
+  const requeridasLabels = {
+    name:'Player Name', split:'Split Name', dist:'Distance (metres)',
+    sprintDist:'Sprint Distance (m)', sprints:'Sprints', acc:'Accelerations',
+    desa:'Decelerations', pl:'Player Load',
+  };
+  const requeridas = Object.keys(requeridasLabels);
+  const requeridasFaltantes = requeridas.filter(k => cols[k]<0).map(k => requeridasLabels[k]);
+  if(requeridasFaltantes.length){
+    throw new Error(`Este archivo no tiene el formato esperado de PlayerTek. No encontramos estas columnas: ${requeridasFaltantes.join(', ')}.`);
+  }
+
+  let fecha = null;
+  let rivalSugerido = null;
+  const bySession = [], byHalf1 = [], byHalf2 = [];
+  for(let i=1;i<lines.length;i++){
+    if(!lines[i] || !lines[i].trim()) continue;
+    const c = parseCsvLine(lines[i]);
+    if(c.length < headers.length) continue;
+    const jugador = c[cols.name] ? c[cols.name].trim() : '';
+    if(!jugador) continue;
+    const split = c[cols.split] ? c[cols.split].trim() : '';
+    if(normalizeVarLabel(split) === 'all') continue; // toda la sesión rastreada, no solo el partido
+
+    // La fecha en PlayerTek viene como número de serie de Excel (días desde el 30/12/1899), no como texto.
+    if(fecha===null && cols.date>=0){
+      const serial = Number(c[cols.date]);
+      if(!isNaN(serial) && serial>0){
+        const d = new Date(Date.UTC(1899,11,30) + serial*86400000);
+        fecha = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+      }
+    }
+    // El nombre del partido en PlayerTek suele venir como "DP U20 vs Rangers" — si tiene ese patrón,
+    // se sugiere el rival ya cargado en el modal de confirmación (el usuario lo puede corregir igual).
+    if(rivalSugerido===null && cols.sessionTitle>=0 && c[cols.sessionTitle]){
+      const m = c[cols.sessionTitle].match(/\bvs\.?\s+(.+)$/i);
+      if(m) rivalSugerido = m[1].trim();
+    }
+
+    // "Sprint Distance (m)" de PlayerTek ya es Zona 4 + Zona 5 (lo confirmamos con datos reales) — si HSR
+    // se aproximara con las mismas 2 zonas, saldría un número IDÉNTICO a Sprint Distancia, cosa que no pasa
+    // en ningún otro lado de la app (en Catapult, HSR siempre es un número más grande que Sprint Distancia,
+    // porque es una franja de velocidad más amplia). Para mantener esa misma relación acá, HSR suma también
+    // la Zona 3 — así queda un número mayor a Sprint Distancia, no un duplicado del mismo dato.
+    const hsrZ3 = cols.z3>=0 ? num(c[cols.z3]) : null;
+    const hsrZ4 = cols.z4>=0 ? num(c[cols.z4]) : null;
+    const hsrZ5 = cols.z5>=0 ? num(c[cols.z5]) : null;
+    const hsr = (hsrZ3!==null || hsrZ4!==null || hsrZ5!==null) ? (hsrZ3||0) + (hsrZ4||0) + (hsrZ5||0) : null;
+
+    const row = {
+      jugador,
+      dist: num(c[cols.dist]), hsr,
+      acc: num(c[cols.acc]), desa: num(c[cols.desa]), pl: num(c[cols.pl]),
+      sprint: num(c[cols.sprintDist]), sprint_count: num(c[cols.sprints]),
+      rhie: cols.powerPlays>=0 ? num(c[cols.powerPlays]) : null,
+    };
+
+    const periodo = classifyPeriodName(split);
+    if(periodo === 'session') bySession.push(row);
+    else if(periodo === 'half1') byHalf1.push(row);
+    else if(periodo === 'half2') byHalf2.push(row);
+  }
+  if(!bySession.length) return null;
+  const columnasNoEncontradas = [];
+  if(cols.z3<0 || cols.z4<0 || cols.z5<0){
+    columnasNoEncontradas.push('HSR (se aproxima con Distance in Speed Zone 3/4/5 — no se encontraron esas columnas, HSR quedará vacío)');
+  } else {
+    columnasNoEncontradas.push('HSR (PlayerTek no lo reporta directo — se aproxima sumando las Zonas de velocidad 3+4+5; puede no coincidir exacto con el umbral de HSR que usa Catapult en otros clubes)');
+  }
+  if(cols.powerPlays<0){
+    columnasNoEncontradas.push('RHIE (se aproxima con Power Plays — no se encontró esa columna, RHIE quedará vacío)');
+  } else {
+    columnasNoEncontradas.push('RHIE (PlayerTek no lo reporta directo — se aproxima con Power Plays, que cuenta acciones explosivas sueltas y no exige que estén agrupadas en una ventana corta como sí exige RHIE; tomar el número con cautela)');
+  }
+  return { fecha, rivalSugerido, bySession, byHalf1, byHalf2, columnasNoEncontradas };
+}
+// Distingue el formato del CSV con solo mirar la primera línea — Catapult empieza con un preámbulo de
+// metadatos ("Date:,..."), PlayerTek arranca directo con la fila de encabezados con estas columnas.
+function detectCsvProvider(text){
+  const firstLine = text.replace(/^\uFEFF/, '').split(/\r?\n/)[0] || '';
+  if(firstLine.includes('Session Title') && firstLine.includes('Player Name') && firstLine.includes('Split Name')) return 'playertek';
+  return 'catapult';
 }
 // Arma la fila de "Comparativo GPS" (promedio del plantel) a partir de los datos crudos de Catapult,
 // calculando el índice de fatiga (2T vs 1T) automáticamente si el archivo trae las dos mitades.

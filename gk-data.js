@@ -122,14 +122,18 @@ async function handleCatapultCSV(file){
   showStatus('Leyendo '+file.name+'…','');
   try{
     const text = await file.text();
-    const parsed = parseCatapultCSV(text);
+    const provider = detectCsvProvider(text);
+    const parsed = provider === 'playertek' ? parsePlayerTekCSV(text) : parseCatapultCSV(text);
+    if(!parsed || !parsed.bySession || !parsed.bySession.length){
+      throw new Error('No se encontraron filas de partido/sesión completa en el archivo.');
+    }
     pendingCatapultData = parsed;
     document.getElementById('csvImportCount').textContent = parsed.bySession.length;
     document.getElementById('csvImportFecha').value = parsed.fecha || '';
-    document.getElementById('csvImportTipo').value = 'Entreno';
+    document.getElementById('csvImportTipo').value = parsed.rivalSugerido ? 'Partido' : 'Entreno';
     const catEl = document.getElementById('csvImportCategoria');
     if(catEl) catEl.value = CURRENT_CATEGORY || ''; // si hay una categoría puntual seleccionada, se propone de entrada
-    document.getElementById('csvImportRival').value = '';
+    document.getElementById('csvImportRival').value = parsed.rivalSugerido || '';
     document.getElementById('csvImportDetalle').value = '';
     document.getElementById('csvImportStatus').textContent = '';
     syncCsvImportFields();
