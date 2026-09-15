@@ -462,6 +462,30 @@ function generateMatchReportPDF(matchName){
     y += 2;
   }
 
+  // ---- fuentes: solo se muestran si el informe efectivamente citó alguna [N] en el texto — no tiene
+  // sentido imprimir la bibliografía si este partido en particular no tuvo insights de recuperación ----
+  const usedRefs = new Set();
+  const textosParaRefs = [...insights];
+  if(flaggedPlayers.length) textosParaRefs.push(t('recuperacionArgFisiologico'), t('recuperacionArgLesion'));
+  textosParaRefs.forEach(txt=>{
+    const m = String(txt).match(/\[([\d,]+)\]/g);
+    if(m) m.forEach(grp=> grp.replace(/[\[\]]/g,'').split(',').forEach(n=> usedRefs.add(n.trim())));
+  });
+  if(usedRefs.size){
+    ensureSpace(10 + usedRefs.size*7);
+    doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(90,90,90);
+    doc.text(t('informeFuentes'), marginX, y);
+    y += 5;
+    doc.setFont('helvetica','normal'); doc.setFontSize(7);
+    [...usedRefs].sort((a,b)=>a-b).forEach(n=>{
+      const refKey = `ref${n}`;
+      const lines = doc.splitTextToSize(t(refKey), tableW);
+      doc.text(lines, marginX, y);
+      y += lines.length*3.4 + 1.5;
+    });
+    y += 3;
+  }
+
   // ---- pie ----
   ensureSpace(12);
   doc.setDrawColor(220,220,220); doc.line(marginX, y, pageW-marginX, y);
