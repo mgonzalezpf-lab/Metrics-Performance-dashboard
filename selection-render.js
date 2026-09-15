@@ -7,6 +7,7 @@ function selectPlayer(p){
   document.getElementById('radarTitle').textContent = p ? `${t('radarVuelo')} · ${p}` : `${t('radarVuelo')} · ${t('radarVueloSinJugadores')}`;
   drawRadar(p);
   buildTimeline(p, state.metric, true);
+  buildPlayerSessionLog();
 }
 
 // ---------- render everything (used on init and after a data refresh) ----------

@@ -282,3 +282,72 @@ function buildRecordsTable(){
     el.addEventListener('click',()=>selectPlayer(el.dataset.p));
   });
 }
+
+// ---------- Sesiones del jugador: log partido a partido / entreno a entreno de UN jugador puntual,
+// con sus métricas de GPS + RPE/minutos juntas — a diferencia del Microciclo (que promedia todo el
+// plantel), esto es la bitácora individual completa, con selector de qué tipo de sesión incluir. ----------
+function buildSessionLogFilterTabs(){
+  const box = document.getElementById('sessionLogFilterTabs');
+  if(!box) return;
+  const opts = [
+    {key:'todo', label:t('sessionLogTodo')},
+    {key:'partidos', label:t('sessionLogSoloPartidos')},
+    {key:'entrenos', label:t('sessionLogSoloEntrenos')},
+  ];
+  box.innerHTML = opts.map(o=>`<button class="mtab ${(state.sessionLogFilter||'todo')===o.key?'active':''}" data-f="${o.key}">${o.label}</button>`).join('');
+  box.querySelectorAll('.mtab').forEach(btn=>{
+    btn.onclick = ()=>{ state.sessionLogFilter = btn.dataset.f; buildPlayerSessionLog(); };
+  });
+}
+function buildPlayerSessionLog(){
+  buildSessionLogFilterTabs();
+  const table = document.getElementById('sessionLogTable');
+  const tag = document.getElementById('sessionLogCountTag');
+  if(!table || !state.player) return;
+  const filter = state.sessionLogFilter || 'todo';
+  let evs = categoryFilteredEvents().filter(e=> normalizeNameKey(e.jugador)===normalizeNameKey(state.player));
+  if(filter==='partidos') evs = evs.filter(e=> e.esPartido);
+  else if(filter==='entrenos') evs = evs.filter(e=> !e.esPartido);
+  evs = [...evs].sort((a,b)=> b.fecha.localeCompare(a.fecha)); // más reciente primero, como una bitácora
+
+  const rpeByDate = {};
+  (typeof RPE_REPORTS_CACHE!=='undefined' ? RPE_REPORTS_CACHE : [])
+    .filter(r=> normalizeNameKey(r.player_name)===normalizeNameKey(state.player))
+    .forEach(r=>{ rpeByDate[r.fecha] = r; });
+
+  if(tag) tag.textContent = tf('sessionLogCantidad', {n: evs.length});
+  if(!evs.length){
+    table.innerHTML = `<tbody><tr><td style="padding:16px;color:var(--mist);">${t('sessionLogSinSesiones')}</td></tr></tbody>`;
+    return;
+  }
+  const head = `<tr>
+    <th>${t('colFecha')}</th><th>${t('colTipo')}</th>
+    <th>${METRICS.dist.label}</th><th>${METRICS.hsr.label}</th>
+    <th>${METRICS.sprint.label}</th><th>${METRICS.sprint_count.label}</th>
+    <th>${METRICS.acc.label}</th><th>${METRICS.desa.label}</th>
+    <th>${METRICS.pl.label}</th><th>${METRICS.rhie.label}</th>
+    <th>RPE</th><th>${t('colMinutos')}</th><th>${t('colCargaRpe')}</th>
+  </tr>`;
+  const body = evs.map(e=>{
+    const rpeRow = rpeByDate[e.fecha];
+    const rpeVal = rpeRow && rpeRow.rpe!==null && rpeRow.rpe!==undefined ? rpeRow.rpe : null;
+    const minVal = rpeRow && rpeRow.minutos!==null && rpeRow.minutos!==undefined ? rpeRow.minutos : null;
+    const cargaRpe = (rpeVal!==null && minVal!==null) ? rpeVal*minVal : null;
+    return `<tr>
+      <td>${e.fecha.split('-').reverse().join('/')}</td>
+      <td><span class="badge ${e.esPartido?'partido':'entreno'}">${e.esPartido?t('tipoPartido'):t('tipoEntreno')}</span></td>
+      <td class="mono">${fmt(e.dist, METRICS.dist.dec)}</td>
+      <td class="mono">${fmt(e.hsr, METRICS.hsr.dec)}</td>
+      <td class="mono">${fmt(e.sprint, METRICS.sprint.dec)}</td>
+      <td class="mono">${fmt(e.sprint_count, METRICS.sprint_count.dec)}</td>
+      <td class="mono">${fmt(e.acc, METRICS.acc.dec)}</td>
+      <td class="mono">${fmt(e.desa, METRICS.desa.dec)}</td>
+      <td class="mono">${fmt(e.pl, METRICS.pl.dec)}</td>
+      <td class="mono">${fmt(e.rhie, METRICS.rhie.dec)}</td>
+      <td class="mono">${rpeVal!==null?fmt(rpeVal,1):'—'}</td>
+      <td class="mono">${minVal!==null?fmt(minVal,0):'—'}</td>
+      <td class="mono">${cargaRpe!==null?fmt(cargaRpe,0):'—'}</td>
+    </tr>`;
+  }).join('');
+  table.innerHTML = `<thead>${head}</thead><tbody>${body}</tbody>`;
+}
