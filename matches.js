@@ -465,7 +465,7 @@ function generateMatchReportPDF(matchName){
   // ---- fuentes: solo se muestran si el informe efectivamente citó alguna [N] en el texto — no tiene
   // sentido imprimir la bibliografía si este partido en particular no tuvo insights de recuperación ----
   const usedRefs = new Set();
-  const textosParaRefs = [...insights];
+  const textosParaRefs = [...insights, t('informeNotaPerfil')];
   if(flaggedPlayers.length) textosParaRefs.push(t('recuperacionArgFisiologico'), t('recuperacionArgLesion'));
   textosParaRefs.forEach(txt=>{
     const m = String(txt).match(/\[([\d,]+)\]/g);
