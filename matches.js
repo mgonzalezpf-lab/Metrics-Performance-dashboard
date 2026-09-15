@@ -82,10 +82,14 @@ function generateMatchReportPDF(matchName){
 
   const baseline = {};
   const rango = {}; // {min,max} de cada métrica dentro de prevEntries, para dar contexto de "dónde cae" este partido
+  const stdev = {};
+  const zscore = {};
   MATCH_REPORT_METRICS.forEach(m=>{
     const vals = prevEntries.map(([,r])=>r[m.key]).filter(v=>v!==null && v!==undefined && !isNaN(v));
     baseline[m.key] = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
     rango[m.key] = vals.length ? {min:Math.min(...vals), max:Math.max(...vals)} : null;
+    stdev[m.key] = vals.length>=2 ? computeStdev(vals, baseline[m.key]) : null;
+    zscore[m.key] = computeZScore(row[m.key], baseline[m.key], stdev[m.key]);
   });
   const diffPct = {};
   const diffPctLast = {};
@@ -103,6 +107,16 @@ function generateMatchReportPDF(matchName){
   Object.keys(derived).forEach(k=>{
     const b = derivedBase[k];
     derivedDiff[k] = (b && derived[k]!==null) ? ((derived[k]-b)/b*100) : null;
+  });
+
+  // ---- tendencia lineal (regresión simple) de las métricas clave a lo largo de los partidos recientes,
+  // incluyendo el actual — para saber si el equipo viene en alza/baja sostenida, no solo este partido vs. el promedio ----
+  const trendKeys = ['hsr','sprint_dist','sprint_count','pl'];
+  const trendSeries = [...prevEntries, [rivalRaw, row]];
+  const trends = {};
+  trendKeys.forEach(k=>{
+    const vals = trendSeries.map(([,r])=>r[k]).filter(v=>v!==null && v!==undefined && !isNaN(v));
+    trends[k] = computeLinearTrend(vals);
   });
 
   // ---- 1T vs 2T por métrica (solo si esta carga vino del CSV crudo de Catapult, que trae ese detalle) ----
@@ -132,7 +146,7 @@ function generateMatchReportPDF(matchName){
   y += 8;
 
   // ---- resumen ejecutivo (texto corrido, sintetiza el partido antes de entrar a los cuadros) ----
-  const resumenTxt = buildMatchReportSummary(row, diffPct, diffPctLast, hayReferencia, !!lastEntry, rival);
+  const resumenTxt = buildMatchReportSummary(row, diffPct, diffPctLast, hayReferencia, !!lastEntry, rival, zscore);
   doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
   doc.text(t('informeResumenIntro'), marginX, y);
   y += 5.5;
@@ -165,9 +179,12 @@ function generateMatchReportPDF(matchName){
       doc.text(doc.splitTextToSize(m.label().toUpperCase(), boxW-6), x+boxW/2, y+15, {align:'center'});
       doc.setFontSize(6.6);
       doc.text(`${fmt(row[k])}${m.unit} vs ${fmt(Math.round(baseline[k]))}${m.unit} prom.`, x+boxW/2, y+20.5, {align:'center'});
-      const rg = rango[k];
-      if(rg){
-        doc.text(tf('informeRangoReciente', {n:prevEntries.length, min:fmt(Math.round(rg.min)), max:fmt(Math.round(rg.max)), u:m.unit}), x+boxW/2, y+25.5, {align:'center'});
+      const z = zscore[k];
+      if(z!==null && z!==undefined){
+        doc.text(tf('informeZScore', {z: `${z>=0?'+':''}${z.toFixed(1)}`}), x+boxW/2, y+25.5, {align:'center'});
+      } else {
+        const rg = rango[k];
+        if(rg) doc.text(tf('informeRangoReciente', {n:prevEntries.length, min:fmt(Math.round(rg.min)), max:fmt(Math.round(rg.max)), u:m.unit}), x+boxW/2, y+25.5, {align:'center'});
       }
     });
     y += boxH + 6;
@@ -211,7 +228,7 @@ function generateMatchReportPDF(matchName){
   y += 9;
 
   // ---- perfil de intensidad: métricas derivadas, no solo las crudas ----
-  ensureSpace(10 + 3*7);
+  ensureSpace(10 + 6*7);
   doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
   doc.text(t('informePerfilIntensidad'), marginX, y);
   y += 6;
@@ -219,6 +236,9 @@ function generateMatchReportPDF(matchName){
     {key:'hsrShare', label:t('metricaHsrPctDist'), unit:'%', dec:1},
     {key:'sprintLen', label:t('metricaSprintProm'), unit:' m', dec:0},
     {key:'accDesaTotal', label:t('metricaAccDesaTotal'), unit:'', dec:0},
+    {key:'plPerKm', label:t('metricaPlPerKm'), unit:'', dec:0},
+    {key:'rhieDensity', label:t('metricaRhieDensity'), unit:'', dec:1},
+    {key:'accDecRatio', label:t('metricaAccDecRatio'), unit:'', dec:2},
   ];
   const colX2 = [marginX, marginX+75, marginX+118, marginX+150];
   doc.setFillColor(18,33,59); doc.rect(marginX, y, tableW, rowH, 'F');
@@ -244,7 +264,58 @@ function generateMatchReportPDF(matchName){
     y += rowH;
   });
   doc.setDrawColor(220,220,220); doc.rect(marginX, y-rowH*derivedRows.length, tableW, rowH*derivedRows.length);
-  y += 9;
+  y += 4;
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.3); doc.setTextColor(130,130,130);
+  const notaPerfil = doc.splitTextToSize(t('informeNotaPerfil'), tableW);
+  doc.text(notaPerfil, marginX, y);
+  y += notaPerfil.length*3.6 + 6;
+
+  // ---- tendencia reciente: regresión lineal simple sobre los últimos partidos (incluye el actual) ----
+  ensureSpace(10 + 5*7);
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
+  doc.text(t('informeTendenciaReciente'), marginX, y);
+  y += 6;
+  const anyTrend = trendKeys.some(k=>trends[k]);
+  if(anyTrend){
+    const trColX = [marginX, marginX+70, marginX+120];
+    doc.setFillColor(18,33,59); doc.rect(marginX, y, tableW, rowH, 'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(8);
+    doc.text(t('colMetrica'), trColX[0]+2, y+4.8);
+    doc.text(t('informeTendenciaCol'), trColX[1], y+4.8);
+    doc.text(t('informePendienteCol'), trColX[2], y+4.8);
+    y += rowH;
+    trendKeys.forEach((k,i)=>{
+      const m = MATCH_REPORT_METRICS.find(mm=>mm.key===k);
+      const tr = trends[k];
+      if(i%2===1){ doc.setFillColor(242,245,250); doc.rect(marginX, y, tableW, rowH, 'F'); }
+      doc.setFont('helvetica','bold'); doc.setFontSize(8.2); doc.setTextColor(30,30,30);
+      doc.text(m.label(), trColX[0]+2, y+4.8);
+      doc.setFont('helvetica','normal');
+      if(tr && tr.slopePct!==null){
+        const dir = tr.slopePct>=3 ? t('tendenciaAscendente') : tr.slopePct<=-3 ? t('tendenciaDescendente') : t('tendenciaEstable');
+        const color = tr.slopePct>=3 ? [46,139,87] : tr.slopePct<=-3 ? [194,57,47] : [90,90,90];
+        doc.setTextColor(...color); doc.setFont('helvetica','bold');
+        doc.text(dir, trColX[1], y+4.8);
+        doc.setTextColor(30,30,30); doc.setFont('helvetica','normal');
+        doc.text(`${tr.slopePct>=0?'+':''}${tr.slopePct.toFixed(1)}%/partido`, trColX[2], y+4.8);
+      } else {
+        doc.text('—', trColX[1], y+4.8);
+        doc.text('—', trColX[2], y+4.8);
+      }
+      y += rowH;
+    });
+    doc.setDrawColor(220,220,220); doc.rect(marginX, y-rowH*trendKeys.length, tableW, rowH*trendKeys.length);
+    y += 4;
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.3); doc.setTextColor(130,130,130);
+    const notaTrend = doc.splitTextToSize(tf('informeNotaTendencia', {n:trendSeries.length}), tableW);
+    doc.text(notaTrend, marginX, y);
+    y += notaTrend.length*3.6 + 6;
+  } else {
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(120,120,120);
+    const lines = doc.splitTextToSize(t('informeSinTendenciaNota'), tableW);
+    doc.text(lines, marginX, y);
+    y += lines.length*4.4 + 6;
+  }
 
   // ---- 1T vs 2T por métrica ----
   ensureSpace(10 + (hasHalves ? halvesKeys.length*7 : 10));
@@ -291,7 +362,7 @@ function generateMatchReportPDF(matchName){
   y += 2;
 
   // ---- puntos a tener en cuenta: lectura en texto, no solo los cuadros de números ----
-  const insights = buildMatchReportInsights(row, diffPct, hayReferencia, derived, derivedDiff, hasHalves);
+  const insights = buildMatchReportInsights(row, diffPct, hayReferencia, derived, derivedDiff, hasHalves, zscore, trends);
   if(insights.length){
     ensureSpace(10);
     doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
@@ -319,29 +390,67 @@ function generateMatchReportPDF(matchName){
 }
 
 // Métricas derivadas de un partido puntual: no son datos crudos del CSV, se calculan a partir de ellos
-// para dar una lectura de "perfil" (qué tan explosivo/largo fue el esfuerzo), no solo el volumen total.
+// para dar una lectura de "perfil" (qué tan explosivo/largo fue el esfuerzo) y de eficiencia mecánica
+// (cuánto "costó" en Player Load/RHIE cada km recorrido) — estándares habituales en la literatura de carga
+// externa GPS, no solo el volumen total.
 function computeMatchDerivedMetrics(row){
   const hsrShare = (row.hsr!==null && row.hsr!==undefined && row.dist) ? (row.hsr/row.dist*100) : null;
   const sprintLen = (row.sprint_dist!==null && row.sprint_dist!==undefined && row.sprint_count) ? (row.sprint_dist/row.sprint_count) : null;
   const accDesaTotal = (row.acc!==null && row.acc!==undefined && row.desa!==null && row.desa!==undefined) ? (row.acc+row.desa) : null;
-  return {hsrShare, sprintLen, accDesaTotal};
+  const plPerKm = (row.pl!==null && row.pl!==undefined && row.dist) ? (row.pl/row.dist*1000) : null;
+  const rhieDensity = (row.rhie!==null && row.rhie!==undefined && row.dist) ? (row.rhie/row.dist*1000) : null;
+  const accDecRatio = (row.acc!==null && row.acc!==undefined && row.desa) ? (row.acc/row.desa) : null;
+  return {hsrShare, sprintLen, accDesaTotal, plPerKm, rhieDensity, accDecRatio};
 }
 function computeMatchDerivedMetricsAvg(entriesArr){
   const list = entriesArr.map(([,r])=>computeMatchDerivedMetrics(r));
   const avgOf = (key)=>{ const vals = list.map(d=>d[key]).filter(v=>v!==null && v!==undefined && !isNaN(v)); return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null; };
-  return { hsrShare:avgOf('hsrShare'), sprintLen:avgOf('sprintLen'), accDesaTotal:avgOf('accDesaTotal') };
+  return { hsrShare:avgOf('hsrShare'), sprintLen:avgOf('sprintLen'), accDesaTotal:avgOf('accDesaTotal'),
+    plPerKm:avgOf('plPerKm'), rhieDensity:avgOf('rhieDensity'), accDecRatio:avgOf('accDecRatio') };
 }
+
+// ---- utilidades estadísticas: desvío estándar, z-score y tendencia lineal (regresión simple) ----
+// No son cosmética — dan una lectura más rigurosa que "más/menos que el promedio": el z-score dice CUÁNTOS
+// desvíos estándar se alejó este partido de lo habitual (>|2| es estadísticamente atípico), y la tendencia
+// lineal muestra si el equipo viene en alza/baja en esa métrica partido a partido, no solo partido vs partido.
+function computeStdev(vals, mean){
+  if(!vals.length) return null;
+  const variance = vals.reduce((a,v)=>a+Math.pow(v-mean,2),0)/vals.length;
+  return Math.sqrt(variance);
+}
+function computeZScore(val, mean, sd){
+  if(val===null || val===undefined || mean===null || !sd) return null;
+  return (val-mean)/sd;
+}
+// Regresión lineal simple (mínimos cuadrados) sobre una serie cronológica de valores — devuelve la
+// pendiente por partido y la pendiente como % del promedio de la serie (para que sea comparable entre
+// métricas de escalas muy distintas, ej. metros vs. cantidad de sprints).
+function computeLinearTrend(vals){
+  const n = vals.length;
+  if(n<3) return null; // con 1-2 puntos una "tendencia" no dice nada real
+  const xs = vals.map((_,i)=>i);
+  const xMean = xs.reduce((a,b)=>a+b,0)/n;
+  const yMean = vals.reduce((a,b)=>a+b,0)/n;
+  let num = 0, den = 0;
+  for(let i=0;i<n;i++){ num += (xs[i]-xMean)*(vals[i]-yMean); den += Math.pow(xs[i]-xMean,2); }
+  const slope = den ? num/den : 0;
+  const slopePct = yMean ? (slope/yMean*100) : null;
+  return { slope, slopePct };
+}
+
 
 // Arma el párrafo de "resumen del partido" que abre el informe, sintetizando intensidad + volumen +
 // fatiga + comparación con el último partido en 3-4 oraciones concretas, no una lista de números sueltos.
-function buildMatchReportSummary(row, diffPct, diffPctLast, hayReferencia, hayUltimo, rival){
+function buildMatchReportSummary(row, diffPct, diffPctLast, hayReferencia, hayUltimo, rival, zscore){
   if(!hayReferencia) return t('insightSinHistorial');
   const partes = [];
   const hsrUp = diffPct.hsr!==null && diffPct.hsr>=15;
   const sprintUp = (diffPct.sprint_dist!==null && diffPct.sprint_dist>=15) || (diffPct.sprint_count!==null && diffPct.sprint_count>=15);
   const distFlat = diffPct.dist===null || Math.abs(diffPct.dist)<=5;
   if(hsrUp || sprintUp){
-    partes.push(tf('resumenAltaIntensidad', {r:rival, hsr: diffPct.hsr!==null? `${diffPct.hsr>=0?'+':''}${diffPct.hsr.toFixed(1)}%` : '—'}));
+    const zHsr = zscore && zscore.hsr;
+    const zTxt = (zHsr!==null && zHsr!==undefined) ? tf('resumenZScoreExtra', {z:`${zHsr>=0?'+':''}${zHsr.toFixed(1)}`}) : '';
+    partes.push(tf('resumenAltaIntensidad', {r:rival, hsr: diffPct.hsr!==null? `${diffPct.hsr>=0?'+':''}${diffPct.hsr.toFixed(1)}%` : '—'}) + zTxt);
     if(distFlat) partes.push(t('resumenVolumenSimilar'));
   } else if(diffPct.dist!==null && diffPct.dist<=-10){
     partes.push(t('resumenVolumenBajo'));
@@ -357,9 +466,10 @@ function buildMatchReportSummary(row, diffPct, diffPctLast, hayReferencia, hayUl
   return partes.join(' ');
 }
 
-// Traduce los números del informe en 3-7 frases concretas de "qué mirar", no solo el cuadro con los datos.
-// Reglas simples basadas en umbrales — no reemplaza el criterio del cuerpo técnico, es una primera lectura.
-function buildMatchReportInsights(row, diffPct, hayReferencia, derived, derivedDiff, hasHalves){
+// Traduce los números del informe en 3-9 frases concretas de "qué mirar", no solo el cuadro con los datos.
+// Reglas simples basadas en umbrales y en z-score — no reemplaza el criterio del cuerpo técnico, es una
+// primera lectura estadísticamente informada.
+function buildMatchReportInsights(row, diffPct, hayReferencia, derived, derivedDiff, hasHalves, zscore, trends){
   const out = [];
   if(!hayReferencia){
     out.push(t('insightSinHistorial'));
@@ -378,6 +488,31 @@ function buildMatchReportInsights(row, diffPct, hayReferencia, derived, derivedD
       if(derivedDiff.sprintLen<=-15) out.push(t('insightSprintCortos'));
       else if(derivedDiff.sprintLen>=15) out.push(t('insightSprintLargos'));
     }
+    // ---- lecturas basadas en z-score: valores |z|>=2 son estadísticamente atípicos, no solo "altos" ----
+    if(zscore){
+      ['hsr','sprint_dist','sprint_count'].forEach(k=>{
+        const z = zscore[k];
+        if(z!==null && z!==undefined && Math.abs(z)>=2){
+          const m = MATCH_REPORT_METRICS.find(mm=>mm.key===k);
+          out.push(tf('insightZScoreAtipico', {m: m.label(), z: `${z>=0?'+':''}${z.toFixed(1)}`}));
+        }
+      });
+    }
+    // ---- eficiencia mecánica: mucho Player Load por km sin más HSR/sprints sugiere trabajo multidireccional
+    // (giros, duelos, presión) más que carrera en línea recta — una lectura que el volumen solo no muestra ----
+    if(derivedDiff && derivedDiff.plPerKm!==null && derivedDiff.plPerKm>=15 && !hsrUp && !sprintUp){
+      out.push(t('insightPlPerKmAlto'));
+    }
+    if(derived && derived.accDecRatio!==null && derivedDiff && derivedDiff.accDecRatio!==null && Math.abs(derivedDiff.accDecRatio)>=20){
+      out.push(derivedDiff.accDecRatio>0 ? t('insightMasAcelQueDesacel') : t('insightMasDesacelQueAcel'));
+    }
+    // ---- tendencia sostenida: si la pendiente de varios partidos seguidos ya viene marcada, es un patrón,
+    // no un evento aislado de este partido ----
+    if(trends){
+      const hsrTrend = trends.hsr, plTrend = trends.pl;
+      if(hsrTrend && hsrTrend.slopePct!==null && hsrTrend.slopePct>=5) out.push(t('insightTendenciaHsrAlza'));
+      if(plTrend && plTrend.slopePct!==null && plTrend.slopePct<=-5) out.push(t('insightTendenciaPlBaja'));
+    }
   }
   if(row.fatiga!==undefined && row.fatiga!==null){
     if(row.fatiga<=-8) out.push(t('insightFatigaAlta'));
@@ -390,6 +525,6 @@ function buildMatchReportInsights(row, diffPct, hayReferencia, derived, derivedD
     if(sprintCountH && sprintCountH.diff!==null && sprintCountH.diff<=-25) out.push(t('insightCaidaConcentradaSprint'));
   }
   if(hayReferencia && !out.length) out.push(t('insightTodoNormal'));
-  return out.slice(0,7);
+  return out.slice(0,9);
 }
 
