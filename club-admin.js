@@ -116,7 +116,7 @@ async function buildClubesList(){
     return `
     <div class="club-row" data-club="${c}" style="cursor:pointer;">
       <div class="nm">${c}${c===CURRENT_CLUB?' <span class="lb-record-tag">VIENDO AHORA</span>':''}${f.active===false?' <span class="lb-record-tag" style="background:var(--bad);">SUSPENDIDO</span>':''}</div>
-      <div style="margin:6px 0;display:flex;align-items:center;gap:14px;">
+      <div class="club-controls-row" style="margin:6px 0;display:flex;align-items:center;gap:14px;">
         <span style="font-family:'IBM Plex Mono';font-size:12.5px;color:var(--mist);white-space:nowrap;">${counts[c]} usuario${counts[c]===1?'':'s'}</span>
         ${toggleBtn(c,'gps',f.gps,'📡 GPS')}${toggleBtn(c,'rpe_wellness',f.rpe_wellness,'💚 RPE+Wellness')}${suspendBtn(c,f.active!==false)}
       </div>

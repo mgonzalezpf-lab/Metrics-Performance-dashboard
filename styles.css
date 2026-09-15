@@ -410,6 +410,13 @@
   .lb-row{display:grid;grid-template-columns:22px 150px 1fr 110px;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);}
   .club-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:14px;padding:12px 4px;border-bottom:1px solid var(--line);}
   .club-row .nm{font-size:14px;white-space:normal;overflow:visible;word-break:break-word;}
+  /* En pantallas angostas (celular), las 2 columnas lado a lado no entran — la de controles (badges GPS/
+     RPE+Wellness/Activo) empuja tanto que la del nombre del club queda casi sin ancho, partiendo el texto
+     letra por letra. Se apilan en 1 sola columna y los controles pasan a envolver en varias líneas. */
+  @media (max-width:640px){
+    .club-row{grid-template-columns:1fr;}
+    .club-row .club-controls-row{flex-wrap:wrap;row-gap:8px;margin-top:8px;}
+  }
   .lb-row:last-child{border-bottom:none;}
   .lb-row .rk{font-family:'IBM Plex Mono';font-size:11px;color:var(--mist);}
   .lb-row .nm{font-size:12.5px;color:var(--bone);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;}
