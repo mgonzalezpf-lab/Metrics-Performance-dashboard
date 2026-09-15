@@ -135,6 +135,14 @@ function computeCatapultTeamTotals(bySession, byHalf1, byHalf2){
   };
 }
 
+// Compara nombres de fila del Excel sin importar mayúsculas/tildes/espacios de más — antes exigía una
+// coincidencia exacta letra por letra, y una fila escrita "ÍNDICE DE FATIGA (%)" o "Indice de fatiga (%)"
+// (sin tilde) en vez de "Índice de fatiga (%)" se ignoraba en silencio, sin avisar a nadie.
+function normalizeVarLabel(s){
+  return String(s||'').trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s+/g,' ');
+}
 function parseComparativoSheet(ws){
   const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null});
   let headerRow = -1;
@@ -166,18 +174,20 @@ function parseComparativoSheet(ws){
     'RHIE bouts 1T':['rhie','t1'], 'RHIE bouts 2T':['rhie','t2'],
     'Player Load 1T':['pl','t1'], 'Player Load 2T':['pl','t2'],
   };
+  const keyMapNorm = {}; Object.keys(keyMap).forEach(k=> keyMapNorm[normalizeVarLabel(k)] = keyMap[k]);
+  const halfKeyMapNorm = {}; Object.keys(halfKeyMap).forEach(k=> halfKeyMapNorm[normalizeVarLabel(k)] = halfKeyMap[k]);
   const totals = {};
   const halvesRaw = {};
   cols.forEach(c=>{ totals[c.name] = {fecha: dateFor[c.name] || null}; halvesRaw[c.name] = {}; });
   for(let i=headerRow+1;i<rows.length;i++){
     const r = rows[i]; if(!r || !r[0]) continue;
-    const label = String(r[0]).trim();
-    const key = keyMap[label];
+    const labelNorm = normalizeVarLabel(r[0]);
+    const key = keyMapNorm[labelNorm];
     if(key){
       cols.forEach(c=>{ if(key in totals[c.name]) return; totals[c.name][key] = num(r[c.idx]); });
       continue;
     }
-    const halfEntry = halfKeyMap[label];
+    const halfEntry = halfKeyMapNorm[labelNorm];
     if(halfEntry){
       const [metricKey, half] = halfEntry;
       cols.forEach(c=>{
