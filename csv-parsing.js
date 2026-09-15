@@ -30,8 +30,25 @@ function parseCsvLine(line){
 }
 // Reconoce el export crudo de Catapult buscando sus columnas por NOMBRE (no por posición),
 // así funciona tanto con el reporte resumido (44 columnas) como con el completo (1600+).
+// Clasifica el nombre del período de cada fila — antes exigía literalmente "1st Half"/"2nd Half" en
+// inglés, y un export en español como "Primer tiempo"/"Segundo tiempo" (el caso real que rompía esto)
+// quedaba totalmente afuera, sin avisar, dejando el partido entero sin 1T/2T aunque el archivo sí traía
+// los datos. Reconoce variantes en español e inglés, con o sin tildes/números/símbolos.
+function classifyPeriodName(periodName){
+  const p = normalizeVarLabel(periodName);
+  if(p === 'session' || p === 'total' || p === 'partido completo' || p === 'full match') return 'session';
+  const pareceMitad = p.includes('half') || p.includes('tiempo') || p.includes('parte') || p.includes('period') || p.includes('mitad');
+  if(!pareceMitad) return null;
+  const esPrimero = p.startsWith('1') || p.includes('1st') || p.includes('1er') || p.includes('1ra') || p.includes('primer');
+  const esSegundo = p.startsWith('2') || p.includes('2nd') || p.includes('2do') || p.includes('2da') || p.includes('segund');
+  if(esPrimero) return 'half1';
+  if(esSegundo) return 'half2';
+  return null;
+}
 function parseCatapultCSV(text){
-  const lines = text.split(/\r?\n/);
+  const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/); // saca el BOM invisible que agregan algunos
+  // exports (Windows/Excel) al principio del archivo — si no, la primera línea no matcheaba "Date:" y
+  // la fecha del partido quedaba en null aunque el archivo sí la traía.
 
   let fecha = null;
   for(const line of lines.slice(0,10)){
@@ -96,10 +113,10 @@ function parseCatapultCSV(text){
       impact_right: cols.impactRight>=0 ? num(c[cols.impactRight]) : null,
       rhie: cols.rhieBouts>=0 ? num(c[cols.rhieBouts]) : null,
     };
-    const periodUpper = periodName.toUpperCase();
-    if(periodUpper === 'SESSION') bySession.push(row);
-    else if(periodUpper === '1ST HALF') byHalf1.push(row);
-    else if(periodUpper === '2ND HALF') byHalf2.push(row);
+    const periodo = classifyPeriodName(periodName);
+    if(periodo === 'session') bySession.push(row);
+    else if(periodo === 'half1') byHalf1.push(row);
+    else if(periodo === 'half2') byHalf2.push(row);
   }
   if(!bySession.length) return null;
   const opcionales = [
