@@ -379,6 +379,80 @@ function generatePlayerSessionsPDF(){
   doc.setDrawColor(220,220,220); doc.line(marginX, y, pageW-marginX, y);
   y += 8;
 
+  // ---- estadísticas de base para el resumen, las tarjetas y los insights ----
+  const nPartidos = evs.filter(e=>e.tipo==='Partido').length;
+  const nEntrenos = evs.length - nPartidos;
+  const avgOf = (key)=>{ const vals = evs.map(e=>e[key]).filter(v=>v!==null && v!==undefined && !isNaN(v)); return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null; };
+  const avgDist = avgOf('dist'), avgHsr = avgOf('hsr'), avgPl = avgOf('pl');
+  const plTrend = evs.length>=3 ? computeLinearTrend(evs.map(e=>e.pl).filter(v=>v!==null && v!==undefined)) : null;
+  const hsrTrend = evs.length>=3 ? computeLinearTrend(evs.map(e=>e.hsr).filter(v=>v!==null && v!==undefined)) : null;
+  // z-score de cada sesión contra el propio promedio de ESTE período — para detectar picos que se destacan
+  // dentro de la ventana que se está mirando, no contra el historial completo del jugador.
+  const outlierKeys = ['dist','hsr','sprint','pl'];
+  const statsByKey = {};
+  outlierKeys.forEach(k=>{
+    const vals = evs.map(e=>e[k]).filter(v=>v!==null && v!==undefined && !isNaN(v));
+    const mean = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+    statsByKey[k] = { mean, sd: vals.length>=2 ? computeStdev(vals, mean) : null };
+  });
+  const outliers = [];
+  if(evs.length>=4){
+    evs.forEach(e=>{
+      outlierKeys.forEach(k=>{
+        const {mean, sd} = statsByKey[k];
+        const z = computeZScore(e[k], mean, sd);
+        if(z!==null && z>=2) outliers.push({e, k, z});
+      });
+    });
+  }
+  const usedRefs = new Set();
+
+  // ---- tarjetas de resumen (mismo lenguaje visual que las cajas de "alta intensidad" del informe de partido) ----
+  ensureSpace(30);
+  const kpis = [
+    {label:t('informeKpiDistProm'), val: avgDist!==null?`${fmt(Math.round(avgDist))} m`:'—'},
+    {label:t('informeKpiPlProm'), val: avgPl!==null?fmt(Math.round(avgPl)):'—'},
+    {label:t('informeKpiTendenciaPl'), val: plTrend && plTrend.slopePct!==null
+      ? (plTrend.slopePct>=3 ? t('tendenciaAscendente') : plTrend.slopePct<=-3 ? t('tendenciaDescendente') : t('tendenciaEstable'))
+      : '—'},
+  ];
+  const boxColors = [[18,33,59],[76,29,149],[15,90,90]];
+  const boxW = (pageW - marginX*2 - 8)/3, boxH = 22;
+  kpis.forEach((k,i)=>{
+    const x = marginX + i*(boxW+4);
+    const [r,g,b] = boxColors[i];
+    doc.setFillColor(r,g,b); doc.roundedRect(x, y, boxW, boxH, 2, 2, 'F');
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold'); doc.setFontSize(14);
+    doc.text(k.val, x+boxW/2, y+11, {align:'center'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(7);
+    doc.text(k.label.toUpperCase(), x+boxW/2, y+17, {align:'center'});
+  });
+  y += boxH + 8;
+
+  // ---- resumen narrativo del período ----
+  ensureSpace(18);
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
+  doc.text(t('sesionesResumenIntroTitulo'), marginX, y);
+  y += 5.5;
+  const partes = [];
+  partes.push(tf('sesionesResumenIntro', {p:state.player, nP:nPartidos, nE:nEntrenos, d1:evs[0].fecha.split('-').reverse().join('/'), d2:evs[evs.length-1].fecha.split('-').reverse().join('/')}));
+  if(avgDist!==null && avgPl!==null) partes.push(tf('sesionesResumenPromedios', {d:fmt(Math.round(avgDist)), pl:fmt(Math.round(avgPl))}));
+  if(plTrend && plTrend.slopePct!==null && Math.abs(plTrend.slopePct)>=3){
+    partes.push(tf('sesionesResumenTendencia', {dir:(plTrend.slopePct>=0?t('tendenciaAscendente'):t('tendenciaDescendente')).toLowerCase(), pct:`${plTrend.slopePct>=0?'+':''}${plTrend.slopePct.toFixed(1)}%`}));
+    usedRefs.add('2');
+  }
+  if(outliers.length){
+    const top = outliers.sort((a,b)=>b.z-a.z)[0];
+    const mLabel = METRICS[top.k].label;
+    partes.push(tf('sesionesResumenPico', {f:top.e.fecha.split('-').reverse().join('/'), det:abbrevDetalle(top.e.detalle,24), m:mLabel, z:`${top.z>=0?'+':''}${top.z.toFixed(1)}`}));
+    usedRefs.add('8');
+  }
+  doc.setFont('helvetica','normal'); doc.setFontSize(9.3); doc.setTextColor(60,60,60);
+  const resumenLines = doc.splitTextToSize(partes.join(' '), pageW-marginX*2);
+  doc.text(resumenLines, marginX, y);
+  y += resumenLines.length*4.4 + 8;
+
   // ---- tabla ----
   const cols = [
     {label:t('colFecha'), w:30},
@@ -426,11 +500,58 @@ function generatePlayerSessionsPDF(){
     });
     y += rowH;
   });
-  ensureSpace(10);
-  doc.setDrawColor(200,200,200); doc.rect(marginX, y-rowH*evs.length-rowH, tableW, rowH*(evs.length+1));
+  y += 8;
+
+  // ---- puntos a tener en cuenta ----
+  const insights = [];
+  if(plTrend && plTrend.slopePct!==null && plTrend.slopePct>=5){
+    insights.push(tf('sesionesInsightTendenciaPlAlza', {pct:`+${plTrend.slopePct.toFixed(1)}%`}));
+    usedRefs.add('2');
+  } else if(plTrend && plTrend.slopePct!==null && plTrend.slopePct<=-5){
+    insights.push(tf('sesionesInsightTendenciaPlBaja', {pct:`${plTrend.slopePct.toFixed(1)}%`}));
+    usedRefs.add('2');
+  }
+  if(hsrTrend && hsrTrend.slopePct!==null && hsrTrend.slopePct>=5){
+    insights.push(tf('sesionesInsightTendenciaHsrAlza', {pct:`+${hsrTrend.slopePct.toFixed(1)}%`}));
+    usedRefs.add('2');
+  }
+  outliers.sort((a,b)=>b.z-a.z).slice(0,2).forEach(o=>{
+    insights.push(tf('sesionesInsightOutlier', {f:o.e.fecha.split('-').reverse().join('/'), det:abbrevDetalle(o.e.detalle,24), m:METRICS[o.k].label, z:`${o.z>=0?'+':''}${o.z.toFixed(1)}`}));
+    usedRefs.add('8');
+  });
+  if(!insights.length) insights.push(t('sesionesInsightTodoNormal'));
+
+  ensureSpace(14 + insights.length*7);
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
+  doc.text(t('informePuntosATener'), marginX, y);
+  y += 6;
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(60,60,60);
+  insights.forEach(txt=>{
+    const lines = doc.splitTextToSize(`•  ${txt}`, pageW-marginX*2-2);
+    ensureSpace(lines.length*4.6);
+    doc.text(lines, marginX+1, y);
+    y += lines.length*4.6 + 2.5;
+  });
+  y += 2;
+
+  // ---- fuentes: solo las que efectivamente se citaron arriba ----
+  if(usedRefs.size){
+    ensureSpace(10 + usedRefs.size*7);
+    doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(90,90,90);
+    doc.text(t('informeFuentes'), marginX, y);
+    y += 5;
+    doc.setFont('helvetica','normal'); doc.setFontSize(7);
+    [...usedRefs].sort((a,b)=>a-b).forEach(n=>{
+      const lines = doc.splitTextToSize(t(`ref${n}`), pageW-marginX*2);
+      doc.text(lines, marginX, y);
+      y += lines.length*3.4 + 1.5;
+    });
+    y += 3;
+  }
 
   // ---- pie ----
-  y += 6;
+  ensureSpace(12);
+  y += 4;
   doc.setDrawColor(220,220,220); doc.line(marginX, y, pageW-marginX, y);
   y += 5;
   doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(140,140,140);
