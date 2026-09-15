@@ -160,47 +160,74 @@ function resizeAllCharts(){
   // (las pestañas ya se reconstruyen normalmente cuando se vuelve a entrar a ellas).
   const csvModalOpen = document.getElementById('csvImportModal')?.style.display === 'flex';
   if(csvModalOpen) return;
+  // Al hacer clic en "Actualizar datos (subir Excel)" se abre el selector de archivos NATIVO del sistema
+  // operativo — eso también dispara un resize en varios navegadores (el propio picker no es un modal
+  // nuestro, así que csvModalOpen no lo detecta). Si en ese momento se reconstruye un gráfico, el canvas
+  // puede tener 0 de ancho/alto (tapado por el picker) y Chart.js lo dibuja vacío — y como el picker suele
+  // seguir abierto más tiempo del que dura el reintento escalonado de abajo, el gráfico se queda en blanco
+  // hasta recargar la página. Por eso cada bloque de abajo primero chequea que el canvas tenga tamaño real
+  // antes de destruir el gráfico existente: si no lo tiene, no toca nada y deja el último gráfico bueno
+  // como estaba, en vez de reemplazarlo por uno vacío.
+  const hasRealSize = (id)=>{
+    const el = document.getElementById(id);
+    return !!(el && el.offsetWidth > 0 && el.offsetHeight > 0);
+  };
   const doRebuild = ()=>{
     try{
-      if(timelineChart){ timelineChart.destroy(); timelineChart=null; }
-      buildTimeline(state.player, state.metric, true);
+      if(hasRealSize('timelineChart')){
+        if(timelineChart){ timelineChart.destroy(); timelineChart=null; }
+        buildTimeline(state.player, state.metric, true);
+      }
     }catch(e){ console.warn('resize timelineChart falló:', e); }
     try{
-      if(weeklyLoadChart){ weeklyLoadChart.destroy(); weeklyLoadChart=null; }
-      buildWeeklyLoadChart(true);
+      if(hasRealSize('weeklyLoadChart')){
+        if(weeklyLoadChart){ weeklyLoadChart.destroy(); weeklyLoadChart=null; }
+        buildWeeklyLoadChart(true);
+      }
     }catch(e){ console.warn('resize weeklyLoadChart falló:', e); }
     try{
-      if(rpeAcwrChartInstance){ rpeAcwrChartInstance.destroy(); rpeAcwrChartInstance=null; }
-      buildRpeAcwrChart();
+      if(hasRealSize('rpeAcwrCanvas')){
+        if(rpeAcwrChartInstance){ rpeAcwrChartInstance.destroy(); rpeAcwrChartInstance=null; }
+        buildRpeAcwrChart();
+      }
     }catch(e){ console.warn('resize rpeAcwrChartInstance falló:', e); }
     try{
-      if(teamTimelineChart){ teamTimelineChart.destroy(); teamTimelineChart=null; }
-      buildTeamTimeline(true);
+      if(hasRealSize('teamTimelineChart')){
+        if(teamTimelineChart){ teamTimelineChart.destroy(); teamTimelineChart=null; }
+        buildTeamTimeline(true);
+      }
     }catch(e){ console.warn('resize teamTimelineChart falló:', e); }
     try{
-      if(weeklyMicroChart){ weeklyMicroChart.destroy(); weeklyMicroChart=null; }
-      buildMicrocycleTable();
-  buildWeeklyMicrocycle();
+      if(hasRealSize('weeklyMicroChart')){
+        if(weeklyMicroChart){ weeklyMicroChart.destroy(); weeklyMicroChart=null; }
+        buildMicrocycleTable();
+        buildWeeklyMicrocycle();
+      }
     }catch(e){ console.warn('resize weeklyMicroChart falló:', e); }
     try{
       const activePlayer = previewingAsPlayer || (myProfile && myProfile.player_name);
-      if(activePlayer && isGoalkeeper(activePlayer)){
+      if(activePlayer && isGoalkeeper(activePlayer) && hasRealSize('gkTimelineChart')){
         if(gkTimelineChart){ gkTimelineChart.destroy(); gkTimelineChart=null; }
         buildGkTimeline(activePlayer, state.gkMetric, true);
       }
     }catch(e){ console.warn('resize gkTimelineChart falló:', e); }
     try{
-      if(wellnessTrendChart){ wellnessTrendChart.destroy(); wellnessTrendChart=null; }
-      if(document.getElementById('wellnessView')?.style.display !== 'none') renderWellnessTrendChart();
+      if(document.getElementById('wellnessView')?.style.display !== 'none' && hasRealSize('wellnessTrendChart')){
+        if(wellnessTrendChart){ wellnessTrendChart.destroy(); wellnessTrendChart=null; }
+        renderWellnessTrendChart();
+      }
     }catch(e){ console.warn('resize wellnessTrendChart falló:', e); }
     try{
       if(efficiencyDetailChart){ efficiencyDetailChart.destroy(); efficiencyDetailChart=null; }
     }catch(e){ console.warn('resize efficiencyDetailChart falló:', e); }
   };
-  // Varios intentos escalonados: cubre navegadores rápidos (rAF) y layouts más lentos (timeouts).
+  // Varios intentos escalonados: cubre navegadores rápidos (rAF), layouts más lentos (timeouts), y el caso
+  // del selector de archivos nativo que puede seguir abierto pasados los 500ms originales — el intento a
+  // los 2s le da tiempo de sobra a que el picker se haya cerrado y el layout ya esté firme otra vez.
   requestAnimationFrame(()=> requestAnimationFrame(doRebuild));
   setTimeout(doRebuild, 150);
   setTimeout(doRebuild, 500);
+  setTimeout(doRebuild, 2000);
 }
 let PLAYER_BEFORE_PREVIEW = null;
 function startPlayerPreview(playerName){
