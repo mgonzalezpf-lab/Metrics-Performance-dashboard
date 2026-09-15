@@ -299,22 +299,29 @@ function buildSessionLogFilterTabs(){
     btn.onclick = ()=>{ state.sessionLogFilter = btn.dataset.f; buildPlayerSessionLog(); };
   });
 }
+// Corta el nombre de la sesión (rival del partido, o tipo de entreno) para que entre en la columna —
+// el nombre completo queda igual en el atributo title, para verlo entero al pasar el mouse.
+function abbrevDetalle(txt, max=16){
+  const s = String(txt||'').trim();
+  if(!s) return '—';
+  return s.length>max ? s.slice(0,max-1)+'…' : s;
+}
+function getPlayerSessionRows(){
+  if(!state.player) return [];
+  const filter = state.sessionLogFilter || 'todo';
+  let evs = categoryFilteredEvents().filter(e=> normalizeNameKey(e.jugador)===normalizeNameKey(state.player));
+  if(filter==='partidos') evs = evs.filter(e=> e.tipo==='Partido');
+  else if(filter==='entrenos') evs = evs.filter(e=> e.tipo!=='Partido');
+  return [...evs].sort((a,b)=> a.fecha.localeCompare(b.fecha)); // del más antiguo al más nuevo, como el Microciclo
+}
 function buildPlayerSessionLog(){
   buildSessionLogFilterTabs();
   const table = document.getElementById('sessionLogTable');
   const tag = document.getElementById('sessionLogCountTag');
+  const reportBtn = document.getElementById('sessionLogReportBtn');
+  if(reportBtn) reportBtn.onclick = generatePlayerSessionsPDF;
   if(!table || !state.player) return;
-  const filter = state.sessionLogFilter || 'todo';
-  let evs = categoryFilteredEvents().filter(e=> normalizeNameKey(e.jugador)===normalizeNameKey(state.player));
-  if(filter==='partidos') evs = evs.filter(e=> e.esPartido);
-  else if(filter==='entrenos') evs = evs.filter(e=> !e.esPartido);
-  evs = [...evs].sort((a,b)=> b.fecha.localeCompare(a.fecha)); // más reciente primero, como una bitácora
-
-  const rpeByDate = {};
-  (typeof RPE_REPORTS_CACHE!=='undefined' ? RPE_REPORTS_CACHE : [])
-    .filter(r=> normalizeNameKey(r.player_name)===normalizeNameKey(state.player))
-    .forEach(r=>{ rpeByDate[r.fecha] = r; });
-
+  const evs = getPlayerSessionRows();
   if(tag) tag.textContent = tf('sessionLogCantidad', {n: evs.length});
   if(!evs.length){
     table.innerHTML = `<tbody><tr><td style="padding:16px;color:var(--mist);">${t('sessionLogSinSesiones')}</td></tr></tbody>`;
@@ -322,32 +329,112 @@ function buildPlayerSessionLog(){
   }
   const head = `<tr>
     <th>${t('colFecha')}</th><th>${t('colTipo')}</th>
-    <th>${METRICS.dist.label}</th><th>${METRICS.hsr.label}</th>
+    <th>${METRICS.dist.label}</th><th>${METRICS.hsr.label}</th><th>${METRICS.vel.label}</th>
     <th>${METRICS.sprint.label}</th><th>${METRICS.sprint_count.label}</th>
     <th>${METRICS.acc.label}</th><th>${METRICS.desa.label}</th>
     <th>${METRICS.pl.label}</th><th>${METRICS.rhie.label}</th>
-    <th>RPE</th><th>${t('colMinutos')}</th><th>${t('colCargaRpe')}</th>
   </tr>`;
   const body = evs.map(e=>{
-    const rpeRow = rpeByDate[e.fecha];
-    const rpeVal = rpeRow && rpeRow.rpe!==null && rpeRow.rpe!==undefined ? rpeRow.rpe : null;
-    const minVal = rpeRow && rpeRow.minutos!==null && rpeRow.minutos!==undefined ? rpeRow.minutos : null;
-    const cargaRpe = (rpeVal!==null && minVal!==null) ? rpeVal*minVal : null;
-    return `<tr>
-      <td>${e.fecha.split('-').reverse().join('/')}</td>
-      <td><span class="badge ${e.esPartido?'partido':'entreno'}">${e.esPartido?t('tipoPartido'):t('tipoEntreno')}</span></td>
+    const esPartido = e.tipo==='Partido';
+    return `<tr class="${esPartido?'session-row-match':''}">
+      <td>${e.fecha.split('-').reverse().join('/')}<br><span class="session-detalle" title="${String(e.detalle||'').replace(/"/g,'')}">${abbrevDetalle(e.detalle)}</span></td>
+      <td><span class="badge ${esPartido?'partido':'entreno'}">${esPartido?t('tipoPartido'):t('tipoEntreno')}</span></td>
       <td class="mono">${fmt(e.dist, METRICS.dist.dec)}</td>
       <td class="mono">${fmt(e.hsr, METRICS.hsr.dec)}</td>
+      <td class="mono">${fmt(e.vel, METRICS.vel.dec)}</td>
       <td class="mono">${fmt(e.sprint, METRICS.sprint.dec)}</td>
       <td class="mono">${fmt(e.sprint_count, METRICS.sprint_count.dec)}</td>
       <td class="mono">${fmt(e.acc, METRICS.acc.dec)}</td>
       <td class="mono">${fmt(e.desa, METRICS.desa.dec)}</td>
       <td class="mono">${fmt(e.pl, METRICS.pl.dec)}</td>
-      <td class="mono">${fmt(e.rhie, METRICS.rhie.dec)}</td>
-      <td class="mono">${rpeVal!==null?fmt(rpeVal,1):'—'}</td>
-      <td class="mono">${minVal!==null?fmt(minVal,0):'—'}</td>
-      <td class="mono">${cargaRpe!==null?fmt(cargaRpe,0):'—'}</td>
-    </tr>`;
+      <td class="mono">${fmt(e.rhie, METRICS.rhie.dec)}</td></tr>`;
   }).join('');
   table.innerHTML = `<thead>${head}</thead><tbody>${body}</tbody>`;
+}
+
+// Informe en PDF de las sesiones del jugador — misma identidad visual que el informe de partido, pero en
+// formato horizontal (apaisado) porque acá el contenido central es una tabla ancha, no texto corrido.
+function generatePlayerSessionsPDF(){
+  if(typeof window.jspdf === 'undefined'){ alert(t('noSePudoPdf')); return; }
+  if(!state.player) return;
+  const evs = getPlayerSessionRows();
+  if(!evs.length){ alert(t('sessionLogSinSesiones')); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:'mm', format:'a4', orientation:'landscape'});
+  const pageW = doc.internal.pageSize.getWidth();
+  const marginX = 14;
+  let y = 18;
+  const ensureSpace = (needed)=>{ if(y + needed > 195){ doc.addPage(); y = 18; } };
+
+  // ---- encabezado ----
+  doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.setTextColor(18,33,59);
+  doc.text(`${CURRENT_CLUB} — ${t('informeSesionesJugador')}`, marginX, y);
+  y += 7;
+  doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(90,90,90);
+  const filterLabel = {todo:t('sessionLogTodo'), partidos:t('sessionLogSoloPartidos'), entrenos:t('sessionLogSoloEntrenos')}[state.sessionLogFilter||'todo'];
+  const rango = `${evs[0].fecha.split('-').reverse().join('/')} – ${evs[evs.length-1].fecha.split('-').reverse().join('/')}`;
+  doc.text(`${state.player} · ${filterLabel} · ${tf('sessionLogCantidad',{n:evs.length})} · ${rango}`, marginX, y);
+  y += 8;
+  doc.setDrawColor(220,220,220); doc.line(marginX, y, pageW-marginX, y);
+  y += 8;
+
+  // ---- tabla ----
+  const cols = [
+    {label:t('colFecha'), w:30},
+    {label:METRICS.dist.label, w:24, key:'dist', dec:METRICS.dist.dec},
+    {label:METRICS.hsr.label, w:22, key:'hsr', dec:METRICS.hsr.dec},
+    {label:METRICS.vel.label, w:22, key:'vel', dec:METRICS.vel.dec},
+    {label:METRICS.sprint.label, w:28, key:'sprint', dec:METRICS.sprint.dec},
+    {label:METRICS.sprint_count.label, w:26, key:'sprint_count', dec:METRICS.sprint_count.dec},
+    {label:METRICS.acc.label, w:20, key:'acc', dec:METRICS.acc.dec},
+    {label:METRICS.desa.label, w:20, key:'desa', dec:METRICS.desa.dec},
+    {label:METRICS.pl.label, w:24, key:'pl', dec:METRICS.pl.dec},
+    {label:METRICS.rhie.label, w:24, key:'rhie', dec:METRICS.rhie.dec},
+  ];
+  const tableW = cols.reduce((a,c)=>a+c.w,0);
+  const rowH = 8;
+  const drawHeader = ()=>{
+    doc.setFillColor(18,33,59); doc.rect(marginX, y, tableW, rowH, 'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(7.6);
+    let x = marginX;
+    cols.forEach(c=>{ doc.text(c.label, x+2, y+5.4); x += c.w; });
+    y += rowH;
+  };
+  ensureSpace(rowH*2);
+  drawHeader();
+  evs.forEach((e,i)=>{
+    ensureSpace(rowH*2);
+    if(y===18) drawHeader(); // se repite el encabezado si saltó de página recién
+    const esPartido = e.tipo==='Partido';
+    // Fila de partido resaltada en violeta/lila — mismo criterio que la tabla en pantalla, para que el
+    // ojo distinga de un vistazo los días de partido entre todos los entrenos cuando se ve "Todo" junto.
+    if(esPartido) doc.setFillColor(237,231,250);
+    else if(i%2===1) doc.setFillColor(244,245,250);
+    else doc.setFillColor(255,255,255);
+    doc.rect(marginX, y, tableW, rowH, 'F');
+    let x = marginX;
+    doc.setFont('helvetica','bold'); doc.setFontSize(7.4); doc.setTextColor(30,30,30);
+    doc.text(e.fecha.split('-').reverse().join('/'), x+2, y+3.6);
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.3); doc.setTextColor(esPartido?108:120, esPartido?52:120, esPartido?131:120);
+    doc.text(abbrevDetalle(e.detalle, 20), x+2, y+6.8);
+    x += cols[0].w;
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.6); doc.setTextColor(40,40,40);
+    cols.slice(1).forEach(c=>{
+      doc.text(fmt(e[c.key], c.dec), x+2, y+5.4);
+      x += c.w;
+    });
+    y += rowH;
+  });
+  ensureSpace(10);
+  doc.setDrawColor(200,200,200); doc.rect(marginX, y-rowH*evs.length-rowH, tableW, rowH*(evs.length+1));
+
+  // ---- pie ----
+  y += 6;
+  doc.setDrawColor(220,220,220); doc.line(marginX, y, pageW-marginX, y);
+  y += 5;
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(140,140,140);
+  doc.text(tf('informePie', {c:CURRENT_CLUB, f:new Date().toLocaleDateString('es-AR')}), marginX, y);
+
+  doc.save(`Sesiones_${state.player.replace(/\s+/g,'_')}_${CURRENT_CLUB.replace(/\s+/g,'_')}.pdf`);
 }

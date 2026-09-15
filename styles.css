@@ -445,6 +445,11 @@
   .badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-family:'IBM Plex Mono';}
   .badge.entreno{background:rgba(151,151,201,.15);color:var(--mist);}
   .badge.partido{background:var(--maroon-soft);color:#D8CCFF;}
+  /* Sesiones del jugador: resalta la fila del partido en violeta/lila cuando se ven partidos y
+     entrenos mezclados (filtro "Todo") — mismo tono que ya usa el resto del dashboard para "Partido". */
+  .session-row-match{background:rgba(183,148,246,.08);}
+  .session-row-match:hover{background:rgba(183,148,246,.14);}
+  .session-detalle{display:block;font-size:10px;color:var(--mist);margin-top:2px;}
   .badge.new{background:var(--orange);color:var(--pitch-950);font-weight:700;}
   .rec-scroll{max-height:420px;overflow-y:auto;overflow-x:auto;}
   .rec-scroll-tall{max-height:700px;}
