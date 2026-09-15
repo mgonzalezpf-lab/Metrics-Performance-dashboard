@@ -69,6 +69,26 @@ function getSortedMatchEntries(){
 function cleanRivalName(name){
   return String(name||'').replace(/^\s*vs\.?\s+/i, '').trim();
 }
+// Cruza la fecha del partido contra RECORDS (mejor marca histórica de cada jugador por métrica, con la
+// fecha en que la logró — el mismo dato detrás del KPI "Récords logrados hoy"). Si ese día coincide con
+// la fecha del partido, esa fue su mejor marca EN ese partido — no hace falta recalcular nada aparte.
+function getPlayerRecordsForDate(fecha){
+  const recs = (typeof RECORDS !== 'undefined' && RECORDS) ? RECORDS : [];
+  const out = [];
+  recs.forEach(r=>{
+    const metrics = METRIC_ORDER
+      .filter(m=> r[m] && r[m].fecha===fecha)
+      .map(m=>({
+        key:m,
+        label: (typeof METRICS!=='undefined' && METRICS[m] && METRICS[m].label) || m,
+        unit: (typeof METRICS!=='undefined' && METRICS[m] && METRICS[m].unit) || '',
+        dec: (typeof METRICS!=='undefined' && METRICS[m] && METRICS[m].dec) || 0,
+        valor: r[m].valor,
+      }));
+    if(metrics.length) out.push({ jugador: r.jugador, metrics });
+  });
+  return out.sort((a,b)=> a.jugador.localeCompare(b.jugador));
+}
 function generateMatchReportPDF(matchName){
   if(typeof window.jspdf === 'undefined'){ alert(t('noSePudoPdf')); return; }
   const entries = getSortedMatchEntries();
@@ -360,6 +380,69 @@ function generateMatchReportPDF(matchName){
     }
   }
   y += 2;
+
+  // ---- récords individuales: jugadores que marcaron su mejor marca histórica en alguna métrica justo
+  // este día (cruza la fecha del partido contra RECORDS, que ya trackea el mejor valor de cada jugador
+  // en cada métrica junto con la fecha en que lo logró — mismo dato que usa el KPI "Récords logrados hoy") ----
+  // Las métricas de alta velocidad/aceleración (HSR, sprint, acc, desa, RHIE) implican pico de esfuerzo
+  // neuromuscular con alta carga excéntrica — el escenario clásico de mayor riesgo de lesión muscular
+  // (isquiotibiales en particular) según la literatura de carga externa GPS. Un récord en esas métricas
+  // puntuales marca al jugador para atención de recuperación; un récord en distancia/PL (más volumen que
+  // pico) no necesariamente amerita la misma alerta.
+  const HIGH_MECH_STRESS_KEYS = ['hsr','vel','sprint','sprint_count','acc','desa','rhie'];
+  const playerRecords = getPlayerRecordsForDate(row.fecha);
+  const flaggedPlayers = playerRecords.filter(p=> p.metrics.some(m=> HIGH_MECH_STRESS_KEYS.includes(m.key)));
+  ensureSpace(10);
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
+  doc.text(t('informeRecordsIndividuales'), marginX, y);
+  y += 6;
+  if(playerRecords.length){
+    doc.setFontSize(9);
+    playerRecords.forEach(p=>{
+      const detalle = p.metrics.map(m=> `${m.label} ${fmt(m.valor, m.dec)}${m.unit}`).join(' · ');
+      const isFlagged = p.metrics.some(m=> HIGH_MECH_STRESS_KEYS.includes(m.key));
+      const lines = doc.splitTextToSize(`•  ${p.jugador} — ${detalle}`, tableW-2);
+      ensureSpace(lines.length*4.6 + (isFlagged?4.6:0));
+      doc.setFont('helvetica','bold'); doc.setTextColor(50,50,50);
+      doc.text(lines, marginX+1, y);
+      y += lines.length*4.6;
+      if(isFlagged){
+        doc.setFont('helvetica','bold'); doc.setFontSize(7.8); doc.setTextColor(194,57,47);
+        doc.text(`   ${t('informePrioridadRecuperacion')}`, marginX+1, y);
+        doc.setFontSize(9);
+        y += 4.4;
+      }
+      y += 2;
+    });
+    y += 3;
+  } else {
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(120,120,120);
+    const lines = doc.splitTextToSize(t('informeSinRecordsIndividuales'), tableW);
+    doc.text(lines, marginX, y);
+    y += lines.length*4.4 + 6;
+  }
+
+  // ---- consideraciones de recuperación: no alcanza con marcar quién quedó marcado — se explica el porqué
+  // fisiológico/técnico, para que la alerta sea accionable y no un dato suelto ----
+  if(flaggedPlayers.length){
+    ensureSpace(10);
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
+    doc.text(t('informeConsideracionesRecuperacion'), marginX, y);
+    y += 6;
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(50,50,50);
+    const nombres = flaggedPlayers.map(p=>p.jugador).join(', ');
+    const lineaJugadores = doc.splitTextToSize(nombres, tableW);
+    doc.text(lineaJugadores, marginX, y);
+    y += lineaJugadores.length*4.6 + 3;
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(60,60,60);
+    [t('recuperacionArgFisiologico'), t('recuperacionArgLesion'), t('recuperacionArgAccion')].forEach(txt=>{
+      const lines = doc.splitTextToSize(`•  ${txt}`, tableW-2);
+      ensureSpace(lines.length*4.6);
+      doc.text(lines, marginX+1, y);
+      y += lines.length*4.6 + 2.5;
+    });
+    y += 3;
+  }
 
   // ---- puntos a tener en cuenta: lectura en texto, no solo los cuadros de números ----
   const insights = buildMatchReportInsights(row, diffPct, hayReferencia, derived, derivedDiff, hasHalves, zscore, trends);
