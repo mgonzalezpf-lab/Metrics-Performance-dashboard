@@ -159,7 +159,7 @@ function parsePlayerTekCSV(text){
     sessionTitle: idx('Session Title'),
     dist: idx('Distance (metres)'), sprintDist: idx('Sprint Distance (m)'),
     sprints: idx('Sprints'), acc: idx('Accelerations'), desa: idx('Decelerations'),
-    pl: idx('Player Load'), powerPlays: idx('Power Plays'),
+    pl: idx('Player Load'), powerPlays: idx('Power Plays'), vel: idx('Top Speed (km/h)'),
     z3: idx('Distance in Speed Zone 3  (metres)'),
     z4: idx('Distance in Speed Zone 4  (metres)'), z5: idx('Distance in Speed Zone 5  (metres)'),
   };
@@ -213,7 +213,7 @@ function parsePlayerTekCSV(text){
 
     const row = {
       jugador,
-      dist: num(c[cols.dist]), hsr,
+      dist: num(c[cols.dist]), hsr, vel: cols.vel>=0 ? num(c[cols.vel]) : null,
       acc: num(c[cols.acc]), desa: num(c[cols.desa]), pl: num(c[cols.pl]),
       sprint: num(c[cols.sprintDist]), sprint_count: num(c[cols.sprints]),
       rhie: cols.powerPlays>=0 ? num(c[cols.powerPlays]) : null,
@@ -236,6 +236,7 @@ function parsePlayerTekCSV(text){
   } else {
     columnasNoEncontradas.push('RHIE (PlayerTek no lo reporta directo — se aproxima con Power Plays, que cuenta acciones explosivas sueltas y no exige que estén agrupadas en una ventana corta como sí exige RHIE; tomar el número con cautela)');
   }
+  if(cols.vel<0) columnasNoEncontradas.push('Velocidad Máxima (no se encontró la columna "Top Speed (km/h)" — quedará vacía)');
   return { fecha, rivalSugerido, bySession, byHalf1, byHalf2, columnasNoEncontradas };
 }
 // Distingue el formato del CSV con solo mirar la primera línea — Catapult empieza con un preámbulo de
