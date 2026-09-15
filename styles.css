@@ -89,7 +89,7 @@
   .wtip:hover::after, .wtip.wtip-active::after{ opacity:1; transform:translateX(-50%) translateY(0); }
   .risk-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-left:7px;flex-shrink:0;vertical-align:middle;box-shadow:0 0 0 2px rgba(10,26,19,.5);}
   .risk-dot.wtip::after{white-space:normal;max-width:210px;text-align:left;line-height:1.45;font-size:10.5px;}
-  .mc-table th{text-align:left;font-family:'IBM Plex Mono';font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mist);padding:8px 10px;border-bottom:1px solid var(--line-strong);}
+  .mc-table th{text-align:left;font-family:'IBM Plex Mono';font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mist);padding:8px 10px;border-bottom:1px solid var(--line-strong);position:sticky;top:0;background:var(--pitch-800);z-index:1;}
   .mc-table td{padding:7px 10px;border-bottom:1px solid var(--line);color:var(--bone);}
   .mc-table tr.mc-match td{color:var(--gold-bright);font-weight:600;border-left:3px solid var(--gold);}
   .mc-table tr.mc-rest td{color:var(--mist);font-style:italic;opacity:.75;}
