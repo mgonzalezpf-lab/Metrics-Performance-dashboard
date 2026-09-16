@@ -445,18 +445,21 @@ function generatePlayerSessionsPDF(){
     doc.roundedRect(x, y, recBoxW, recBoxH, 2, 2, 'F');
     doc.setDrawColor(198,180,140); doc.setLineWidth(.5);
     doc.roundedRect(x, y, recBoxW, recBoxH, 2, 2, 'D');
+    // Orden de lectura: nombre de la métrica (chico, arriba) → número (grande, lo primero que se destaca)
+    // → sesión/rival (blanco, se lee fuerte) → fecha al final (chica, mismo color que el nombre de la
+    // métrica — es el dato de referencia, no el protagonista de la tarjeta).
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.4); doc.setTextColor(232,221,196);
+    doc.text(c.label.toUpperCase(), x+recBoxW/2, y+5, {align:'center'});
     doc.setTextColor(18,33,59);
     doc.setFont('helvetica','bold'); doc.setFontSize(13.5);
-    doc.text(c.val, x+recBoxW/2, y+9, {align:'center'});
-    doc.setFont('helvetica','normal'); doc.setFontSize(6.4); doc.setTextColor(232,221,196);
-    doc.text(c.label.toUpperCase(), x+recBoxW/2, y+13.6, {align:'center'});
+    doc.text(c.val, x+recBoxW/2, y+13.5, {align:'center'});
     if(c.fecha){
-      doc.setFont('helvetica','bold'); doc.setFontSize(6.2); doc.setTextColor(255,255,255);
-      doc.text(c.fecha.split('-').reverse().join('/'), x+recBoxW/2, y+18.5, {align:'center'});
       if(c.det){
-        doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(232,221,196);
-        doc.text(abbrevDetalle(c.det, 22), x+recBoxW/2, y+22.6, {align:'center'});
+        doc.setFont('helvetica','bold'); doc.setFontSize(7.4); doc.setTextColor(255,255,255);
+        doc.text(abbrevDetalle(c.det, 20), x+recBoxW/2, y+18.7, {align:'center'});
       }
+      doc.setFont('helvetica','normal'); doc.setFontSize(5.6); doc.setTextColor(232,221,196);
+      doc.text(c.fecha.split('-').reverse().join('/'), x+recBoxW/2, y+23.4, {align:'center'});
     }
   });
   y += recBoxH + 8;
