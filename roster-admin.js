@@ -72,14 +72,16 @@ function setupManageRosterBar(){
   if(closeBtn) closeBtn.onclick = ()=>{ modal.style.display='none'; };
   if(modal) modal.onclick = (e)=>{ if(e.target===modal) modal.style.display='none'; };
 }
-// Segundo nivel de "ocultar números a jugadores" — por categoría puntual, exclusivo del Owner (ni el
-// propio admin del club lo toca). Las categorías son las mismas 3 fijas que ya usa el selector de arriba
-// (U16/U18/U20) — si en algún momento las categorías dejan de ser un set fijo, esto hay que revisarlo.
+// Segundo nivel de "ocultar números a jugadores" — por categoría puntual. A diferencia del interruptor
+// general (que sigue siendo exclusivo del Owner, en la pantalla Clubes), este lo maneja el propio Admin
+// del club, sin depender de que el Owner entre a tocarlo. Las categorías son las mismas 3 fijas que ya usa
+// el selector de arriba (U16/U18/U20) — si en algún momento las categorías dejan de ser un set fijo, esto
+// hay que revisarlo.
 function buildCategoryVisibilityToggles(){
   const panel = document.getElementById('categoryVisibilityPanel');
   const box = document.getElementById('categoryVisibilityToggles');
   if(!panel || !box) return;
-  if(!(myProfile && myProfile.role==='owner')){ panel.style.display='none'; return; }
+  if(!(myProfile && (myProfile.role==='admin' || myProfile.role==='owner'))){ panel.style.display='none'; return; }
   panel.style.display='';
   const categorias = ['U16','U18','U20'];
   box.innerHTML = categorias.map(cat=>{
