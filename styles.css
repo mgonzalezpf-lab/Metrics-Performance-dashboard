@@ -463,7 +463,7 @@
   .mc-report-btn{font-family:'IBM Plex Mono';font-size:9.5px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--bone);background:rgba(255,255,255,.05);border:1px solid var(--line-strong);border-radius:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:background .15s ease;}
   .mc-report-btn:hover{background:rgba(34,211,238,.12);border-color:var(--gold-bright);}
   .mc-report-btn:disabled{opacity:.6;cursor:wait;}
-  .mc-delete-btn{font-size:12px;color:var(--mist);background:rgba(255,255,255,.05);border:1px solid var(--line-strong);border-radius:6px;padding:4px 7px;cursor:pointer;flex-shrink:0;line-height:1;transition:background .15s ease,color .15s ease;}
+  .mc-delete-btn{font-size:9.5px;color:var(--mist);background:rgba(255,255,255,.05);border:1px solid var(--line-strong);border-radius:5px;padding:2.5px 5px;cursor:pointer;flex-shrink:0;line-height:1;transition:background .15s ease,color .15s ease;}
   .mc-delete-btn:hover{background:rgba(239,68,68,.14);border-color:var(--bad);color:var(--bad);}
   .mc-delete-btn:disabled{opacity:.5;cursor:wait;}
   .match-card .dt{font-family:'IBM Plex Mono';font-size:10.5px;color:var(--mist);margin-bottom:10px;}

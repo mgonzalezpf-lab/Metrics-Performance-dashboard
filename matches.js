@@ -21,7 +21,7 @@ function buildMatchGrid(){
     const h = row.halves || {};
     return `
     <div class="match-card">
-      <h4>${name}<span style="display:inline-flex;gap:6px;">${esAdminOOwner?`<button type="button" class="mc-delete-btn" data-match="${name.replace(/"/g,'&quot;')}" title="${t('eliminarPartido')}">🗑</button>`:''}<button type="button" class="mc-report-btn" data-match="${name.replace(/"/g,'&quot;')}" title="${t('generarInforme')}">📄 ${t('generarInforme')}</button></span></h4>
+      <h4>${name}<span style="display:inline-flex;gap:6px;align-items:center;"><button type="button" class="mc-report-btn" data-match="${name.replace(/"/g,'&quot;')}" title="${t('generarInforme')}">📄 ${t('generarInforme')}</button>${esAdminOOwner?`<button type="button" class="mc-delete-btn" data-match="${name.replace(/"/g,'&quot;')}" title="${t('eliminarPartido')}">🗑</button>`:''}</span></h4>
       <div class="dt">${row.fecha.split('-').reverse().join('/')}</div>
       <div class="mm-row"><span class="k">${t('mmDistTotal')}</span><span class="v">${fmt(row.dist)} m${diffBadge(h.dist && h.dist.diff)}</span></div>
       <div class="mm-row"><span class="k">${t('mmHsr')}</span><span class="v">${fmt(row.hsr)} m${diffBadge(h.hsr && h.hsr.diff)}</span></div>
