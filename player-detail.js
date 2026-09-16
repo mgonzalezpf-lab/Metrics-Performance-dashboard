@@ -329,28 +329,64 @@ function buildPlayerSessionLog(){
     table.innerHTML = `<tbody><tr><td style="padding:16px;color:var(--mist);">${t('sessionLogSinSesiones')}</td></tr></tbody>`;
     return;
   }
+  const esAdminOOwner = myProfile && (myProfile.role==='admin' || myProfile.role==='owner');
   const head = `<tr>
     <th>${t('colFecha')}</th><th>${t('colTipo')}</th>
     <th>${METRICS.dist.label}</th><th>${METRICS.hsr.label}</th><th>${METRICS.vel.label}</th>
     <th>${METRICS.sprint.label}</th><th>${METRICS.sprint_count.label}</th>
     <th>${METRICS.acc.label}</th><th>${METRICS.desa.label}</th>
-    <th>${METRICS.pl.label}</th>
+    <th>${METRICS.pl.label}</th>${esAdminOOwner?'<th></th>':''}
   </tr>`;
-  const body = evs.map(e=>{
+  // Badge de % al lado de cada valor, comparando contra la sesión anterior en esta misma lista (respeta
+  // el filtro activo: en "Solo partidos" compara contra el partido anterior; en "Todo", contra la sesión
+  // anterior sea cual sea). Solo para la tabla en pantalla — el PDF se mantiene limpio, sin esto.
+  const pctBadge = (curr, prev)=>{
+    if(prev===null || prev===undefined || prev===0 || curr===null || curr===undefined) return '';
+    const pct = (curr-prev)/prev*100;
+    const color = pct>0 ? 'var(--good)' : pct<0 ? 'var(--bad)' : 'var(--mist)';
+    return ` <span style="color:${color};font-size:10.5px;font-weight:600;">${pct>=0?'+':''}${fmt(pct,1)}%</span>`;
+  };
+  const body = evs.map((e,i)=>{
     const esPartido = e.tipo==='Partido';
+    const prev = i>0 ? evs[i-1] : null;
     return `<tr class="${esPartido?'session-row-match':''}">
       <td>${e.fecha.split('-').reverse().join('/')}<br><span class="session-detalle" title="${String(e.detalle||'').replace(/"/g,'')}">${abbrevDetalle(e.detalle)}</span></td>
       <td><span class="badge ${esPartido?'partido':'entreno'}">${esPartido?t('tipoPartido'):t('tipoEntreno')}</span></td>
-      <td class="mono">${fmt(e.dist, METRICS.dist.dec)}</td>
-      <td class="mono">${fmt(e.hsr, METRICS.hsr.dec)}</td>
-      <td class="mono">${fmt(e.vel, METRICS.vel.dec)}</td>
-      <td class="mono">${fmt(e.sprint, METRICS.sprint.dec)}</td>
-      <td class="mono">${fmt(e.sprint_count, METRICS.sprint_count.dec)}</td>
-      <td class="mono">${fmt(e.acc, METRICS.acc.dec)}</td>
-      <td class="mono">${fmt(e.desa, METRICS.desa.dec)}</td>
-      <td class="mono">${fmt(e.pl, METRICS.pl.dec)}</td></tr>`;
+      <td class="mono">${fmt(e.dist, METRICS.dist.dec)}${prev?pctBadge(e.dist, prev.dist):''}</td>
+      <td class="mono">${fmt(e.hsr, METRICS.hsr.dec)}${prev?pctBadge(e.hsr, prev.hsr):''}</td>
+      <td class="mono">${fmt(e.vel, METRICS.vel.dec)}${prev?pctBadge(e.vel, prev.vel):''}</td>
+      <td class="mono">${fmt(e.sprint, METRICS.sprint.dec)}${prev?pctBadge(e.sprint, prev.sprint):''}</td>
+      <td class="mono">${fmt(e.sprint_count, METRICS.sprint_count.dec)}${prev?pctBadge(e.sprint_count, prev.sprint_count):''}</td>
+      <td class="mono">${fmt(e.acc, METRICS.acc.dec)}${prev?pctBadge(e.acc, prev.acc):''}</td>
+      <td class="mono">${fmt(e.desa, METRICS.desa.dec)}${prev?pctBadge(e.desa, prev.desa):''}</td>
+      <td class="mono">${fmt(e.pl, METRICS.pl.dec)}${prev?pctBadge(e.pl, prev.pl):''}</td>${esAdminOOwner?`<td><button type="button" class="session-delete-btn" data-idx="${i}" title="${t('eliminarSesion')}">🗑</button></td>`:''}</tr>`;
   }).join('');
   table.innerHTML = `<thead>${head}</thead><tbody>${body}</tbody>`;
+  if(esAdminOOwner){
+    table.querySelectorAll('.session-delete-btn').forEach(btn=>{
+      btn.onclick = async ()=>{
+        const evento = evs[Number(btn.dataset.idx)];
+        if(!evento) return;
+        const detalleTxt = `${evento.fecha.split('-').reverse().join('/')} · ${abbrevDetalle(evento.detalle,30)}`;
+        if(!confirm(tf('confirmarEliminarSesion', {d: detalleTxt}))) return;
+        btn.disabled = true;
+        try{
+          // Se borra por REFERENCIA exacta al objeto (no por fecha/tipo), justo para el caso de dos
+          // sesiones idénticas en fecha y nombre pero con valores distintos — así se elimina solo la fila
+          // que se tocó, nunca la otra por error.
+          const eventosFinales = ACTIVE_EVENTS.filter(e=> e!==evento);
+          await saveRemoteData(eventosFinales, ACTIVE_TEAMTOTALS);
+          ACTIVE_EVENTS = eventosFinales;
+          deriveAll(ACTIVE_EVENTS);
+          renderAll(state.player);
+        }catch(err){
+          console.error('Error eliminando la sesión:', err);
+          alert(tf('noSePudoGuardar',{e:err.message}));
+          btn.disabled = false;
+        }
+      };
+    });
+  }
 }
 
 // Informe en PDF de las sesiones del jugador — misma identidad visual que el informe de partido, pero en

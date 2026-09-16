@@ -466,6 +466,9 @@
   .mc-delete-btn{font-size:9.5px;color:var(--mist);background:rgba(255,255,255,.05);border:1px solid var(--line-strong);border-radius:5px;padding:2.5px 5px;cursor:pointer;flex-shrink:0;line-height:1;transition:background .15s ease,color .15s ease;}
   .mc-delete-btn:hover{background:rgba(239,68,68,.14);border-color:var(--bad);color:var(--bad);}
   .mc-delete-btn:disabled{opacity:.5;cursor:wait;}
+  .session-delete-btn{font-size:11px;color:var(--mist);background:rgba(255,255,255,.05);border:1px solid var(--line-strong);border-radius:5px;padding:2px 6px;cursor:pointer;line-height:1;transition:background .15s ease,color .15s ease;}
+  .session-delete-btn:hover{background:rgba(239,68,68,.14);border-color:var(--bad);color:var(--bad);}
+  .session-delete-btn:disabled{opacity:.5;cursor:wait;}
   .match-card .dt{font-family:'IBM Plex Mono';font-size:10.5px;color:var(--mist);margin-bottom:10px;}
   .mm-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px dashed var(--line);}
   .mm-row:last-child{border:none;}
