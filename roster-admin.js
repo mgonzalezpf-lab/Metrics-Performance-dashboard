@@ -68,9 +68,44 @@ function setupManageRosterBar(){
   const btn = document.getElementById('manageRosterBtn');
   const modal = document.getElementById('manageRosterModal');
   const closeBtn = document.getElementById('manageRosterClose');
-  if(btn) btn.onclick = ()=>{ modal.style.display='flex'; buildManageRosterList(); };
+  if(btn) btn.onclick = ()=>{ modal.style.display='flex'; buildManageRosterList(); buildCategoryVisibilityToggles(); };
   if(closeBtn) closeBtn.onclick = ()=>{ modal.style.display='none'; };
   if(modal) modal.onclick = (e)=>{ if(e.target===modal) modal.style.display='none'; };
+}
+// Segundo nivel de "ocultar números a jugadores" — por categoría puntual, exclusivo del Owner (ni el
+// propio admin del club lo toca). Las categorías son las mismas 3 fijas que ya usa el selector de arriba
+// (U16/U18/U20) — si en algún momento las categorías dejan de ser un set fijo, esto hay que revisarlo.
+function buildCategoryVisibilityToggles(){
+  const panel = document.getElementById('categoryVisibilityPanel');
+  const box = document.getElementById('categoryVisibilityToggles');
+  if(!panel || !box) return;
+  if(!(myProfile && myProfile.role==='owner')){ panel.style.display='none'; return; }
+  panel.style.display='';
+  const categorias = ['U16','U18','U20'];
+  box.innerHTML = categorias.map(cat=>{
+    const oculto = !!(CATEGORY_VISIBILITY && CATEGORY_VISIBILITY[cat]);
+    const visible = !oculto;
+    return `<button type="button" class="category-visibility-toggle" data-cat="${cat}"
+      style="padding:5px 10px;border-radius:7px;font:700 11px 'IBM Plex Mono';cursor:pointer;
+      border:1px solid ${visible?'var(--good)':'var(--line-strong)'};
+      background:${visible?'rgba(52,211,153,.15)':'transparent'};
+      color:${visible?'var(--good)':'var(--mist)'};">${visible?'✓':'✗'} ${cat}</button>`;
+  }).join('');
+  box.querySelectorAll('.category-visibility-toggle').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const cat = btn.dataset.cat;
+      const nuevoOculto = !(CATEGORY_VISIBILITY && CATEGORY_VISIBILITY[cat]); // invierte: si estaba visible, ahora se oculta
+      btn.disabled = true;
+      try{
+        CATEGORY_VISIBILITY = await saveCategoryVisibility(CURRENT_CLUB, cat, nuevoOculto);
+        buildCategoryVisibilityToggles();
+        applyPlayerModeUI(); // por si se está previsualizando como un jugador de esa categoría ahora mismo
+      }catch(err){
+        alert(tf('noSePudoGuardar',{e:err.message}));
+        btn.disabled = false;
+      }
+    };
+  });
 }
 async function buildManageRosterList(){
   const listEl = document.getElementById('manageRosterList');

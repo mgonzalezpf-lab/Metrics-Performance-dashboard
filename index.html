@@ -231,6 +231,10 @@
     <div style="background:var(--pitch-800);border:1px solid var(--line-strong);border-radius:14px;padding:22px;max-width:600px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.5);">
       <h3 style="margin:0 0 6px;font-size:15px;color:var(--bone);">⚙️ <span class="i18n-text" data-i18n="gestionarPlantel">Gestionar plantel</span></h3>
       <p style="color:var(--mist);font-size:12px;margin:0 0 14px;line-height:1.5;" class="i18n-text" data-i18n="gestionarPlantelDesc">Edita el nombre, categoría o si es arquero. "Archivar" saca al jugador de las listas activas sin borrar su historial ya cargado.</p>
+      <div id="categoryVisibilityPanel" style="display:none;margin-bottom:14px;padding:10px 12px;background:var(--pitch-950);border:1px solid var(--line);border-radius:8px;">
+        <p style="color:var(--mist);font-size:11px;margin:0 0 8px;line-height:1.4;">👁 <span data-i18n="ocultarNumerosPorCategoriaDesc">Ocultar números de GPS a los jugadores de una categoría puntual (solo Wellness/RPE). Exclusivo Owner.</span></p>
+        <div id="categoryVisibilityToggles" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+      </div>
       <div id="manageRosterList" style="overflow-y:auto;flex:1;"></div>
       <button id="manageRosterClose" class="upload-btn i18n-text" data-i18n="cerrar" style="width:100%;margin-top:14px;">Cerrar</button>
     </div>

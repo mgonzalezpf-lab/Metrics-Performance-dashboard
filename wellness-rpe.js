@@ -729,6 +729,7 @@ function computeRpeACWR(playerReports, refDateStr){
 let RPE_WINDOW_START = '18:30'; // "HH:MM", hora local del navegador
 let RPE_WINDOW_END = '23:59';
 let CLUB_FEATURES = {gps:true, rpe_wellness:true, active:true}; // por defecto, todo activo (compatibilidad con clubes ya existentes)
+let CATEGORY_VISIBILITY = {}; // {categoria: true/false} — segundo nivel, más fino, de ocultar números a jugadores por categoría (solo Owner)
 let WELLNESS_WINDOW_START = '05:00';
 let WELLNESS_WINDOW_END = '11:00';
 const PAIN_TYPE_KEYS = ['muscular','articular','tendinoso','oseo','otro'];

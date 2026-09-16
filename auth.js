@@ -398,6 +398,7 @@ if(myProfile.role==='pending_club' || myProfile.role==='pending_staff' || myProf
   if(myProfile.role!=='owner'){
     const features = await loadClubFeatures(CURRENT_CLUB);
     CLUB_FEATURES = features;
+    CATEGORY_VISIBILITY = await loadCategoryVisibility(CURRENT_CLUB);
     if(!features.active){
       showPendingScreen('suspended');
       return;

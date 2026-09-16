@@ -118,7 +118,7 @@ async function buildClubesList(){
       <div class="nm">${c}${c===CURRENT_CLUB?' <span class="lb-record-tag">VIENDO AHORA</span>':''}${f.active===false?' <span class="lb-record-tag" style="background:var(--bad);">SUSPENDIDO</span>':''}</div>
       <div class="club-controls-row" style="margin:6px 0;display:flex;align-items:center;gap:14px;">
         <span style="font-family:'IBM Plex Mono';font-size:12.5px;color:var(--mist);white-space:nowrap;">${counts[c]} usuario${counts[c]===1?'':'s'}</span>
-        ${toggleBtn(c,'gps',f.gps,'📡 GPS')}${toggleBtn(c,'rpe_wellness',f.rpe_wellness,'💚 RPE+Wellness')}${suspendBtn(c,f.active!==false)}
+        ${toggleBtn(c,'gps',f.gps,'📡 GPS')}${toggleBtn(c,'rpe_wellness',f.rpe_wellness,'💚 RPE+Wellness')}${toggleBtn(c,'ocultar_numeros_jugador',!f.ocultar_numeros_jugador,t('toggleNumerosJugador'))}${suspendBtn(c,f.active!==false)}
       </div>
     </div>`;
   }).join('');
@@ -165,6 +165,7 @@ async function switchToClub(clubName){
   await loadRpeWindow();
   await loadWellnessWindow();
   CLUB_FEATURES = await loadClubFeatures(CURRENT_CLUB);
+  CATEGORY_VISIBILITY = await loadCategoryVisibility(CURRENT_CLUB);
   await loadGkData();
   await getRosterExtraNames(); // asegura tener ARCHIVED_PLAYERS del club nuevo antes de armar la lista de jugadores
   deriveAll(ACTIVE_EVENTS);

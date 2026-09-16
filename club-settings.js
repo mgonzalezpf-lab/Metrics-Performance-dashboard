@@ -24,16 +24,34 @@ async function loadClubFeatures(clubName){
     const {data} = await supabaseClient.from('app_settings').select('value').eq('club',clubName).eq('key','club_features').maybeSingle();
     if(data && data.value){
       const parsed = JSON.parse(data.value);
-      return {gps: parsed.gps!==false, rpe_wellness: parsed.rpe_wellness!==false, active: parsed.active!==false};
+      return {gps: parsed.gps!==false, rpe_wellness: parsed.rpe_wellness!==false, active: parsed.active!==false, ocultar_numeros_jugador: parsed.ocultar_numeros_jugador===true};
     }
   }catch(e){ console.warn('No se pudieron cargar las features del club:', e); }
-  return {gps:true, rpe_wellness:true, active:true}; // clubes sin configurar todavía: todo activo (compatibilidad)
+  return {gps:true, rpe_wellness:true, active:true, ocultar_numeros_jugador:false}; // clubes sin configurar todavía: todo activo (compatibilidad)
 }
 async function saveClubFeature(clubName, key, value){
   const current = await loadClubFeatures(clubName);
   current[key] = value;
   const {error} = await supabaseClient.from('app_settings')
     .upsert({club:clubName, key:'club_features', value:JSON.stringify(current), updated_at:new Date().toISOString()}, {onConflict:'club,key'});
+  if(error) throw error;
+  return current;
+}
+// Segundo nivel, más fino: además del interruptor general (arriba), el Owner puede ocultarle los números
+// de GPS a los jugadores de UNA categoría puntual (ej. solo U16), sin tocar el resto del club. Es un
+// permiso exclusivo del Owner, igual que el general — no lo toca el admin del club.
+async function loadCategoryVisibility(clubName){
+  try{
+    const {data} = await supabaseClient.from('app_settings').select('value').eq('club',clubName).eq('key','category_visibility').maybeSingle();
+    if(data && data.value) return JSON.parse(data.value);
+  }catch(e){ console.warn('No se pudo cargar la visibilidad por categoría:', e); }
+  return {}; // sin configurar todavía = ninguna categoría oculta (compatibilidad)
+}
+async function saveCategoryVisibility(clubName, categoria, ocultar){
+  const current = await loadCategoryVisibility(clubName);
+  current[categoria] = ocultar;
+  const {error} = await supabaseClient.from('app_settings')
+    .upsert({club:clubName, key:'category_visibility', value:JSON.stringify(current), updated_at:new Date().toISOString()}, {onConflict:'club,key'});
   if(error) throw error;
   return current;
 }
