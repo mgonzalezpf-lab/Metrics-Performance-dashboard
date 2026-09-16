@@ -367,7 +367,7 @@ function generatePlayerSessionsPDF(){
   const pageW = doc.internal.pageSize.getWidth();
   const marginX = 14;
   let y = 18;
-  const ensureSpace = (needed)=>{ if(y + needed > 195){ doc.addPage(); y = 18; } };
+  const ensureSpace = (needed)=>{ if(y + needed > 195){ doc.addPage(); addBrandLogoTopRight(doc, pageW, marginX); y = 18; } };
 
   // ---- encabezado ----
   addBrandLogoTopRight(doc, pageW, marginX);

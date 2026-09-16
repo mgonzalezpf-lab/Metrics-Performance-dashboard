@@ -91,13 +91,26 @@ function getPlayerRecordsForDate(fecha){
 }
 // Logo de Metrics Performance (el ícono "MG", sin el nombre debajo) para la esquina superior derecha de
 // todos los informes en PDF — se lee directo del <img id="authLogo"> que ya existe en la pantalla de
-// login, así no hay que duplicar el base64 en cada archivo que genera un PDF.
+// login, así no hay que duplicar el base64 en cada archivo que genera un PDF. Debajo va el nombre de la
+// marca con la misma tipografía/color que usa el dashboard ("Metrics" en el celeste de marca), salvo que
+// acá el fondo es blanco (no el navy oscuro de la app), así que "SportScience" y "Performance" pasan del
+// blanco/hueso original al mismo azul oscuro que ya usan los títulos del informe — si no, no se leerían.
 function addBrandLogoTopRight(doc, pageW, marginX){
   try{
     const logoEl = document.getElementById('authLogo');
     if(!logoEl || !logoEl.src) return;
     const w = 18, h = w/2.05; // mismo ratio ancho:alto del logo real
-    doc.addImage(logoEl.src, 'PNG', pageW-marginX-w, 10, w, h);
+    const x = pageW-marginX-w;
+    doc.addImage(logoEl.src, 'PNG', x, 10, w, h);
+    const cx = x + w/2;
+    let ty = 10 + h + 4;
+    doc.setFont('helvetica','bold'); doc.setFontSize(6.4);
+    const part1 = 'SportScience ', part2 = 'Metrics', part3 = ' Performance';
+    const w1 = doc.getTextWidth(part1), w2 = doc.getTextWidth(part2), w3 = doc.getTextWidth(part3);
+    let tx = cx - (w1+w2+w3)/2;
+    doc.setTextColor(18,33,59); doc.text(part1, tx, ty); tx += w1;
+    doc.setTextColor(34,211,238); doc.text(part2, tx, ty); tx += w2;
+    doc.setTextColor(18,33,59); doc.text(part3, tx, ty);
   }catch(e){ console.warn('No se pudo agregar el logo al informe:', e); }
 }
 function generateMatchReportPDF(matchName){
@@ -160,7 +173,7 @@ function generateMatchReportPDF(matchName){
   const pageW = doc.internal.pageSize.getWidth();
   const marginX = 16;
   let y = 20;
-  const ensureSpace = (needed)=>{ if(y + needed > 282){ doc.addPage(); y = 20; } };
+  const ensureSpace = (needed)=>{ if(y + needed > 282){ doc.addPage(); addBrandLogoTopRight(doc, pageW, marginX); y = 20; } };
 
   // ---- encabezado ----
   addBrandLogoTopRight(doc, pageW, marginX);

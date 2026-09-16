@@ -818,8 +818,10 @@
     <button type="button" class="panel-dl-btn" data-target="playerSessionLogPanel" data-nombre="Sesiones del jugador" title="Descargar esta sección como imagen">⬇</button>
     <div id="playerSessionLogPanel">
     <div class="panel-head">
-      <h3 data-i18n="sesionesDelJugador">Sesiones del jugador</h3>
-      <span class="tag" id="sessionLogPlayerTag" style="color:var(--gold-bright);"></span>
+      <div style="display:flex;align-items:baseline;gap:10px;">
+        <h3 data-i18n="sesionesDelJugador">Sesiones del jugador</h3>
+        <span id="sessionLogPlayerTag" style="font-family:'Big Shoulders Display',sans-serif;font-weight:700;font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--bone);"></span>
+      </div>
       <span class="tag" id="sessionLogCountTag"></span>
     </div>
     <div class="metric-tabs" id="sessionLogFilterTabs" style="display:inline-flex;"></div>
