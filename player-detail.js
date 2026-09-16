@@ -334,7 +334,7 @@ function buildPlayerSessionLog(){
     <th>${METRICS.dist.label}</th><th>${METRICS.hsr.label}</th><th>${METRICS.vel.label}</th>
     <th>${METRICS.sprint.label}</th><th>${METRICS.sprint_count.label}</th>
     <th>${METRICS.acc.label}</th><th>${METRICS.desa.label}</th>
-    <th>${METRICS.pl.label}</th><th>${METRICS.rhie.label}</th>
+    <th>${METRICS.pl.label}</th>
   </tr>`;
   const body = evs.map(e=>{
     const esPartido = e.tipo==='Partido';
@@ -348,8 +348,7 @@ function buildPlayerSessionLog(){
       <td class="mono">${fmt(e.sprint_count, METRICS.sprint_count.dec)}</td>
       <td class="mono">${fmt(e.acc, METRICS.acc.dec)}</td>
       <td class="mono">${fmt(e.desa, METRICS.desa.dec)}</td>
-      <td class="mono">${fmt(e.pl, METRICS.pl.dec)}</td>
-      <td class="mono">${fmt(e.rhie, METRICS.rhie.dec)}</td></tr>`;
+      <td class="mono">${fmt(e.pl, METRICS.pl.dec)}</td></tr>`;
   }).join('');
   table.innerHTML = `<thead>${head}</thead><tbody>${body}</tbody>`;
 }
@@ -528,7 +527,6 @@ function generatePlayerSessionsPDF(){
     {label:METRICS.acc.label, w:20, key:'acc', dec:METRICS.acc.dec},
     {label:METRICS.desa.label, w:20, key:'desa', dec:METRICS.desa.dec},
     {label:METRICS.pl.label, w:24, key:'pl', dec:METRICS.pl.dec},
-    {label:METRICS.rhie.label, w:24, key:'rhie', dec:METRICS.rhie.dec},
   ];
   const tableW = cols.reduce((a,c)=>a+c.w,0);
   const rowH = 8;
