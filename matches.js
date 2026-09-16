@@ -89,6 +89,17 @@ function getPlayerRecordsForDate(fecha){
   });
   return out.sort((a,b)=> a.jugador.localeCompare(b.jugador));
 }
+// Logo de Metrics Performance (el ícono "MG", sin el nombre debajo) para la esquina superior derecha de
+// todos los informes en PDF — se lee directo del <img id="authLogo"> que ya existe en la pantalla de
+// login, así no hay que duplicar el base64 en cada archivo que genera un PDF.
+function addBrandLogoTopRight(doc, pageW, marginX){
+  try{
+    const logoEl = document.getElementById('authLogo');
+    if(!logoEl || !logoEl.src) return;
+    const w = 18, h = w/2.05; // mismo ratio ancho:alto del logo real
+    doc.addImage(logoEl.src, 'PNG', pageW-marginX-w, 10, w, h);
+  }catch(e){ console.warn('No se pudo agregar el logo al informe:', e); }
+}
 function generateMatchReportPDF(matchName){
   if(typeof window.jspdf === 'undefined'){ alert(t('noSePudoPdf')); return; }
   const entries = getSortedMatchEntries();
@@ -152,6 +163,7 @@ function generateMatchReportPDF(matchName){
   const ensureSpace = (needed)=>{ if(y + needed > 282){ doc.addPage(); y = 20; } };
 
   // ---- encabezado ----
+  addBrandLogoTopRight(doc, pageW, marginX);
   doc.setFont('helvetica','bold'); doc.setFontSize(17); doc.setTextColor(18,33,59);
   doc.text(`${CURRENT_CLUB} — ${t('informeDePartido')}`, marginX, y);
   y += 7;
@@ -445,7 +457,14 @@ function generateMatchReportPDF(matchName){
   }
 
   // ---- puntos a tener en cuenta: lectura en texto, no solo los cuadros de números ----
-  const insights = buildMatchReportInsights(row, diffPct, hayReferencia, derived, derivedDiff, hasHalves, zscore, trends);
+  // Solo tiene sentido avisar sobre el próximo partido si este informe es del ÚLTIMO partido cargado —
+  // si es de uno viejo, NEXT_MATCH_DATE no necesariamente es "el partido después de este".
+  const esUltimoPartidoCargado = idx === entries.length-1;
+  let diasHastaProximo = null;
+  if(esUltimoPartidoCargado && typeof NEXT_MATCH_DATE !== 'undefined' && NEXT_MATCH_DATE){
+    diasHastaProximo = Math.round((new Date(NEXT_MATCH_DATE+'T00:00:00') - new Date(row.fecha+'T00:00:00')) / 86400000);
+  }
+  const insights = buildMatchReportInsights(row, diffPct, hayReferencia, derived, derivedDiff, hasHalves, zscore, trends, diasHastaProximo);
   if(insights.length){
     ensureSpace(10);
     doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
@@ -576,7 +595,7 @@ function buildMatchReportSummary(row, diffPct, diffPctLast, hayReferencia, hayUl
 // Traduce los números del informe en 3-9 frases concretas de "qué mirar", no solo el cuadro con los datos.
 // Reglas simples basadas en umbrales y en z-score — no reemplaza el criterio del cuerpo técnico, es una
 // primera lectura estadísticamente informada.
-function buildMatchReportInsights(row, diffPct, hayReferencia, derived, derivedDiff, hasHalves, zscore, trends){
+function buildMatchReportInsights(row, diffPct, hayReferencia, derived, derivedDiff, hasHalves, zscore, trends, diasHastaProximo){
   const out = [];
   if(!hayReferencia){
     out.push(t('insightSinHistorial'));
@@ -631,7 +650,13 @@ function buildMatchReportInsights(row, diffPct, hayReferencia, derived, derivedD
     if(hsrH && hsrH.diff!==null && hsrH.diff<=-20) out.push(t('insightCaidaConcentradaHsr'));
     if(sprintCountH && sprintCountH.diff!==null && sprintCountH.diff<=-25) out.push(t('insightCaidaConcentradaSprint'));
   }
+  // ---- congestión de calendario: si ya hay un próximo partido cargado y cae dentro de la misma ventana
+  // de recuperación incompleta (72-96h), es un hallazgo aparte del rendimiento de HOY — importa para decidir
+  // rotación, no para leer este partido en sí ----
+  if(diasHastaProximo!==null && diasHastaProximo!==undefined && diasHastaProximo>0 && diasHastaProximo<=4){
+    out.push(tf('insightCongestionFixture', {d: diasHastaProximo}));
+  }
   if(hayReferencia && !out.length) out.push(t('insightTodoNormal'));
-  return out.slice(0,9);
+  return out.slice(0,10);
 }
 

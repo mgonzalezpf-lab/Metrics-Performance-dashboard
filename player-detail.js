@@ -318,8 +318,10 @@ function buildPlayerSessionLog(){
   buildSessionLogFilterTabs();
   const table = document.getElementById('sessionLogTable');
   const tag = document.getElementById('sessionLogCountTag');
+  const playerTag = document.getElementById('sessionLogPlayerTag');
   const reportBtn = document.getElementById('sessionLogReportBtn');
   if(reportBtn) reportBtn.onclick = generatePlayerSessionsPDF;
+  if(playerTag) playerTag.textContent = state.player ? `· ${state.player}` : '';
   if(!table || !state.player) return;
   const evs = getPlayerSessionRows();
   if(tag) tag.textContent = tf('sessionLogCantidad', {n: evs.length});
@@ -368,6 +370,7 @@ function generatePlayerSessionsPDF(){
   const ensureSpace = (needed)=>{ if(y + needed > 195){ doc.addPage(); y = 18; } };
 
   // ---- encabezado ----
+  addBrandLogoTopRight(doc, pageW, marginX);
   doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.setTextColor(18,33,59);
   doc.text(`${CURRENT_CLUB} — ${t('informeSesionesJugador')}`, marginX, y);
   y += 7;
@@ -438,20 +441,20 @@ function generatePlayerSessionsPDF(){
   const recBoxW = (pageW - marginX*2 - 4*4)/5, recBoxH = 26;
   recCards.forEach((c,i)=>{
     const x = marginX + i*(recBoxW+4);
-    doc.setFillColor(146,94,10);
+    doc.setFillColor(151,128,74);
     doc.roundedRect(x, y, recBoxW, recBoxH, 2, 2, 'F');
-    doc.setDrawColor(214,158,46); doc.setLineWidth(.5);
+    doc.setDrawColor(198,180,140); doc.setLineWidth(.5);
     doc.roundedRect(x, y, recBoxW, recBoxH, 2, 2, 'D');
     doc.setTextColor(255,255,255);
     doc.setFont('helvetica','bold'); doc.setFontSize(13.5);
     doc.text(c.val, x+recBoxW/2, y+9, {align:'center'});
-    doc.setFont('helvetica','normal'); doc.setFontSize(6.4); doc.setTextColor(255,224,168);
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.4); doc.setTextColor(232,221,196);
     doc.text(c.label.toUpperCase(), x+recBoxW/2, y+13.6, {align:'center'});
     if(c.fecha){
       doc.setFont('helvetica','bold'); doc.setFontSize(6.2); doc.setTextColor(255,255,255);
       doc.text(c.fecha.split('-').reverse().join('/'), x+recBoxW/2, y+18.5, {align:'center'});
       if(c.det){
-        doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(255,224,168);
+        doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(232,221,196);
         doc.text(abbrevDetalle(c.det, 22), x+recBoxW/2, y+22.6, {align:'center'});
       }
     }
@@ -583,7 +586,7 @@ function generatePlayerSessionsPDF(){
   doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
   doc.text(t('informePuntosATener'), marginX, y);
   y += 2.5;
-  doc.setDrawColor(214,158,46); doc.setLineWidth(1);
+  doc.setDrawColor(151,128,74); doc.setLineWidth(1);
   doc.line(marginX, y, marginX+18, y);
   y += 5;
   doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(60,60,60);
