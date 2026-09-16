@@ -129,13 +129,15 @@ function applyPlayerModeUI(){
   const mainGrid=document.getElementById('mainGrid');
   const gkView=document.getElementById('gkPlayerView');
   const activePlayer = previewingAsPlayer || (myProfile && myProfile.player_name);
-  // Dos niveles de interruptor, los dos exclusivos del Owner:
-  // 1) Por club entero (pantalla Clubes) — todos los jugadores de ese club no ven números.
-  // 2) Por categoría puntual (ej. solo U16) — más fino, no afecta al resto de las categorías del club.
-  // Esto no afecta lo que ve el staff/admin del club, solo la vista del propio jugador.
+  // Dos niveles de interruptor: uno general (todo el club, exclusivo del Owner) y otro por categoría
+  // puntual (lo maneja el Admin del club). Los dos ocultan los números SOLO cuando quien está mirando es
+  // el jugador entrando con su propia cuenta — si es staff/admin/owner usando "Vista previa como jugador"
+  // (previewingAsPlayer truthy), sigue viendo todo: la vista previa es para revisar cómo quedó la
+  // configuración, no para restringírsela a quien la está configurando.
+  const esJugadorReal = !previewingAsPlayer && myProfile && myProfile.role==='player';
   const categoriaJugador = activePlayer ? ROSTER_CATEGORIES[normalizeNameKey(activePlayer)] : null;
   const ocultarPorCategoria = !!(categoriaJugador && CATEGORY_VISIBILITY && CATEGORY_VISIBILITY[categoriaJugador]);
-  const ocultarNumeros = !!CLUB_FEATURES.ocultar_numeros_jugador || ocultarPorCategoria;
+  const ocultarNumeros = esJugadorReal && (!!CLUB_FEATURES.ocultar_numeros_jugador || ocultarPorCategoria);
   if(!CLUB_FEATURES.gps || ocultarNumeros){
     if(mainGrid) mainGrid.style.display='none';
     if(gkView) gkView.style.display='none';
