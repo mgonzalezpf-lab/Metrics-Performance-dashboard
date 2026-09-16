@@ -68,7 +68,7 @@ function setupManageRosterBar(){
   const btn = document.getElementById('manageRosterBtn');
   const modal = document.getElementById('manageRosterModal');
   const closeBtn = document.getElementById('manageRosterClose');
-  if(btn) btn.onclick = ()=>{ modal.style.display='flex'; buildManageRosterList(); buildCategoryVisibilityToggles(); };
+  if(btn) btn.onclick = ()=>{ modal.style.display='flex'; buildManageRosterList(); buildCategoryVisibilityToggles(); buildMergePlayersPanel(); };
   if(closeBtn) closeBtn.onclick = ()=>{ modal.style.display='none'; };
   if(modal) modal.onclick = (e)=>{ if(e.target===modal) modal.style.display='none'; };
 }
@@ -310,4 +310,67 @@ function setupRestDayBar(){
     }
   };
   document.addEventListener('click',(e)=>{ if(!form.contains(e.target) && e.target!==btn) form.style.display='none'; });
+}
+
+// ---------- Fusionar jugadores duplicados ----------
+// Cuando un jugador queda cargado con dos variantes de nombre (ej. "Nicolas Alezcano" vs "nicolaz
+// alezcano" — una letra de diferencia entre lo que se tipeó en el roster y lo que trajo el GPS/Wellness),
+// aparece duplicado en las listas Y, más importante, sus reportes de Wellness/RPE no calzan con la
+// categoría asignada en el roster — por eso "desaparecen" al filtrar por categoría puntual, aunque sí
+// aparezcan en "Todas las categorías". Esta herramienta junta todo bajo un solo nombre, sin perder nada.
+async function buildMergePlayersPanel(){
+  const keepSel = document.getElementById('mergeKeepSelect');
+  const dropSel = document.getElementById('mergeDropSelect');
+  const btn = document.getElementById('mergePlayersBtn');
+  const statusEl = document.getElementById('mergePlayersStatus');
+  if(!keepSel || !dropSel || !btn) return;
+  const rosterExtra = await getRosterExtraNames();
+  const allPlayers = mergePlayerNames(players, rosterExtra).sort((a,b)=>a.localeCompare(b));
+  const opts = allPlayers.map(p=>`<option value="${p.replace(/"/g,'&quot;')}">${p}</option>`).join('');
+  keepSel.innerHTML = opts;
+  dropSel.innerHTML = opts;
+  if(allPlayers.length>1) dropSel.selectedIndex = 1; // por defecto no coincide con keepSel, para evitar el caso trivial
+  btn.onclick = async ()=>{
+    const nombreCanonico = keepSel.value, nombreDuplicado = dropSel.value;
+    if(!nombreCanonico || !nombreDuplicado){ statusEl.textContent = t('elegiDosJugadores'); return; }
+    if(normalizeNameKey(nombreCanonico)===normalizeNameKey(nombreDuplicado)){ statusEl.textContent = t('sonElMismoNombre'); return; }
+    if(!confirm(tf('confirmarFusionarJugadores', {a:nombreDuplicado, b:nombreCanonico}))) return;
+    btn.disabled = true; statusEl.textContent = t('fusionando');
+    try{
+      await mergePlayers(nombreCanonico, nombreDuplicado);
+      statusEl.textContent = t('fusionadoCheck');
+      await buildMergePlayersPanel();
+      await buildManageRosterList();
+    }catch(err){
+      console.error('Error fusionando jugadores:', err);
+      statusEl.textContent = tf('noSePudoGuardar',{e:err.message});
+    }finally{
+      btn.disabled = false;
+    }
+  };
+}
+async function mergePlayers(nombreCanonico, nombreDuplicado){
+  // 1) Eventos de GPS: todo lo que estaba bajo el nombre duplicado pasa a quedar bajo el canónico.
+  const eventosFinales = ACTIVE_EVENTS.map(e=>
+    normalizeNameKey(e.jugador)===normalizeNameKey(nombreDuplicado) ? {...e, jugador: nombreCanonico} : e
+  );
+  await saveRemoteData(eventosFinales, ACTIVE_TEAMTOTALS);
+  ACTIVE_EVENTS = eventosFinales;
+
+  // 2) Reportes de RPE y Wellness — se reescribe el nombre para que vuelvan a calzar con la categoría
+  // del roster (esto es justo lo que hace que el jugador "desaparezca" al filtrar por su categoría).
+  const {error: errRpe} = await supabaseClient.from('rpe_reports')
+    .update({player_name: nombreCanonico}).eq('club', CURRENT_CLUB).eq('player_name', nombreDuplicado);
+  if(errRpe) throw errRpe;
+  const {error: errWellness} = await supabaseClient.from('wellness_reports')
+    .update({player_name: nombreCanonico}).eq('club', CURRENT_CLUB).eq('player_name', nombreDuplicado);
+  if(errWellness) throw errWellness;
+
+  // 3) Si el nombre duplicado tenía su propia fila en roster_players (categoría, arquero, etc.), se borra
+  // — ya no hace falta, todo el historial quedó unificado bajo el nombre canónico.
+  await supabaseClient.from('roster_players').delete().eq('club', CURRENT_CLUB).eq('player_name', nombreDuplicado);
+
+  await getRosterExtraNames();
+  deriveAll(ACTIVE_EVENTS);
+  renderAll(state.player);
 }

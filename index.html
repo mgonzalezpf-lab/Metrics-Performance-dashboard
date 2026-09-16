@@ -235,6 +235,16 @@
         <p style="color:var(--mist);font-size:11px;margin:0 0 8px;line-height:1.4;">👁 <span data-i18n="ocultarNumerosPorCategoriaDesc">Ocultar números de GPS a los jugadores de una categoría puntual (solo Wellness/RPE).</span></p>
         <div id="categoryVisibilityToggles" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
       </div>
+      <div id="mergePlayersPanel" style="margin-bottom:14px;padding:10px 12px;background:var(--pitch-950);border:1px solid var(--line);border-radius:8px;">
+        <p style="color:var(--mist);font-size:11px;margin:0 0 8px;line-height:1.4;">🔗 <span data-i18n="fusionarJugadoresDesc">¿Un mismo jugador aparece 2 veces por una diferencia de tipeo en el nombre? Uní su historial bajo un solo nombre — se junta todo (GPS, Wellness, RPE), y no se pierde nada.</span></p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <select id="mergeKeepSelect" style="flex:1;min-width:150px;padding:6px 8px;border-radius:6px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:12px 'IBM Plex Sans';"></select>
+          <span style="color:var(--mist);font-size:11px;" data-i18n="fusionarFlecha">recibe el historial de</span>
+          <select id="mergeDropSelect" style="flex:1;min-width:150px;padding:6px 8px;border-radius:6px;border:1px solid var(--line-strong);background:var(--pitch-950);color:var(--bone);font:12px 'IBM Plex Sans';"></select>
+          <button id="mergePlayersBtn" class="upload-btn" style="padding:6px 12px;font-size:11px;" data-i18n="fusionar">Fusionar</button>
+        </div>
+        <div id="mergePlayersStatus" style="font-size:10.5px;color:var(--mist);margin-top:6px;"></div>
+      </div>
       <div id="manageRosterList" style="overflow-y:auto;flex:1;"></div>
       <button id="manageRosterClose" class="upload-btn i18n-text" data-i18n="cerrar" style="width:100%;margin-top:14px;">Cerrar</button>
     </div>
