@@ -416,34 +416,44 @@ function generatePlayerSessionsPDF(){
     return best;
   };
   const recDist = findRecord('dist'), recHsr = findRecord('hsr'), recSprintCount = findRecord('sprint_count'), recVel = findRecord('vel'), recAcc = findRecord('acc'), recDesa = findRecord('desa');
-  ensureSpace(28);
+  ensureSpace(36);
   doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
   doc.text(t('informeRecordsPeriodo'), marginX, y);
   y += 5;
   const recCards = [
-    {label:METRICS.dist.label, val: recDist?`${fmt(Math.round(recDist.val))} m`:'—', fecha: recDist?recDist.e.fecha:null},
-    {label:METRICS.hsr.label, val: recHsr?`${fmt(Math.round(recHsr.val))} m`:'—', fecha: recHsr?recHsr.e.fecha:null},
-    {label:METRICS.sprint_count.label, val: recSprintCount?fmt(recSprintCount.val):'—', fecha: recSprintCount?recSprintCount.e.fecha:null},
-    {label:METRICS.vel.label, val: recVel?`${fmt(recVel.val,1)} km/h`:'—', fecha: recVel?recVel.e.fecha:null},
+    {label:METRICS.dist.label, val: recDist?`${fmt(Math.round(recDist.val))} m`:'—', fecha: recDist?recDist.e.fecha:null, det: recDist?recDist.e.detalle:null},
+    {label:METRICS.hsr.label, val: recHsr?`${fmt(Math.round(recHsr.val))} m`:'—', fecha: recHsr?recHsr.e.fecha:null, det: recHsr?recHsr.e.detalle:null},
+    {label:METRICS.sprint_count.label, val: recSprintCount?fmt(recSprintCount.val):'—', fecha: recSprintCount?recSprintCount.e.fecha:null, det: recSprintCount?recSprintCount.e.detalle:null},
+    {label:METRICS.vel.label, val: recVel?`${fmt(recVel.val,1)} km/h`:'—', fecha: recVel?recVel.e.fecha:null, det: recVel?recVel.e.detalle:null},
     {label:`${METRICS.acc.label} / ${METRICS.desa.label}`,
       val: `${recAcc?fmt(recAcc.val):'—'} / ${recDesa?fmt(recDesa.val):'—'}`,
-      // Acc y Desa pueden haber marcado su pico en partidos distintos — solo se muestra una fecha si
-      // coincide en ambos; si no, mejor no mostrar ninguna que sugerir una fecha equivocada para el otro.
-      fecha: (recAcc && recDesa && recAcc.e.fecha===recDesa.e.fecha) ? recAcc.e.fecha : null},
+      // Acc y Desa pueden haber marcado su pico en partidos distintos — solo se muestra fecha/detalle si
+      // coincide en ambos; si no, mejor no mostrar nada que sugerir un partido equivocado para el otro.
+      fecha: (recAcc && recDesa && recAcc.e.fecha===recDesa.e.fecha) ? recAcc.e.fecha : null,
+      det: (recAcc && recDesa && recAcc.e.fecha===recDesa.e.fecha) ? recAcc.e.detalle : null},
   ];
-  const recBoxW = (pageW - marginX*2 - 4*4)/5, recBoxH = 20;
+  // Dorado/trofeo — a propósito bien distinto de los tonos navy/violeta/teal de más abajo, para que estas
+  // 5 tarjetas de RÉCORD salten a la vista de inmediato como lo más destacado del informe, no se pierdan
+  // entre el resto del contenido.
+  const recBoxW = (pageW - marginX*2 - 4*4)/5, recBoxH = 26;
   recCards.forEach((c,i)=>{
     const x = marginX + i*(recBoxW+4);
-    doc.setDrawColor(210,210,225); doc.setFillColor(248,248,252);
-    doc.roundedRect(x, y, recBoxW, recBoxH, 2, 2, 'FD');
-    doc.setTextColor(76,29,149);
-    doc.setFont('helvetica','bold'); doc.setFontSize(13);
+    doc.setFillColor(146,94,10);
+    doc.roundedRect(x, y, recBoxW, recBoxH, 2, 2, 'F');
+    doc.setDrawColor(214,158,46); doc.setLineWidth(.5);
+    doc.roundedRect(x, y, recBoxW, recBoxH, 2, 2, 'D');
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold'); doc.setFontSize(13.5);
     doc.text(c.val, x+recBoxW/2, y+9, {align:'center'});
-    doc.setFont('helvetica','normal'); doc.setFontSize(6.4); doc.setTextColor(90,90,90);
-    doc.text(c.label.toUpperCase(), x+recBoxW/2, y+13.5, {align:'center'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.4); doc.setTextColor(255,224,168);
+    doc.text(c.label.toUpperCase(), x+recBoxW/2, y+13.6, {align:'center'});
     if(c.fecha){
-      doc.setFontSize(6); doc.setTextColor(130,130,130);
-      doc.text(c.fecha.split('-').reverse().join('/'), x+recBoxW/2, y+17.5, {align:'center'});
+      doc.setFont('helvetica','bold'); doc.setFontSize(6.2); doc.setTextColor(255,255,255);
+      doc.text(c.fecha.split('-').reverse().join('/'), x+recBoxW/2, y+18.5, {align:'center'});
+      if(c.det){
+        doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(255,224,168);
+        doc.text(abbrevDetalle(c.det, 22), x+recBoxW/2, y+22.6, {align:'center'});
+      }
     }
   });
   y += recBoxH + 8;
@@ -474,11 +484,8 @@ function generatePlayerSessionsPDF(){
   });
   y += boxH + 8;
 
-  // ---- resumen narrativo del período ----
-  ensureSpace(18);
-  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
-  doc.text(t('sesionesResumenIntroTitulo'), marginX, y);
-  y += 5.5;
+  // ---- resumen narrativo del período: caja con tinte de color para que no quede como texto plano
+  // sobre blanco — mismo tono navy de la marca, pero bien suave para no competir con las tarjetas ----
   const partes = [];
   partes.push(tf('sesionesResumenIntro', {p:state.player, nP:nPartidos, nE:nEntrenos, d1:evs[0].fecha.split('-').reverse().join('/'), d2:evs[evs.length-1].fecha.split('-').reverse().join('/')}));
   if(avgDist!==null && avgPl!==null) partes.push(tf('sesionesResumenPromedios', {d:fmt(Math.round(avgDist)), pl:fmt(Math.round(avgPl))}));
@@ -492,10 +499,17 @@ function generatePlayerSessionsPDF(){
     partes.push(tf('sesionesResumenPico', {f:top.e.fecha.split('-').reverse().join('/'), det:abbrevDetalle(top.e.detalle,24), m:mLabel, z:`${top.z>=0?'+':''}${top.z.toFixed(1)}`}));
     usedRefs.add('8');
   }
+  doc.setFont('helvetica','normal'); doc.setFontSize(9.3);
+  const resumenLines = doc.splitTextToSize(partes.join(' '), pageW-marginX*2-10);
+  const resumenBoxH = 9 + resumenLines.length*4.4 + 5;
+  ensureSpace(resumenBoxH + 4);
+  doc.setDrawColor(210,218,232); doc.setFillColor(237,241,248);
+  doc.roundedRect(marginX, y, pageW-marginX*2, resumenBoxH, 2, 2, 'FD');
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
+  doc.text(t('sesionesResumenIntroTitulo'), marginX+5, y+7);
   doc.setFont('helvetica','normal'); doc.setFontSize(9.3); doc.setTextColor(60,60,60);
-  const resumenLines = doc.splitTextToSize(partes.join(' '), pageW-marginX*2);
-  doc.text(resumenLines, marginX, y);
-  y += resumenLines.length*4.4 + 8;
+  doc.text(resumenLines, marginX+5, y+13);
+  y += resumenBoxH + 8;
 
   // ---- tabla ----
   const cols = [
@@ -568,12 +582,16 @@ function generatePlayerSessionsPDF(){
   ensureSpace(14 + insights.length*7);
   doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
   doc.text(t('informePuntosATener'), marginX, y);
-  y += 6;
+  y += 2.5;
+  doc.setDrawColor(214,158,46); doc.setLineWidth(1);
+  doc.line(marginX, y, marginX+18, y);
+  y += 5;
   doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(60,60,60);
   insights.forEach(txt=>{
-    const lines = doc.splitTextToSize(`•  ${txt}`, pageW-marginX*2-2);
+    const lines = doc.splitTextToSize(txt, pageW-marginX*2-7);
     ensureSpace(lines.length*4.6);
-    doc.text(lines, marginX+1, y);
+    doc.setFillColor(76,29,149); doc.rect(marginX+1, y-2.6, 2.2, 2.2, 'F');
+    doc.text(lines, marginX+6, y);
     y += lines.length*4.6 + 2.5;
   });
   y += 2;
