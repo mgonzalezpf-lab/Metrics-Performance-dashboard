@@ -445,7 +445,7 @@ function generatePlayerSessionsPDF(){
     doc.roundedRect(x, y, recBoxW, recBoxH, 2, 2, 'F');
     doc.setDrawColor(198,180,140); doc.setLineWidth(.5);
     doc.roundedRect(x, y, recBoxW, recBoxH, 2, 2, 'D');
-    doc.setTextColor(255,255,255);
+    doc.setTextColor(18,33,59);
     doc.setFont('helvetica','bold'); doc.setFontSize(13.5);
     doc.text(c.val, x+recBoxW/2, y+9, {align:'center'});
     doc.setFont('helvetica','normal'); doc.setFontSize(6.4); doc.setTextColor(232,221,196);
