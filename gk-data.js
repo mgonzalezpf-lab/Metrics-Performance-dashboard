@@ -229,7 +229,15 @@ async function confirmCatapultImport(){
     let teamTotalsFinal = ACTIVE_TEAMTOTALS;
     if(tipo==='Partido'){
       const totalsRow = computeCatapultTeamTotals(pendingCatapultData.bySession, pendingCatapultData.byHalf1, pendingCatapultData.byHalf2);
-      teamTotalsFinal = {...ACTIVE_TEAMTOTALS, [`vs ${rival}`]: {...totalsRow, fecha, categoria: categoriaSeleccionada}};
+      // Antes esto se guardaba con clave "vs {rival}" tal cual se escribió en este momento — si al resubir
+      // el mismo partido (ej. para agregar el 1T/2T) el nombre del rival se tipeaba apenas distinto al de
+      // la carga original ("Wanderers" vs "vs Wanderers"), quedaban DOS tarjetas para el mismo partido en
+      // vez de una sola actualizada. Ahora, antes de guardar el nuevo, se saca cualquier partido previo con
+      // la MISMA FECHA (sea cual sea su nombre) — así una resubida siempre reemplaza, nunca duplica.
+      const teamTotalsSinDuplicado = Object.fromEntries(
+        Object.entries(ACTIVE_TEAMTOTALS).filter(([, row]) => row.fecha !== fecha)
+      );
+      teamTotalsFinal = {...teamTotalsSinDuplicado, [`vs ${rival}`]: {...totalsRow, fecha, categoria: categoriaSeleccionada}};
     }
 
     // Si se eligió una categoría para esta carga, se etiqueta también en roster_players — así los jugadores

@@ -13,6 +13,7 @@ function diffBadge(diff){
 }
 function buildMatchGrid(){
   const box = document.getElementById('matchGrid');
+  const esAdminOOwner = myProfile && (myProfile.role==='admin' || myProfile.role==='owner');
   const entries = Object.entries(ACTIVE_TEAMTOTALS)
     .filter(([name,row]) => !CURRENT_CATEGORY || !row.categoria || row.categoria===CURRENT_CATEGORY)
     .sort((a,b)=> (b[1].fecha||'').localeCompare(a[1].fecha||''));
@@ -20,7 +21,7 @@ function buildMatchGrid(){
     const h = row.halves || {};
     return `
     <div class="match-card">
-      <h4>${name}<button type="button" class="mc-report-btn" data-match="${name.replace(/"/g,'&quot;')}" title="${t('generarInforme')}">📄 ${t('generarInforme')}</button></h4>
+      <h4>${name}<span style="display:inline-flex;gap:6px;">${esAdminOOwner?`<button type="button" class="mc-delete-btn" data-match="${name.replace(/"/g,'&quot;')}" title="${t('eliminarPartido')}">🗑</button>`:''}<button type="button" class="mc-report-btn" data-match="${name.replace(/"/g,'&quot;')}" title="${t('generarInforme')}">📄 ${t('generarInforme')}</button></span></h4>
       <div class="dt">${row.fecha.split('-').reverse().join('/')}</div>
       <div class="mm-row"><span class="k">${t('mmDistTotal')}</span><span class="v">${fmt(row.dist)} m${diffBadge(h.dist && h.dist.diff)}</span></div>
       <div class="mm-row"><span class="k">${t('mmHsr')}</span><span class="v">${fmt(row.hsr)} m${diffBadge(h.hsr && h.hsr.diff)}</span></div>
@@ -43,6 +44,28 @@ function buildMatchGrid(){
         catch(err){ console.error('Error generando informe PDF:', err); alert(t('noSePudoPdf')); }
         finally{ btn.disabled = false; btn.textContent = original; }
       }, 50);
+    });
+  });
+  // Borrar un partido — pensado sobre todo para limpiar duplicados (ej. si el nombre del rival se tipeó
+  // distinto entre la carga original y una resubida). Solo admin/owner lo ven, y pide confirmación porque
+  // no hay forma de deshacerlo.
+  box.querySelectorAll('.mc-delete-btn').forEach(btn=>{
+    btn.addEventListener('click', async (ev)=>{
+      ev.stopPropagation();
+      const nombre = btn.dataset.match;
+      if(!confirm(tf('confirmarEliminarPartido', {n: nombre}))) return;
+      btn.disabled = true;
+      try{
+        const teamTotalsFinal = {...ACTIVE_TEAMTOTALS};
+        delete teamTotalsFinal[nombre];
+        await saveRemoteData(ACTIVE_EVENTS, teamTotalsFinal);
+        ACTIVE_TEAMTOTALS = teamTotalsFinal;
+        buildMatchGrid();
+      }catch(err){
+        console.error('Error eliminando partido:', err);
+        alert(t('noSePudoEliminarPartido'));
+        btn.disabled = false;
+      }
     });
   });
 }
