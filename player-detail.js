@@ -407,8 +407,52 @@ function generatePlayerSessionsPDF(){
   }
   const usedRefs = new Set();
 
+  // ---- récords del período: el valor más alto alcanzado por el jugador DENTRO de las sesiones que se
+  // están mostrando (respeta el filtro activo), no el récord histórico de toda su carrera — para que el
+  // informe hable siempre del mismo recorte de datos que el resto del PDF. ----
+  const findRecord = (key)=>{
+    let best = null;
+    evs.forEach(e=>{ if(e[key]!==null && e[key]!==undefined && (best===null || e[key]>best.val)) best = {val:e[key], e}; });
+    return best;
+  };
+  const recDist = findRecord('dist'), recHsr = findRecord('hsr'), recSprintCount = findRecord('sprint_count'), recVel = findRecord('vel'), recAcc = findRecord('acc'), recDesa = findRecord('desa');
+  ensureSpace(28);
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
+  doc.text(t('informeRecordsPeriodo'), marginX, y);
+  y += 5;
+  const recCards = [
+    {label:METRICS.dist.label, val: recDist?`${fmt(Math.round(recDist.val))} m`:'—', fecha: recDist?recDist.e.fecha:null},
+    {label:METRICS.hsr.label, val: recHsr?`${fmt(Math.round(recHsr.val))} m`:'—', fecha: recHsr?recHsr.e.fecha:null},
+    {label:METRICS.sprint_count.label, val: recSprintCount?fmt(recSprintCount.val):'—', fecha: recSprintCount?recSprintCount.e.fecha:null},
+    {label:METRICS.vel.label, val: recVel?`${fmt(recVel.val,1)} km/h`:'—', fecha: recVel?recVel.e.fecha:null},
+    {label:`${METRICS.acc.label} / ${METRICS.desa.label}`,
+      val: `${recAcc?fmt(recAcc.val):'—'} / ${recDesa?fmt(recDesa.val):'—'}`,
+      // Acc y Desa pueden haber marcado su pico en partidos distintos — solo se muestra una fecha si
+      // coincide en ambos; si no, mejor no mostrar ninguna que sugerir una fecha equivocada para el otro.
+      fecha: (recAcc && recDesa && recAcc.e.fecha===recDesa.e.fecha) ? recAcc.e.fecha : null},
+  ];
+  const recBoxW = (pageW - marginX*2 - 4*4)/5, recBoxH = 20;
+  recCards.forEach((c,i)=>{
+    const x = marginX + i*(recBoxW+4);
+    doc.setDrawColor(210,210,225); doc.setFillColor(248,248,252);
+    doc.roundedRect(x, y, recBoxW, recBoxH, 2, 2, 'FD');
+    doc.setTextColor(76,29,149);
+    doc.setFont('helvetica','bold'); doc.setFontSize(13);
+    doc.text(c.val, x+recBoxW/2, y+9, {align:'center'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.4); doc.setTextColor(90,90,90);
+    doc.text(c.label.toUpperCase(), x+recBoxW/2, y+13.5, {align:'center'});
+    if(c.fecha){
+      doc.setFontSize(6); doc.setTextColor(130,130,130);
+      doc.text(c.fecha.split('-').reverse().join('/'), x+recBoxW/2, y+17.5, {align:'center'});
+    }
+  });
+  y += recBoxH + 8;
+
   // ---- tarjetas de resumen (mismo lenguaje visual que las cajas de "alta intensidad" del informe de partido) ----
-  ensureSpace(30);
+  ensureSpace(34);
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
+  doc.text(t('informePromediosPeriodo'), marginX, y);
+  y += 5;
   const kpis = [
     {label:t('informeKpiDistProm'), val: avgDist!==null?`${fmt(Math.round(avgDist))} m`:'—'},
     {label:t('informeKpiPlProm'), val: avgPl!==null?fmt(Math.round(avgPl)):'—'},
