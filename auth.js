@@ -158,7 +158,7 @@ function resizeAllCharts(){
   // dispara un resize — eso es trabajo pesado e innecesario en ese momento, y causaba un destello/parpadeo
   // visible mientras se tipeaba. Se salta acá; los gráficos igual se refrescan solos al cerrar el modal
   // (las pestañas ya se reconstruyen normalmente cuando se vuelve a entrar a ellas).
-  const csvModalOpen = document.getElementById('csvImportModal')?.style.display === 'flex';
+  const csvModalOpen = hayModalDeImportacionAbierto();
   if(csvModalOpen) return;
   // Al hacer clic en "Actualizar datos (subir Excel)" se abre el selector de archivos NATIVO del sistema
   // operativo — eso también dispara un resize en varios navegadores (el propio picker no es un modal

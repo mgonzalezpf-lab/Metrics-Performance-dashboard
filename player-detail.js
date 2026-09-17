@@ -84,6 +84,7 @@ function clampTlOffset(total){
   return maxOffset;
 }
 function buildTimeline(player, metric, resetToLatest){
+  if(hayModalDeImportacionAbierto()) return;
   const allEvs = byPlayer[player]||[];
   const maxOffset = Math.max(0, allEvs.length - TIMELINE_WINDOW);
   if(resetToLatest) state.tlOffset = maxOffset;

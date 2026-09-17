@@ -100,6 +100,7 @@ function buildGkTeamMetricTabs(){
   });
 }
 function buildGkTeamTimeline(resetToLatest){
+  if(hayModalDeImportacionAbierto()) return;
   computeGkTeamDailySeries();
   const allEvs = gkTeamDailySeries;
   const maxOffset = Math.max(0, allEvs.length - TIMELINE_WINDOW);

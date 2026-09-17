@@ -211,6 +211,7 @@ function buildTeamMetricTabs(){
 }
 
 function buildTeamTimeline(resetToLatest){
+  if(hayModalDeImportacionAbierto()) return;
   computeTeamDailySeries();
   const allEvs = teamDailySeries;
   const maxOffset = Math.max(0, allEvs.length - TIMELINE_WINDOW);
@@ -351,6 +352,7 @@ async function buildWellnessTrendChart(resetToLatest){
   renderWellnessTrendChart(resetToLatest);
 }
 function renderWellnessTrendChart(resetToLatest){
+  if(hayModalDeImportacionAbierto()) return;
   const allEvs = wellnessDailySeries;
   const maxOffset = Math.max(0, allEvs.length - TIMELINE_WINDOW);
   if(resetToLatest) state.wtOffset = maxOffset;

@@ -32,6 +32,14 @@ function matchesCurrentCategory(playerName){
 // Eventos del club ya filtrados por la categoría seleccionada — usar esto (no ACTIVE_EVENTS directo)
 // en cualquier cálculo que agrupe por fecha/ciclo mezclando jugadores (microciclos, etc.), para que
 // un club de fútbol base con varias categorías no mezcle los entrenos de una categoría con otra.
+// Si el modal de "Archivo de Catapult/PlayerTek detectado" está abierto, cualquier reconstrucción de
+// gráfico se salta directo — sea por resize (ya cubierto en resizeAllCharts) o por una interacción
+// perdida en un control que quedó "detrás" del modal (ej. el foco del teclado se quedó en un slider de
+// Evolución del Plantel y una flecha del teclado, tipeada sin querer mientras se completaba el modal,
+// dispara su oninput). Sin esto, ese gráfico se reconstruía mientras estaba tapado y quedaba en blanco.
+function hayModalDeImportacionAbierto(){
+  return document.getElementById('csvImportModal')?.style.display === 'flex';
+}
 function categoryFilteredEvents(){
   return ACTIVE_EVENTS.filter(e=> matchesCurrentCategory(e.jugador));
 }

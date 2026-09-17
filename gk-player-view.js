@@ -67,6 +67,7 @@ function clampGkTlOffset(total){
   return maxOffset;
 }
 function buildGkTimeline(player, metric, resetToLatest){
+  if(hayModalDeImportacionAbierto()) return;
   const allEvs = gkByPlayer[player]||[];
   const maxOffset = Math.max(0, allEvs.length - TIMELINE_WINDOW);
   if(resetToLatest) state.gkTlOffset = maxOffset;
