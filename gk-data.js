@@ -255,10 +255,14 @@ async function confirmCatapultImport(){
     saveData(ACTIVE_EVENTS, ACTIVE_TEAMTOTALS);
     await getRosterExtraNames(); // refresca ROSTER_CATEGORIES con lo que acabamos de etiquetar
     deriveAll(ACTIVE_EVENTS);
-    renderAll(prevPlayer);
-
+    // El modal se cierra ANTES de renderAll a propósito: varios gráficos (ej. "Evolución del Plantel")
+    // ahora se saltan su propia reconstrucción mientras este modal está abierto — una protección que
+    // agregamos para que no se rompan si algo los toca por accidente mientras están tapados. Pero acá la
+    // actualización SÍ es la legítima, la que tiene que pasar apenas se confirma la carga — así que hay
+    // que cerrar el modal primero, para que esa protección no termine bloqueando esta actualización real.
     document.getElementById('csvImportModal').style.display = 'none';
     pendingCatapultData = null;
+    renderAll(prevPlayer);
     const gkMsg = nuevosGkEventos.length ? ` · ${nuevosGkEventos.length} arquero(s) en su pestaña` : '';
     showStatus(`Datos de Catapult cargados ✓ ${nuevosEventos.length} jugadores${gkMsg} · ${fecha.split('-').reverse().join('/')}`, 'ok');
   }catch(err){
