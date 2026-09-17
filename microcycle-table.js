@@ -52,6 +52,13 @@ function buildMicrocycleTable(){
         const diff = dayDiff(matchDate, d); // días QUE FALTAN respecto a esta fila (positivo = antes del partido)
         mdLabel = diff===0 ? 'MD' : (diff>0 ? `MD-${diff}` : `MD+${Math.abs(diff)}`);
       }
+      // Borra TODO lo cargado ese día (todo el plantel, no un jugador puntual) — pensado para el caso de
+      // una sesión que se subió mal/duplicada por error. Solo admin/owner, y solo si hay algo real que
+      // borrar ese día (no tiene sentido en un día libre, ahí no hay datos).
+      const esAdminOOwner = myProfile && (myProfile.role==='admin' || myProfile.role==='owner');
+      const deleteBtnHtml = (esAdminOOwner && !isRest && dayEvents.length)
+        ? `<td><button type="button" class="session-delete-btn mc-day-delete-btn" data-fecha="${d}" data-nombre="${(nombre||'').replace(/"/g,'&quot;')}" title="${t('eliminarDiaCompleto')}">🗑</button></td>`
+        : '<td></td>';
       return `<tr class="${rowClass}">
         <td class="mono">${dateStr}</td>
         <td class="mono" style="font-weight:700;${match?'color:var(--gold-bright);':''}">${mdLabel}</td>
@@ -61,6 +68,7 @@ function buildMicrocycleTable(){
         <td class="mono">${isRest || plAvg===null ? '—' : fmt(Math.round(plAvg))}</td>
         <td class="mono">${isRest || rhieAvg===null ? '—' : fmt(Math.round(rhieAvg))}</td>
         <td class="mono" style="${intensityColor}">${intensityPct===null ? '—' : intensityPct+'%'}</td>
+        ${deleteBtnHtml}
       </tr>`;
     }).join('');
     let cycleLabel;
@@ -76,12 +84,32 @@ function buildMicrocycleTable(){
     // no tiene sentido mostrar la fila de total con puros guiones — se omite directamente.
     const tieneDatos = cycleTotal>0 || hsrTotal>0 || plTotal>0 || (matchDate && byDate[matchDate] && byDate[matchDate].some(e=>e.tipo==='Partido'));
     if(!tieneDatos) return dayRows;
-    return `${dayRows}<tr class="mc-total"><td colspan="3">${cycleLabel} · ${t('totalMicrociclo')}</td><td class="mono">${cycleTotal>0 ? fmt(Math.round(cycleTotal))+' m' : '—'}</td><td class="mono">${hsrTotal>0 ? fmt(Math.round(hsrTotal))+' m' : '—'}</td><td class="mono">${plTotal>0 ? fmt(Math.round(plTotal)) : '—'}</td><td class="mono">${rhieTotal>0 ? fmt(Math.round(rhieTotal)) : '—'}</td><td class="mono">${avgIntensity===null ? '—' : avgIntensity+'% '+t('promAbrev')}</td></tr>`;
+    return `${dayRows}<tr class="mc-total"><td colspan="3">${cycleLabel} · ${t('totalMicrociclo')}</td><td class="mono">${cycleTotal>0 ? fmt(Math.round(cycleTotal))+' m' : '—'}</td><td class="mono">${hsrTotal>0 ? fmt(Math.round(hsrTotal))+' m' : '—'}</td><td class="mono">${plTotal>0 ? fmt(Math.round(plTotal)) : '—'}</td><td class="mono">${rhieTotal>0 ? fmt(Math.round(rhieTotal)) : '—'}</td><td class="mono">${avgIntensity===null ? '—' : avgIntensity+'% '+t('promAbrev')}</td><td></td></tr>`;
   }).join('');
   box.innerHTML = `<table class="mc-table">
-    <thead><tr><th>${t('colFecha')}</th><th>${t('colMD')}</th><th>${t('colSesion')}</th><th>${t('colDistProm')}</th><th>${t('colHsrProm')}</th><th>${t('colPlProm')}</th><th>${t('colRhieProm')}</th><th>${t('colIntensidad')}</th></tr></thead>
+    <thead><tr><th>${t('colFecha')}</th><th>${t('colMD')}</th><th>${t('colSesion')}</th><th>${t('colDistProm')}</th><th>${t('colHsrProm')}</th><th>${t('colPlProm')}</th><th>${t('colRhieProm')}</th><th>${t('colIntensidad')}</th><th></th></tr></thead>
     <tbody>${bodyHtml}</tbody>
   </table>`;
+  box.querySelectorAll('.mc-day-delete-btn').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const fecha = btn.dataset.fecha;
+      const fechaLegible = fecha.split('-').reverse().join('/');
+      if(!confirm(tf('confirmarEliminarDiaCompleto', {d: fechaLegible, n: btn.dataset.nombre}))) return;
+      btn.disabled = true;
+      try{
+        // Se borra TODO lo cargado ese día, de todos los jugadores — no un jugador puntual.
+        const eventosFinales = ACTIVE_EVENTS.filter(e=> e.fecha!==fecha);
+        await saveRemoteData(eventosFinales, ACTIVE_TEAMTOTALS);
+        ACTIVE_EVENTS = eventosFinales;
+        deriveAll(ACTIVE_EVENTS);
+        renderAll(state.player);
+      }catch(err){
+        console.error('Error eliminando el día completo:', err);
+        alert(tf('noSePudoGuardar',{e:err.message}));
+        btn.disabled = false;
+      }
+    };
+  });
   // Arranca mostrando lo más reciente (abajo del todo) en vez del inicio del historial — mismo criterio
   // que ya usan los gráficos de ACWR con su scroll horizontal.
   const scrollBox = box.closest('.rec-scroll');
