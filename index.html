@@ -1187,24 +1187,51 @@ async function init(){
   });
   const fileInput = document.getElementById('fileInput');
   const uploadBtn = document.getElementById('uploadBtn');
+  // Bandera para blindar del todo la ventana de riesgo: mientras el selector de archivos nativo está
+  // abierto O se acaba de cerrar, cualquier resize (real o fantasma) se ignora directo — ni vale la pena
+  // reconstruir gráficos en ese momento, el usuario está ocupado eligiendo un archivo, no cambiando el
+  // tamaño de la ventana a propósito. Esto es lo que evitaba el flash gris al cerrar el selector.
+  window.filePickerAbierto = false;
   if(uploadBtn && fileInput){
-    uploadBtn.addEventListener('click', ()=> fileInput.click());
-    fileInput.addEventListener('change', (e)=>{ if(e.target.files[0]) handleFile(e.target.files[0]); e.target.value=''; });
+    uploadBtn.addEventListener('click', ()=>{ window.filePickerAbierto = true; fileInput.click(); });
+    fileInput.addEventListener('change', async (e)=>{
+      // OJO: acá NO se apaga la bandera al toque. Entre que se cierra el selector y el archivo termina de
+      // leerse/parsearse y se abre el modal de confirmación, pasa un instante — y en ESE instante puntual
+      // ni esta bandera (ya en false) ni la protección del modal (todavía no abierto) alcanzaban a cubrirlo,
+      // así que un resize que cayera justo ahí igual rompía los gráficos de atrás (se veían vacíos recién
+      // al cerrar el modal con "Cancelar"). Se espera a que termine de procesarse el archivo (sea chico o
+      // grande) para recién ahí soltar la bandera — para ese momento el modal ya está abierto, y toma la
+      // posta la protección que ya existe para cuando el modal está en pantalla.
+      const file = e.target.files[0];
+      e.target.value='';
+      if(file){
+        try{ await handleFile(file); }
+        catch(err){ console.error('Error procesando el archivo subido:', err); }
+      }
+      setTimeout(()=>{ window.filePickerAbierto = false; }, 150);
+    });
+    // Si el usuario ABRE el selector y lo CANCELA sin elegir nada, "change" nunca dispara — sin esto, la
+    // bandera quedaría trabada en true para siempre. "cancel" ya lo soportan los navegadores actuales;
+    // el "focus" de la ventana es una red de seguridad extra por si alguno no lo dispara. Estos dos casos
+    // sí se apagan al toque porque ahí no hay ningún modal por venir — no hace falta el colchón.
+    fileInput.addEventListener('cancel', ()=>{ window.filePickerAbierto = false; });
+    window.addEventListener('focus', ()=>{ window.filePickerAbierto = false; });
   }
   // red de seguridad: si algún gráfico se creó con el contenedor todavía sin layout final, lo redibuja
   window.addEventListener('load', resizeAllCharts);
   // red de seguridad adicional: si la ventana cambia de tamaño (o el usuario gira el celular), reajusta también.
-  // OJO: al abrir el selector de archivos nativo del sistema (ej. "Actualizar datos"), algunos navegadores
-  // disparan eventos de resize seguidos mientras el diálogo está abierto, SIN que la ventana del navegador
-  // realmente haya cambiado de tamaño — eso hacía que la pantalla entera "parpadeara" (los ~8 gráficos se
-  // destruían y reconstruían una y otra vez mientras el usuario buscaba el archivo). Por eso, antes de
-  // reconstruir nada, se compara el ancho/alto real contra el último conocido: si no cambió de verdad
-  // (más de unos pocos píxeles, para tolerar redondeos), no se hace nada.
+  // OJO: al abrir (o cerrar) el selector de archivos nativo del sistema (ej. "Actualizar datos"), algunos
+  // navegadores disparan eventos de resize — a veces "fantasma" (sin cambio real), a veces con un cambio
+  // real chiquito al cerrarse el diálogo — y cualquiera de los dos terminaba reconstruyendo los ~8 gráficos
+  // de la página, lo que se veía como un flash/parpadeo gris justo al elegir el archivo. Por eso, primero
+  // se chequea la bandera de arriba (nada de reconstruir mientras el selector estuvo activo hace poco), y
+  // recién si eso está en orden, se compara el ancho/alto real contra el último conocido.
   let lastKnownW = window.innerWidth, lastKnownH = window.innerHeight;
   let resizeDebounce;
   window.addEventListener('resize', ()=>{
     clearTimeout(resizeDebounce);
     resizeDebounce = setTimeout(()=>{
+      if(window.filePickerAbierto) return;
       const w = window.innerWidth, h = window.innerHeight;
       if(Math.abs(w-lastKnownW)<=2 && Math.abs(h-lastKnownH)<=2) return; // resize "fantasma", no había cambio real
       lastKnownW = w; lastKnownH = h;
