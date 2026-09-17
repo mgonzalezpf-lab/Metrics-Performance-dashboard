@@ -322,6 +322,14 @@ function buildPlayerSessionLog(){
   const playerTag = document.getElementById('sessionLogPlayerTag');
   const reportBtn = document.getElementById('sessionLogReportBtn');
   if(reportBtn) reportBtn.onclick = generatePlayerSessionsPDF;
+  // Un solo interruptor que oculta/muestra TODOS los badges de % de variación de una sola vez (no hay uno
+  // por columna) — por defecto visibles, igual que hasta ahora, así no cambia nada para quien no lo toque.
+  if(state.sessionLogMostrarPct===undefined) state.sessionLogMostrarPct = true;
+  const pctToggleBtn = document.getElementById('sessionLogPctToggleBtn');
+  if(pctToggleBtn){
+    pctToggleBtn.innerHTML = state.sessionLogMostrarPct ? `👁 ${t('ocultarPct')}` : `👁‍🗨 ${t('mostrarPct')}`;
+    pctToggleBtn.onclick = ()=>{ state.sessionLogMostrarPct = !state.sessionLogMostrarPct; buildPlayerSessionLog(); };
+  }
   if(playerTag) playerTag.textContent = state.player ? `· ${state.player}` : '';
   if(!table || !state.player) return;
   const evs = getPlayerSessionRows();
@@ -342,6 +350,7 @@ function buildPlayerSessionLog(){
   // el filtro activo: en "Solo partidos" compara contra el partido anterior; en "Todo", contra la sesión
   // anterior sea cual sea). Solo para la tabla en pantalla — el PDF se mantiene limpio, sin esto.
   const pctBadge = (curr, prev)=>{
+    if(!state.sessionLogMostrarPct) return '';
     if(prev===null || prev===undefined || prev===0 || curr===null || curr===undefined) return '';
     const pct = (curr-prev)/prev*100;
     const color = pct>0 ? 'var(--good)' : pct<0 ? 'var(--bad)' : 'var(--mist)';
