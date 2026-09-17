@@ -1193,11 +1193,23 @@ async function init(){
   }
   // red de seguridad: si algún gráfico se creó con el contenedor todavía sin layout final, lo redibuja
   window.addEventListener('load', resizeAllCharts);
-  // red de seguridad adicional: si la ventana cambia de tamaño (o el usuario gira el celular), reajusta también
+  // red de seguridad adicional: si la ventana cambia de tamaño (o el usuario gira el celular), reajusta también.
+  // OJO: al abrir el selector de archivos nativo del sistema (ej. "Actualizar datos"), algunos navegadores
+  // disparan eventos de resize seguidos mientras el diálogo está abierto, SIN que la ventana del navegador
+  // realmente haya cambiado de tamaño — eso hacía que la pantalla entera "parpadeara" (los ~8 gráficos se
+  // destruían y reconstruían una y otra vez mientras el usuario buscaba el archivo). Por eso, antes de
+  // reconstruir nada, se compara el ancho/alto real contra el último conocido: si no cambió de verdad
+  // (más de unos pocos píxeles, para tolerar redondeos), no se hace nada.
+  let lastKnownW = window.innerWidth, lastKnownH = window.innerHeight;
   let resizeDebounce;
   window.addEventListener('resize', ()=>{
     clearTimeout(resizeDebounce);
-    resizeDebounce = setTimeout(resizeAllCharts, 350);
+    resizeDebounce = setTimeout(()=>{
+      const w = window.innerWidth, h = window.innerHeight;
+      if(Math.abs(w-lastKnownW)<=2 && Math.abs(h-lastKnownH)<=2) return; // resize "fantasma", no había cambio real
+      lastKnownW = w; lastKnownH = h;
+      resizeAllCharts();
+    }, 350);
   });
 }
 init();
