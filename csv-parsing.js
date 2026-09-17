@@ -34,9 +34,18 @@ function parseCsvLine(line){
 // inglés, y un export en español como "Primer tiempo"/"Segundo tiempo" (el caso real que rompía esto)
 // quedaba totalmente afuera, sin avisar, dejando el partido entero sin 1T/2T aunque el archivo sí traía
 // los datos. Reconoce variantes en español e inglés, con o sin tildes/números/símbolos.
-function classifyPeriodName(periodName){
+// "Session"/"Total"/"Partido completo" son SIEMPRE el total inequívoco de toda la sesión/partido. En
+// cambio "Full Match" y "Game" son ambiguos: en un CSV de UN SOLO partido, "Full Match" sí equivale al
+// total — pero en un entreno con varios ejercicios nombrados (ej. una jugada armada llamada literalmente
+// "Full Match" como drill dentro de la sesión, junto a otros como "Sectorial Attack-Def"), tratarlo como
+// sinónimo de "sesión completa" duplicaba a cada jugador (su fila real de "Session" + la de ese drill),
+// inflando el conteo de jugadores detectados a casi el doble. Por eso "Full Match"/"Game" solo cuentan
+// como el total de la sesión si el archivo NO trae ya un período llamado literalmente Session/Total —
+// si lo trae, ese es el único que se usa, y el resto de los nombres de ejercicio quedan afuera.
+function classifyPeriodName(periodName, permitirSinonimosDeFullMatch){
   const p = normalizeVarLabel(periodName);
-  if(p === 'session' || p === 'total' || p === 'partido completo' || p === 'full match' || p === 'game') return 'session';
+  if(p === 'session' || p === 'total' || p === 'partido completo') return 'session';
+  if(permitirSinonimosDeFullMatch && (p === 'full match' || p === 'game')) return 'session';
   const pareceMitad = p.includes('half') || p.includes('tiempo') || p.includes('parte') || p.includes('period') || p.includes('mitad');
   if(!pareceMitad) return null;
   const esPrimero = p.startsWith('1') || p.includes('1st') || p.includes('1er') || p.includes('1ra') || p.includes('primer');
@@ -92,6 +101,18 @@ function parseCatapultCSV(text){
     throw new Error(`Este archivo no tiene el formato esperado de Catapult. No encontramos estas columnas: ${requeridasFaltantes.join(', ')}.`);
   }
 
+  // Se escanea primero si el archivo ya trae un período literal "Session"/"Total"/"Partido completo" —
+  // si lo trae, ese es el único válido como total de sesión, y "Full Match"/"Game" (que pueden ser el
+  // nombre de un ejercicio suelto dentro de un entreno con varios drills) quedan afuera de esa cuenta.
+  const nombresDePeriodo = new Set();
+  for(let i=headerIdx+1;i<lines.length;i++){
+    if(!lines[i] || !lines[i].trim()) continue;
+    const c = parseCsvLine(lines[i]);
+    if(c.length < headers.length) continue;
+    if(c[cols.periodName]) nombresDePeriodo.add(normalizeVarLabel(c[cols.periodName].trim()));
+  }
+  const yaTieneSessionLiteral = nombresDePeriodo.has('session') || nombresDePeriodo.has('total') || nombresDePeriodo.has('partido completo');
+
   const bySession = [], byHalf1 = [], byHalf2 = [];
   for(let i=headerIdx+1;i<lines.length;i++){
     if(!lines[i] || !lines[i].trim()) continue;
@@ -113,7 +134,7 @@ function parseCatapultCSV(text){
       impact_right: cols.impactRight>=0 ? num(c[cols.impactRight]) : null,
       rhie: cols.rhieBouts>=0 ? num(c[cols.rhieBouts]) : null,
     };
-    const periodo = classifyPeriodName(periodName);
+    const periodo = classifyPeriodName(periodName, !yaTieneSessionLiteral);
     if(periodo === 'session') bySession.push(row);
     else if(periodo === 'half1') byHalf1.push(row);
     else if(periodo === 'half2') byHalf2.push(row);
@@ -176,6 +197,18 @@ function parsePlayerTekCSV(text){
 
   let fecha = null;
   let rivalSugerido = null;
+  // Mismo resguardo que en el parser de Catapult: si el archivo ya trae un período literal "Session"
+  // (además de los "game"/"1st.half"/"2nd.half" habituales de PlayerTek), ese manda — evita que un
+  // ejercicio suelto llamado "game" dentro de un entreno con varios drills se cuente como si fuera el
+  // total de la sesión.
+  const nombresDeSplit = new Set();
+  for(let i=1;i<lines.length;i++){
+    if(!lines[i] || !lines[i].trim()) continue;
+    const c = parseCsvLine(lines[i]);
+    if(c.length < headers.length) continue;
+    if(c[cols.split]) nombresDeSplit.add(normalizeVarLabel(c[cols.split].trim()));
+  }
+  const yaTieneSessionLiteral = nombresDeSplit.has('session') || nombresDeSplit.has('total') || nombresDeSplit.has('partido completo');
   const bySession = [], byHalf1 = [], byHalf2 = [];
   for(let i=1;i<lines.length;i++){
     if(!lines[i] || !lines[i].trim()) continue;
@@ -219,7 +252,7 @@ function parsePlayerTekCSV(text){
       rhie: cols.powerPlays>=0 ? num(c[cols.powerPlays]) : null,
     };
 
-    const periodo = classifyPeriodName(split);
+    const periodo = classifyPeriodName(split, !yaTieneSessionLiteral);
     if(periodo === 'session') bySession.push(row);
     else if(periodo === 'half1') byHalf1.push(row);
     else if(periodo === 'half2') byHalf2.push(row);
