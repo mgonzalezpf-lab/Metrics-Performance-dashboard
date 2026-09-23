@@ -1,4 +1,5 @@
-// ---------- Área médica: solo lectura, solo 5 paneles relevantes (ACWR, RPE x2, Récords, Monotonía/Strain), solo jugadores de campo ----------
+// ---------- Área médica: solo lectura. Con GPS: ACWR, RPE, Récords, Monotonía/Strain + Wellness (todo junto,
+// ya no se excluyen entre sí). Sin GPS: Wellness/RPE es toda la vista. Solo jugadores de campo. ----------
 function applyStaffModeUI(){
   // Corre esto primero: además de mover el grupo de paneles de RPE al lugar que corresponde según si
   // el club tiene GPS o no, ya decide sola a qué pestaña mandar si "Jugadores" no aplica para este club
@@ -17,13 +18,14 @@ function applyStaffModeUI(){
   const controlCargaView = document.getElementById('controlCargaView');
   const wellnessView = document.getElementById('wellnessView');
   const rpeView = document.getElementById('rpeView');
-  // Un club sin GPS no tiene nada que mostrar en Jugadores/Control de Carga (dependen del GPS) — ahí
-  // el staff tiene que ver Wellness/RPE en su lugar, que es donde vive ese contenido para ese tipo de club.
+  // Antes, con GPS activado, Wellness quedaba oculto del todo para Staff — la idea era que el check-in
+  // vivía "aparte" y no hacía falta. Ahora se muestra igual, independiente de si el club tiene GPS o no:
+  // las dos cosas pueden convivir en pantalla a la vez (Staff ya podía ver RPE ahí adentro de Control de
+  // Carga cuando hay GPS — RPE y Wellness van juntos siempre, así que no tenía sentido que uno sí y el
+  // otro no).
   if(CLUB_FEATURES.gps){
     if(fieldWrap) fieldWrap.style.display = ''; // los paneles staff-ok viven adentro, tiene que estar visible
     if(controlCargaView) controlCargaView.style.display = ''; // ACWR y Monotonía (staff-ok) viven acá cuando hay GPS
-    if(wellnessView) wellnessView.style.display = 'none';
-    if(rpeView) rpeView.style.display = 'none';
     // Mismo ajuste que en switchAdminTab: estos gráficos se armaron mientras este panel estaba oculto,
     // así que hay que reintentar el scroll al día más reciente ahora que ya es visible de verdad.
     requestAnimationFrame(()=>{
@@ -39,37 +41,41 @@ function applyStaffModeUI(){
   } else {
     if(fieldWrap) fieldWrap.style.display = 'none';
     if(controlCargaView) controlCargaView.style.display = 'none';
-    const showWellnessRpe = CLUB_FEATURES.rpe_wellness;
-    if(wellnessView){
-      wellnessView.style.display = showWellnessRpe ? '' : 'none';
-      // El barrido de ".team-only" de más arriba oculta TODO lo que no tenga "staff-ok" — pero acá, para
-      // un club sin GPS, Wellness/RPE SON toda la vista del staff (no un subconjunto curado como pasa
-      // adentro de Jugadores/Control de Carga), así que se muestran sus paneles internos explícitamente.
-      if(showWellnessRpe) wellnessView.querySelectorAll('.team-only').forEach(el=> el.style.display = '');
-    }
-    if(rpeView){
-      rpeView.style.display = showWellnessRpe ? '' : 'none';
-      if(showWellnessRpe) rpeView.querySelectorAll('.team-only').forEach(el=> el.style.display = '');
-    }
-    if(showWellnessRpe){
-      // Antes esto llamaba a estas 4 funciones (todas async) sin "await" dentro de un try/catch síncrono —
-      // eso significa que si alguna fallaba, el error pasaba en silencio total, sin que este catch lo agarrara
-      // (para cuando el error ocurre, el catch ya había terminado de ejecutarse). Ahora cada una se espera de
-      // verdad y tiene su propio manejo de error VISIBLE EN PANTALLA (no solo en consola, para poder
-      // diagnosticar esto con una simple captura de celular, sin depender de abrir la consola del navegador).
-      const showBuildError = (containerId, e) => {
-        console.error(`applyStaffModeUI: falló al armar ${containerId}`, e);
-        const el = document.getElementById(containerId);
-        const target = (el && el.tagName === 'CANVAS') ? el.parentElement : el;
-        if(target) target.innerHTML = `<div style="padding:14px 18px;color:var(--bad);font-size:12px;">⚠️ Error al cargar esta sección: ${e && e.message ? e.message : e}</div>`;
-      };
-      (async()=>{
-        try{ await buildWellnessTeamList(); }catch(e){ showBuildError('wellnessTable', e); }
-        try{ buildWellnessMetricTabs(); }catch(e){ console.error('applyStaffModeUI: falló buildWellnessMetricTabs', e); }
-        try{ await buildWellnessTrendChart(true); }catch(e){ showBuildError('wellnessTrendChart', e); }
-        try{ await buildRpeTeamList(); }catch(e){ showBuildError('rpeTeamList', e); }
-      })();
-    }
+  }
+  // Este bloque ahora corre siempre (antes solo corría en el "else" de arriba, para clubes sin GPS).
+  const showWellnessRpe = CLUB_FEATURES.rpe_wellness;
+  if(wellnessView){
+    wellnessView.style.display = showWellnessRpe ? '' : 'none';
+    // El barrido de ".team-only" de más arriba oculta TODO lo que no tenga "staff-ok" — pero acá Wellness
+    // es una vista aparte, curada completa para Staff (no un subconjunto como pasa adentro de Jugadores/
+    // Control de Carga), así que se muestran sus paneles internos explícitamente.
+    if(showWellnessRpe) wellnessView.querySelectorAll('.team-only').forEach(el=> el.style.display = '');
+  }
+  if(rpeView){
+    // La pestaña propia de RPE solo existe como tal cuando el club NO tiene GPS (con GPS, ese grupo de
+    // paneles se muda adentro de Control de Carga — ver applyClubFeaturesToTabs) — por eso acá sigue
+    // atado a "sin GPS", a diferencia de Wellness que ahora es independiente.
+    rpeView.style.display = (showWellnessRpe && !CLUB_FEATURES.gps) ? '' : 'none';
+    if(showWellnessRpe && !CLUB_FEATURES.gps) rpeView.querySelectorAll('.team-only').forEach(el=> el.style.display = '');
+  }
+  if(showWellnessRpe){
+    // Antes esto llamaba a estas 4 funciones (todas async) sin "await" dentro de un try/catch síncrono —
+    // eso significa que si alguna fallaba, el error pasaba en silencio total, sin que este catch lo agarrara
+    // (para cuando el error ocurre, el catch ya había terminado de ejecutarse). Ahora cada una se espera de
+    // verdad y tiene su propio manejo de error VISIBLE EN PANTALLA (no solo en consola, para poder
+    // diagnosticar esto con una simple captura de celular, sin depender de abrir la consola del navegador).
+    const showBuildError = (containerId, e) => {
+      console.error(`applyStaffModeUI: falló al armar ${containerId}`, e);
+      const el = document.getElementById(containerId);
+      const target = (el && el.tagName === 'CANVAS') ? el.parentElement : el;
+      if(target) target.innerHTML = `<div style="padding:14px 18px;color:var(--bad);font-size:12px;">⚠️ Error al cargar esta sección: ${e && e.message ? e.message : e}</div>`;
+    };
+    (async()=>{
+      try{ await buildWellnessTeamList(); }catch(e){ showBuildError('wellnessTable', e); }
+      try{ buildWellnessMetricTabs(); }catch(e){ console.error('applyStaffModeUI: falló buildWellnessMetricTabs', e); }
+      try{ await buildWellnessTrendChart(true); }catch(e){ showBuildError('wellnessTrendChart', e); }
+      try{ await buildRpeTeamList(); }catch(e){ showBuildError('rpeTeamList', e); }
+    })();
   }
   const partidosView = document.getElementById('partidosView');
   if(partidosView) partidosView.style.display = 'none'; // Staff no ve Comparativo de partidos
