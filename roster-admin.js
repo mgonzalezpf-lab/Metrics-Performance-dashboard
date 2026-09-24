@@ -168,6 +168,24 @@ async function buildManageRosterList(){
       if(!saveError && newName !== originalName){
         const ren = await supabaseClient.from('roster_players').update({player_name:newName}).eq('club',CURRENT_CLUB).eq('player_name', originalName);
         saveError = ren.error;
+        // Renombrar acá SOLO en roster_players no alcanza: si ese jugador ya tiene su propia cuenta creada
+        // (inició sesión alguna vez), su login sigue guardado bajo el nombre VIEJO en player_profiles — y
+        // como los reportes de Wellness/RPE se guardan con el nombre de SU cuenta (no con el del roster),
+        // el jugador sigue reportando bajo el nombre viejo aunque acá ya se vea corregido. El admin entonces
+        // ve "sin reportar hoy" para el nombre nuevo, mientras el reporte real queda invisible bajo el
+        // viejo. Por eso también hay que renombrar: su cuenta de login, y los reportes que ya haya cargado
+        // (para que su historial pasado también quede bajo el nombre correcto, no solo lo que reporte de
+        // acá en adelante) y cualquier evento de GPS que ya tuviera bajo el nombre viejo.
+        if(!saveError){
+          await supabaseClient.from('player_profiles').update({player_name:newName}).eq('club',CURRENT_CLUB).eq('player_name', originalName);
+          await supabaseClient.from('wellness_reports').update({player_name:newName}).eq('club',CURRENT_CLUB).eq('player_name', originalName);
+          await supabaseClient.from('rpe_reports').update({player_name:newName}).eq('club',CURRENT_CLUB).eq('player_name', originalName);
+          const eventosRenombrados = ACTIVE_EVENTS.map(e=> normalizeNameKey(e.jugador)===normalizeNameKey(originalName) ? {...e, jugador:newName} : e);
+          if(eventosRenombrados.some((e,i)=> e!==ACTIVE_EVENTS[i])){
+            await saveRemoteData(eventosRenombrados, ACTIVE_TEAMTOTALS);
+            ACTIVE_EVENTS = eventosRenombrados;
+          }
+        }
       }
       if(saveError){ statusEl.textContent = saveError.code==='23505' ? t('nombreYaEnLista') : tf('noSePudoGuardar',{e:saveError.message}); return; }
       statusEl.textContent = t('guardadoCheck');
