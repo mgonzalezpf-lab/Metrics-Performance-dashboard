@@ -309,7 +309,7 @@ function setupRestDayBar(){
       status.textContent = tf('noSePudoGuardar',{e:err.message});
     }
   };
-  document.addEventListener('click',(e)=>{ if(!form.contains(e.target) && e.target!==btn) form.style.display='none'; });
+  document.addEventListener('click',(e)=>{ if(!form.contains(e.target) && !btn.contains(e.target)) form.style.display='none'; });
 }
 
 // ---------- Fusionar jugadores duplicados ----------
