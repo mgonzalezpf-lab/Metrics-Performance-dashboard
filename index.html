@@ -1219,6 +1219,17 @@ async function init(){
     window.addEventListener('focus', ()=>{ window.filePickerAbierto = false; });
   }
   // red de seguridad: si algún gráfico se creó con el contenedor todavía sin layout final, lo redibuja
+  // El calendario nativo de <input type="date"> en varios navegadores (sobre todo en el celular) solo se
+  // abre si tocás justo el iconito chiquito del calendario, no en cualquier parte del campo — costaba
+  // acertarle (ej. el campo de "Día Libre"). Con showPicker() se fuerza a que se abra con un solo toque en
+  // cualquier lugar del campo. Un solo listener central para TODOS los campos de fecha de la app, presentes
+  // y futuros — no hace falta repetir esto cada vez que se agregue un nuevo <input type="date">.
+  document.addEventListener('click', (e)=>{
+    const el = e.target.closest('input[type="date"]');
+    if(el && typeof el.showPicker === 'function'){
+      try{ el.showPicker(); }catch(err){ /* si el navegador lo bloquea por no venir de una interacción directa, el click normal en el campo sigue funcionando como respaldo */ }
+    }
+  });
   window.addEventListener('load', resizeAllCharts);
   // red de seguridad adicional: si la ventana cambia de tamaño (o el usuario gira el celular), reajusta también.
   // OJO: al abrir (o cerrar) el selector de archivos nativo del sistema (ej. "Actualizar datos"), algunos
