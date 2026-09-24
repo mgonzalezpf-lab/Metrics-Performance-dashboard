@@ -347,7 +347,16 @@ async function handleAuthSubmit(event){
     authMessage(err.message || t('timeoutIntentaDeNuevo'), 'error');
     return;
   }
-  if(result.error){ authMessage(result.error.message,'error'); return; }
+  if(result.error){
+    // Supabase usa el MISMO mensaje genérico ("Invalid login credentials") tanto para una contraseña
+    // equivocada como para una cuenta que existe pero todavía no confirmó su email — a propósito, por
+    // seguridad, para que no se pueda deducir cuál de las dos cosas es. Sin esta pista, alguien que
+    // simplemente no vio/no hizo clic en el mail de confirmación queda convencido de que su contraseña
+    // está mal, reintentando sin salir nunca del problema real.
+    const credencialesInvalidas = /invalid login credentials/i.test(result.error.message || '');
+    authMessage(credencialesInvalidas ? t('credencialesOEmailSinConfirmar') : result.error.message, 'error');
+    return;
+  }
   try{
     await withTimeout(routeAfterLogin(), 20000, t('timeoutPerfilIntentaDeNuevo'));
   }catch(err){
