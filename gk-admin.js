@@ -144,7 +144,7 @@ function buildGkTeamTimeline(resetToLatest){
     const sub = e.detalle ? (e.tipo==='Partido' ? ('vs '+e.detalle) : e.detalle) : '';
     return sub ? [dateStr, sub.length>16 ? sub.slice(0,15)+'…' : sub] : dateStr;
   });
-  const data = evs.map(e=>e[m]);
+  const data = evs.map(e=> isRestDayEvent(e) ? 0 : e[m]);
   const pointColors = evs.map(e=> e.tipo==='Partido' ? '#7C5CFC' : e.tipo==='Mixto' ? '#9797C9' : '#22D3EE');
   const pointStyles = evs.map(e=> e.tipo==='Partido' ? 'rectRot' : 'circle');
   const ctx = canvas.getContext('2d');

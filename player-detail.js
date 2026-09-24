@@ -126,7 +126,9 @@ function buildTimeline(player, metric, resetToLatest){
     const sub = e.detalle ? (e.tipo==='Partido' ? ('vs '+e.detalle) : e.detalle) : '';
     return sub ? [dateStr, sub.length>16 ? sub.slice(0,15)+'…' : sub] : dateStr;
   });
-  const data = evs.map(e=>e[metric]);
+  // Mismo ajuste que en "Evolución del Plantel": en un día libre no hay dato real, y sin esto el gráfico
+  // conecta la línea derecho como si hubiera habido actividad ese día en el medio.
+  const data = evs.map(e=> isRestDayEvent(e) ? 0 : e[metric]);
   const pointColors = evs.map(e=> e.tipo==='Partido' ? '#7C5CFC' : '#22D3EE');
   const pointStyles = evs.map(e=> e.tipo==='Partido' ? 'rectRot' : 'circle');
   const ctx = document.getElementById('timelineChart').getContext('2d');

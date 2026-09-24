@@ -112,7 +112,7 @@ function buildGkTimeline(player, metric, resetToLatest){
     const sub = e.detalle ? (e.tipo==='Partido' ? ('vs '+e.detalle) : e.detalle) : '';
     return sub ? [dateStr, sub.length>16 ? sub.slice(0,15)+'…' : sub] : dateStr;
   });
-  const data = evs.map(e=>e[metric]);
+  const data = evs.map(e=> isRestDayEvent(e) ? 0 : e[metric]);
   const pointColors = evs.map(e=> e.tipo==='Partido' ? '#7C5CFC' : '#22D3EE');
   const pointStyles = evs.map(e=> e.tipo==='Partido' ? 'rectRot' : 'circle');
   const ctx = canvas.getContext('2d');
