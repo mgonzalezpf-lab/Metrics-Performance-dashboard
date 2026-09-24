@@ -72,7 +72,7 @@
   .upload-btn{
     margin-top:9px;background:var(--pitch-700);border:1px solid var(--gold);color:var(--gold-bright);
     font-family:'IBM Plex Mono',monospace;font-size:11px;padding:7px 12px;border-radius:20px;cursor:pointer;
-    transition:all .15s ease;
+    transition:all .15s ease;white-space:nowrap;
   }
   .upload-btn:hover{background:var(--gold);color:var(--pitch-950);}
   .upload-status{margin-top:6px;font-size:10.5px;max-width:260px;min-height:14px;transition:opacity .3s ease;opacity:0;}
