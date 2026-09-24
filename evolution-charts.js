@@ -255,7 +255,12 @@ function buildTeamTimeline(resetToLatest){
     const sub = e.detalle ? (e.tipo==='Partido' ? ('vs '+e.detalle) : e.detalle) : '';
     return sub ? [dateStr, sub.length>16 ? sub.slice(0,15)+'…' : sub] : dateStr;
   });
-  const data = evs.map(e=>e[m]);
+  // En un día libre no hay ninguna sesión — el promedio queda en null, y sin este ajuste el gráfico
+  // conecta la línea directo entre el día anterior y el siguiente como si hubiera actividad real ahí
+  // en el medio. Para las métricas de GPS, 0 es justamente lo que corresponde mostrar (no hubo distancia,
+  // no hubo carga, etc.) — a diferencia de Wellness, donde un 0 significaría "recuperación pésima" en vez
+  // de "no hubo sesión", así que ese otro gráfico no lleva este mismo ajuste.
+  const data = evs.map(e=> isRestDayEvent(e) ? 0 : e[m]);
   const pointColors = evs.map(e=> e.tipo==='Partido' ? '#7C5CFC' : e.tipo==='Mixto' ? '#9797C9' : '#22D3EE');
   const pointStyles = evs.map(e=> e.tipo==='Partido' ? 'rectRot' : 'circle');
   const ctx = canvas.getContext('2d');
