@@ -232,10 +232,16 @@ async function confirmCatapultImport(){
       // Antes esto se guardaba con clave "vs {rival}" tal cual se escribió en este momento — si al resubir
       // el mismo partido (ej. para agregar el 1T/2T) el nombre del rival se tipeaba apenas distinto al de
       // la carga original ("Wanderers" vs "vs Wanderers"), quedaban DOS tarjetas para el mismo partido en
-      // vez de una sola actualizada. Ahora, antes de guardar el nuevo, se saca cualquier partido previo con
+      // vez de una sola actualizada. Por eso, antes de guardar el nuevo, se saca cualquier partido previo con
       // la MISMA FECHA (sea cual sea su nombre) — así una resubida siempre reemplaza, nunca duplica.
+      // OJO: en un club con varias categorías, dos categorías distintas pueden jugar el mismo día contra el
+      // mismo rival (ej. U18 y U20 vs Osorno el mismo sábado) — eso NO es una resubida del mismo partido,
+      // son dos partidos distintos. Por eso la fecha sola no alcanza: solo se borra el previo si además
+      // coincide la categoría (o si ninguno de los dos tiene categoría asignada, para clubes sin categorías).
       const teamTotalsSinDuplicado = Object.fromEntries(
-        Object.entries(ACTIVE_TEAMTOTALS).filter(([, row]) => row.fecha !== fecha)
+        Object.entries(ACTIVE_TEAMTOTALS).filter(([, row]) =>
+          !(row.fecha === fecha && (row.categoria || null) === (categoriaSeleccionada || null))
+        )
       );
       teamTotalsFinal = {...teamTotalsSinDuplicado, [`vs ${rival}`]: {...totalsRow, fecha, categoria: categoriaSeleccionada}};
     }
