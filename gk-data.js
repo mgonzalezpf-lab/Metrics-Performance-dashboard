@@ -243,7 +243,18 @@ async function confirmCatapultImport(){
           !(row.fecha === fecha && (row.categoria || null) === (categoriaSeleccionada || null))
         )
       );
-      teamTotalsFinal = {...teamTotalsSinDuplicado, [`vs ${rival}`]: {...totalsRow, fecha, categoria: categoriaSeleccionada}};
+      // La clave con la que se guarda cada partido ("vs {rival}") es TAMBIÉN el título que se muestra en la
+      // tarjeta — y como las claves de un objeto no pueden repetirse, si dos categorías juegan contra el
+      // MISMO rival (con el mismo nombre tipeado, ej. las dos dicen "Colchagua") la segunda pisaba a la
+      // primera sin que el filtro de arriba tuviera nada que ver — chocaban directo en la clave, incluso en
+      // fechas distintas. Por eso: si ya existe una clave "vs {rival}" que quedó viva (no era el mismo
+      // partido, así que el filtro de arriba la dejó) hay que guardar esta con una clave distinta — se le
+      // agrega la categoría al nombre, lo que además dejar más claro en la tarjeta cuál es cuál.
+      let claveNueva = `vs ${rival}`;
+      if(teamTotalsSinDuplicado[claveNueva] && categoriaSeleccionada){
+        claveNueva = `vs ${rival} (${categoriaSeleccionada})`;
+      }
+      teamTotalsFinal = {...teamTotalsSinDuplicado, [claveNueva]: {...totalsRow, fecha, categoria: categoriaSeleccionada}};
     }
 
     // Si se eligió una categoría para esta carga, se etiqueta también en roster_players — así los jugadores
