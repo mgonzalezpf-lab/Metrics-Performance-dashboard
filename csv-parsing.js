@@ -209,6 +209,13 @@ function parsePlayerTekCSV(text){
     if(c[cols.split]) nombresDeSplit.add(normalizeVarLabel(c[cols.split].trim()));
   }
   const yaTieneSessionLiteral = nombresDeSplit.has('session') || nombresDeSplit.has('total') || nombresDeSplit.has('partido completo');
+  // "all" en PlayerTek es TODO lo que el chaleco rastreó de punta a punta (banco, calentamiento previo,
+  // corte de agua...), no solo el trabajo real — por eso, si el archivo trae "Game" (un partido), se
+  // prefiere esa fila más precisa y "all" se descarta. Pero en un ENTRENO sin ejercicio llamado "Session"/
+  // "Total", "all" es la ÚNICA fila que representa a la sesión completa — ahí sí hay que usarla, o el
+  // archivo queda directamente sin ninguna fila de sesión (esto es lo que rompía este caso puntual).
+  const yaTieneGame = nombresDeSplit.has('game');
+  const usarAllComoSesion = !yaTieneSessionLiteral && !yaTieneGame;
   const bySession = [], byHalf1 = [], byHalf2 = [];
   for(let i=1;i<lines.length;i++){
     if(!lines[i] || !lines[i].trim()) continue;
@@ -217,7 +224,8 @@ function parsePlayerTekCSV(text){
     const jugador = c[cols.name] ? c[cols.name].trim() : '';
     if(!jugador) continue;
     const split = c[cols.split] ? c[cols.split].trim() : '';
-    if(normalizeVarLabel(split) === 'all') continue; // toda la sesión rastreada, no solo el partido
+    const esAll = normalizeVarLabel(split) === 'all';
+    if(esAll && !usarAllComoSesion) continue; // hay algo más preciso (Game, o Session/Total literal): se ignora "all"
 
     // La fecha en PlayerTek viene como número de serie de Excel (días desde el 30/12/1899), no como texto.
     if(fecha===null && cols.date>=0){
@@ -252,7 +260,7 @@ function parsePlayerTekCSV(text){
       rhie: cols.powerPlays>=0 ? num(c[cols.powerPlays]) : null,
     };
 
-    const periodo = classifyPeriodName(split, !yaTieneSessionLiteral);
+    const periodo = (esAll && usarAllComoSesion) ? 'session' : classifyPeriodName(split, !yaTieneSessionLiteral);
     if(periodo === 'session') bySession.push(row);
     else if(periodo === 'half1') byHalf1.push(row);
     else if(periodo === 'half2') byHalf2.push(row);
