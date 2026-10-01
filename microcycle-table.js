@@ -186,6 +186,53 @@ function generateMicrocycleReportPDF(cycleIndex){
   const diasConDatos = dayRows.filter(r=>!r.isRest && (r.dist!==null)).length;
   const diasLibres = dayRows.filter(r=>r.isRest).length;
 
+  // ---- comparación contra el ciclo anterior (mismo concepto de "línea base" que ya usa el panel de
+  // Objetivo de microciclo: promedio diario de carga, no el total crudo, porque un ciclo más corto no es
+  // comparable en bruto contra uno más largo) ----
+  const prevArr = cycles[cycleIndex-1];
+  let prevComparison = null;
+  if(prevArr && prevArr.length){
+    let prevTotal=0, prevDiasConDatos=0;
+    prevArr.forEach(d=>{
+      const dayEvents = byDate[d]||[];
+      if(dayEvents.some(isRestDayEvent)) return;
+      const distAvg = avgField(dayEvents,'dist');
+      if(distAvg!==null){ prevTotal += distAvg; prevDiasConDatos++; }
+    });
+    if(prevDiasConDatos>0 && diasConDatos>0){
+      const prevPorDia = prevTotal/prevDiasConDatos, actualPorDia = cycleTotal/diasConDatos;
+      prevComparison = { pct: ((actualPorDia-prevPorDia)/prevPorDia*100) };
+    }
+  }
+
+  // ---- jugadores con más carga (Player Load acumulado) dentro de este ciclo puntual — ayuda a detectar
+  // a quién le tocó más laburo real en estos días, más allá del promedio general del plantel ----
+  const cargaPorJugador = players.map(p=>{
+    const evsCiclo = (byPlayer[p]||[]).filter(e=> datesArr.includes(e.fecha) && e.pl!==null && e.pl!==undefined);
+    if(!evsCiclo.length) return null;
+    const plSum = evsCiclo.reduce((a,e)=>a+e.pl,0);
+    return {jugador:p, pl:Math.round(plSum), sesiones:evsCiclo.length};
+  }).filter(Boolean).sort((a,b)=>b.pl-a.pl);
+  const topCarga = cargaPorJugador.slice(0,5);
+
+  // ---- récords personales alcanzados DURANTE este ciclo (no en general, solo los que caen en estas
+  // fechas puntuales) — mismo criterio que el 🔥 de la lista de Plantel, pero mirando todo el ciclo en
+  // vez de un solo día ----
+  const recordsDelCiclo = [];
+  players.forEach(p=>{
+    const rec = recordByPlayer[p];
+    if(!rec) return;
+    METRIC_ORDER.forEach(m=>{
+      if(rec[m] && datesArr.includes(rec[m].fecha)){
+        recordsDelCiclo.push({jugador:p, metrica:m, valor:rec[m].valor, fecha:rec[m].fecha});
+      }
+    });
+  });
+
+  // ---- día de mayor y menor carga del ciclo (solo días con sesión real, no libres) ----
+  const diasConCarga = dayRows.filter(r=>!r.isRest && r.pl!==null);
+  const diaMasCargado = diasConCarga.length ? diasConCarga.reduce((a,b)=> b.pl>a.pl?b:a) : null;
+
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({unit:'mm', format:'a4'});
   const pageW = doc.internal.pageSize.getWidth();
@@ -204,13 +251,36 @@ function generateMicrocycleReportPDF(cycleIndex){
   doc.setDrawColor(220,220,220); doc.line(marginX, y, pageW-marginX, y);
   y += 8;
 
-  // ---- tarjetas de totales del ciclo ----
+  // ---- resumen narrativo: sintetiza el ciclo en texto antes de entrar a los números sueltos ----
+  ensureSpace(20);
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
+  doc.text(t('informeResumenIntro'), marginX, y);
+  y += 5.5;
+  const partesResumen = [];
+  partesResumen.push(tf('informeMicrocicloResumen', {dias: datesArr.length, entrenos: diasConDatos, libres: diasLibres}));
+  if(prevComparison){
+    partesResumen.push(tf(prevComparison.pct>=0 ? 'informeMicrocicloVsAnteriorSube' : 'informeMicrocicloVsAnteriorBaja', {pct: Math.abs(prevComparison.pct).toFixed(1)}));
+  }
+  if(diaMasCargado){
+    partesResumen.push(tf('informeMicrocicloDiaPico', {d: diaMasCargado.fecha.split('-').reverse().join('/'), n: diaMasCargado.nombre, pl: fmt(diaMasCargado.pl)}));
+  }
+  if(recordsDelCiclo.length){
+    partesResumen.push(tf('informeMicrocicloConRecords', {n: recordsDelCiclo.length}));
+  }
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(60,60,60);
+  const resumenLines = doc.splitTextToSize(partesResumen.join(' '), pageW-marginX*2);
+  doc.text(resumenLines, marginX, y);
+  y += resumenLines.length*4.3 + 7;
+
+  // ---- tarjetas de totales del ciclo (paleta propia de la marca, coherente — nada de rojo "alarma" acá,
+  // esto es un resumen de carga, no una alerta de riesgo) ----
+  ensureSpace(30);
   const cards = [
-    {label:t('colDistProm').replace(' (M)',''), value: cycleTotal>0?`${fmt(Math.round(cycleTotal))} m`:'—', color:[21,63,99]},
-    {label:t('colHsrProm').replace(' (M)',''), value: hsrTotal>0?`${fmt(Math.round(hsrTotal))} m`:'—', color:[108,52,131]},
+    {label:t('colDistProm').replace(' (M)',''), value: cycleTotal>0?`${fmt(Math.round(cycleTotal))} m`:'—', color:[15,76,117]},
+    {label:t('colHsrProm').replace(' (M)',''), value: hsrTotal>0?`${fmt(Math.round(hsrTotal))} m`:'—', color:[88,61,145]},
     {label:t('colPlProm'), value: plTotal>0?fmt(Math.round(plTotal)):'—', color:[18,33,59]},
-    {label:t('colRhieProm'), value: rhieTotal>0?fmt(Math.round(rhieTotal)):'—', color:[14,90,78]},
-    {label:t('colIntensidad'), value: avgIntensity===null?'—':`${avgIntensity}%`, color:[164,41,31]},
+    {label:t('colRhieProm'), value: rhieTotal>0?fmt(Math.round(rhieTotal)):'—', color:[14,98,94]},
+    {label:t('colIntensidad'), value: avgIntensity===null?'—':`${avgIntensity}%`, color: avgIntensity!==null && avgIntensity>100 ? [164,41,31] : [15,76,117]},
   ];
   const cardW = (pageW - marginX*2 - 4*4)/5, cardH = 24;
   cards.forEach((c,i)=>{
@@ -223,7 +293,20 @@ function generateMicrocycleReportPDF(cycleIndex){
     doc.setFont('helvetica','normal'); doc.setFontSize(6.6);
     doc.text(doc.splitTextToSize(c.label.toUpperCase(), cardW-4), x+cardW/2, y+17, {align:'center'});
   });
-  y += cardH + 10;
+  y += cardH + 6;
+
+  // ---- comparación contra el ciclo anterior (tarjeta chica, solo si hay con qué comparar) ----
+  if(prevComparison){
+    ensureSpace(14);
+    const pct = prevComparison.pct;
+    const color = pct>20 ? [164,41,31] : pct<-20 ? [192,87,15] : [14,98,94];
+    doc.setFillColor(...color);
+    doc.roundedRect(marginX, y, pageW-marginX*2, 10, 2, 2, 'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+    doc.text(`${t('informeMicrocicloVsAnteriorTitulo')}: ${pct>=0?'+':''}${pct.toFixed(1)}%`, marginX+4, y+6.5);
+    y += 14;
+  }
+  y += 4;
 
   // ---- tabla día por día (mismo contenido que en pantalla) ----
   ensureSpace(14);
@@ -261,13 +344,53 @@ function generateMicrocycleReportPDF(cycleIndex){
   });
   y += 3;
   doc.setDrawColor(220,220,220); doc.line(marginX, y, pageW-marginX, y);
-  y += 6;
+  y += 8;
 
-  // ---- resumen corto ----
-  ensureSpace(14);
-  doc.setFont('helvetica','normal'); doc.setFontSize(8.6); doc.setTextColor(90,90,90);
-  const resumen = tf('informeMicrocicloResumen', {dias: datesArr.length, entrenos: diasConDatos, libres: diasLibres});
-  doc.text(doc.splitTextToSize(resumen, pageW-marginX*2), marginX, y);
+  // ---- jugadores con más carga acumulada en este ciclo puntual ----
+  if(topCarga.length){
+    ensureSpace(10 + topCarga.length*6);
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
+    doc.text(t('informeMicrocicloTopCarga'), marginX, y);
+    y += 6;
+    topCarga.forEach((r,i)=>{
+      ensureSpace(6);
+      if(i%2===1){ doc.setFillColor(245,246,250); doc.rect(marginX, y, pageW-marginX*2, 5.6, 'F'); }
+      doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(18,33,59);
+      doc.text(`${i+1}.`, marginX+2, y+4);
+      doc.text(r.jugador, marginX+10, y+4);
+      doc.setFont('helvetica','normal'); doc.setTextColor(90,90,90);
+      doc.text(tf('informeMicrocicloSesionesN',{n:r.sesiones}), marginX+90, y+4);
+      doc.setFont('helvetica','bold'); doc.setTextColor(14,98,94);
+      doc.text(`${fmt(r.pl)} PL`, pageW-marginX-4, y+4, {align:'right'});
+      y += 5.6;
+    });
+    y += 6;
+  }
+
+  // ---- récords personales alcanzados durante este ciclo (si hubo alguno) ----
+  if(recordsDelCiclo.length){
+    ensureSpace(10 + recordsDelCiclo.length*6);
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
+    doc.text(t('informeMicrocicloRecords'), marginX, y);
+    y += 6;
+    recordsDelCiclo.forEach((r,i)=>{
+      ensureSpace(6);
+      if(i%2===1){ doc.setFillColor(245,246,250); doc.rect(marginX, y, pageW-marginX*2, 5.6, 'F'); }
+      // jsPDF con Helvetica no soporta glyphs de emoji (salen como texto roto) — un pequeño círculo
+      // dorado dibujado a mano cumple la misma función de "destacar la fila" sin ese problema.
+      doc.setFillColor(192,87,15);
+      doc.circle(marginX+2.3, y+3, 1.3, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(18,33,59);
+      doc.text(r.jugador, marginX+10, y+4);
+      doc.setFont('helvetica','normal'); doc.setTextColor(90,90,90);
+      const metLabel = (METRICS[r.metrica] && METRICS[r.metrica].label) ? METRICS[r.metrica].label : r.metrica;
+      doc.text(`${metLabel} · ${r.fecha.split('-').reverse().join('/')}`, marginX+70, y+4);
+      doc.setFont('helvetica','bold'); doc.setTextColor(18,33,59);
+      doc.text(fmt(r.valor), pageW-marginX-4, y+4, {align:'right'});
+      y += 5.6;
+    });
+    y += 4;
+  }
 
   const fname = `Microciclo_${cycleLabel.replace(/[^a-zA-Z0-9]+/g,'_')}.pdf`;
   doc.save(fname);
