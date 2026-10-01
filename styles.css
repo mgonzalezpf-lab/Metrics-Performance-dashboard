@@ -467,8 +467,8 @@
   .mc-delete-btn:hover{background:rgba(239,68,68,.14);border-color:var(--bad);color:var(--bad);}
   .mc-delete-btn:disabled{opacity:.5;cursor:wait;}
   .session-delete-btn{font-size:11px;color:var(--mist);background:rgba(255,255,255,.05);border:1px solid var(--line-strong);border-radius:5px;padding:2px 6px;cursor:pointer;line-height:1;transition:background .15s ease,color .15s ease;}
-  .mc-report-btn-row{font-size:11px;color:var(--gold-bright);background:rgba(234,179,8,.12);border:1px solid var(--gold-bright);border-radius:5px;padding:2px 6px;cursor:pointer;line-height:1;transition:background .15s ease,color .15s ease;}
-  .mc-report-btn-row:hover{background:rgba(234,179,8,.26);}
+  .mc-report-btn-row{font-size:11px;color:#1A1300;background:#EAB308;border:1px solid #EAB308;border-radius:5px;padding:2px 6px;cursor:pointer;line-height:1;font-weight:700;transition:filter .15s ease;}
+  .mc-report-btn-row:hover{filter:brightness(1.12);}
   .session-delete-btn:hover{background:rgba(239,68,68,.14);border-color:var(--bad);color:var(--bad);}
   .session-delete-btn:disabled{opacity:.5;cursor:wait;}
   .match-card .dt{font-family:'IBM Plex Mono';font-size:10.5px;color:var(--mist);margin-bottom:10px;}
