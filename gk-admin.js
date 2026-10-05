@@ -70,7 +70,7 @@ function computeGkTeamDailySeries(){
     GK_METRIC_ORDER.forEach(k=>{
       if(e[k]!==null && e[k]!==undefined && !isNaN(e[k])) rec[k].push(e[k]);
     });
-    if(e.detalle){ const key=String(e.detalle).trim(); if(key) rec.detalles[key]=(rec.detalles[key]||0)+1; }
+    if(e.detalle){ const key=String(e.detalle).trim(); if(key) rec.detalles[key]=(rec.detalles[key]||0)+1; if(e.tipo==='Partido'){ rec.matchDetalles=rec.matchDetalles||{}; rec.matchDetalles[key]=(rec.matchDetalles[key]||0)+1; } }
   });
   const avgArr = (arr)=> arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
   const topDetalle = (detalles)=>{
@@ -80,7 +80,10 @@ function computeGkTeamDailySeries(){
   };
   gkTeamDailySeries = Object.keys(map).sort().map(d=>{
     const rec = map[d];
-    const row = { fecha: d, tipo: rec.tipos.size>1 ? 'Mixto' : [...rec.tipos][0], detalle: topDetalle(rec.detalles) };
+    // Mismo criterio que Evolución del plantel: si hubo partido ese día, el día es de partido.
+    const esPartido = rec.tipos.has('Partido');
+    const row = { fecha: d, tipo: esPartido ? 'Partido' : (rec.tipos.size>1 ? 'Mixto' : [...rec.tipos][0]),
+      detalle: esPartido && rec.matchDetalles ? topDetalle(rec.matchDetalles) : topDetalle(rec.detalles) };
     GK_METRIC_ORDER.forEach(k=> row[k] = avgArr(rec[k]));
     return row;
   });

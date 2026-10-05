@@ -170,7 +170,7 @@ function computeTeamDailySeries(){
     ['dist','hsr','vel','pl','acc','desa','sprint','sprint_count','rhie'].forEach(k=>{
       if(e[k]!==null && e[k]!==undefined && !isNaN(e[k])) rec[k].push(e[k]);
     });
-    if(e.detalle){ const key=String(e.detalle).trim(); if(key) rec.detalles[key]=(rec.detalles[key]||0)+1; }
+    if(e.detalle){ const key=String(e.detalle).trim(); if(key) rec.detalles[key]=(rec.detalles[key]||0)+1; if(e.tipo==='Partido'){ rec.matchDetalles=rec.matchDetalles||{}; rec.matchDetalles[key]=(rec.matchDetalles[key]||0)+1; } }
   });
   const avg = (arr)=> arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
   const topDetalle = (detalles)=>{
@@ -182,8 +182,11 @@ function computeTeamDailySeries(){
     const rec = map[d];
     return {
       fecha: d,
-      tipo: rec.tipos.size>1 ? 'Mixto' : [...rec.tipos][0],
-      detalle: topDetalle(rec.detalles),
+      // Si ese día hubo partido, el día ES de partido (punto violeta + "vs rival"), aunque otros jugadores
+      // hayan hecho un entreno aparte (ej. no convocados con trabajo compensatorio). Antes esos días quedaban
+      // como "Mixto" (punto gris lila, sin "vs"), y el partido no se distinguía en el gráfico.
+      tipo: rec.tipos.has('Partido') ? 'Partido' : (rec.tipos.size>1 ? 'Mixto' : [...rec.tipos][0]),
+      detalle: rec.tipos.has('Partido') && rec.matchDetalles ? topDetalle(rec.matchDetalles) : topDetalle(rec.detalles),
       dist: avg(rec.dist),
       hsr: avg(rec.hsr),
       vel: avg(rec.vel),
