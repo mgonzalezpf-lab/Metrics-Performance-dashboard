@@ -358,14 +358,20 @@
 
   /* radar section */
   .radar-body{display:grid;grid-template-columns:1fr 220px;gap:6px;padding:10px 18px 18px;}
-  .radar-svg-wrap{position:relative;display:flex;align-items:center;justify-content:center;}
+  /* overflow:hidden recorta el barrido al recuadro del radar: antes se desbordaba sobre los paneles
+     vecinos y agrandaba el área a repintar en cada cuadro. */
+  .radar-svg-wrap{position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  /* Barrido del radar: SIN mix-blend-mode (obligaba a re-mezclar el cono con todo lo de abajo ~60 veces
+     por segundo; en Mac con pantalla Retina grande eso trababa el scroll de "Jugadores de Campo").
+     will-change + translateZ lo deja en su propia capa de GPU: girarlo es solo rotar una imagen ya pintada.
+     Sobre el fondo oscuro, el degradado semitransparente se ve prácticamente igual que con "screen". */
   .sweep{
     position:absolute;width:78%;aspect-ratio:1;border-radius:50%;
-    background:conic-gradient(from 0deg, rgba(34,211,238,.28), transparent 32%, transparent 100%);
+    background:conic-gradient(from 0deg, rgba(34,211,238,.24), transparent 32%, transparent 100%);
     animation:spin 5s linear infinite;pointer-events:none;
-    mix-blend-mode:screen;
+    will-change:transform;transform:translateZ(0);backface-visibility:hidden;
   }
-  @keyframes spin{to{transform:rotate(360deg);}}
+  @keyframes spin{from{transform:translateZ(0) rotate(0deg);}to{transform:translateZ(0) rotate(360deg);}}
   .radar-side{display:flex;flex-direction:column;justify-content:center;gap:10px;padding:8px 0;}
   .rs-item{border-left:2px solid var(--line-strong);padding:2px 0 2px 12px;}
   .rs-item.gold{border-color:var(--gold);}
