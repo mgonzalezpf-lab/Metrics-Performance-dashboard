@@ -20,7 +20,10 @@ async function refreshWellnessRiskCache(){
 
 // Devuelve {level:'red'|'yellow'|'green'|'unknown', reasons:[...]} para un jugador puntual.
 // No reemplaza criterio médico/técnico — es una señal compuesta para priorizar a quién mirar primero.
-function computePlayerRisk(p){
+// opts.incluirRhie=false omite el factor 4 (caída de RHIE) — lo usa la campana de notificaciones, donde
+// esa alerta aparecía casi siempre y metía ruido. El semáforo de la lista Plantel sigue incluyéndolo.
+function computePlayerRisk(p, opts={}){
+  const incluirRhie = opts.incluirRhie !== false;
   const reasons = [];
   let score = 0;
   let dataPoints = 0;
@@ -54,7 +57,7 @@ function computePlayerRisk(p){
   // "récords logrados hoy", pero mirando si está MUY por debajo en vez de por encima.
   const sesiones = (byPlayer[p]||[]).filter(e=> e.rhie!==null && e.rhie!==undefined && !isNaN(e.rhie)).sort((a,b)=>a.fecha.localeCompare(b.fecha));
   const pAvgRhie = playerAvg[p] ? playerAvg[p].rhie : null;
-  if(sesiones.length && pAvgRhie){
+  if(incluirRhie && sesiones.length && pAvgRhie){
     dataPoints++;
     const ultimoRhie = sesiones[sesiones.length-1].rhie;
     const ratio = ultimoRhie / pAvgRhie;

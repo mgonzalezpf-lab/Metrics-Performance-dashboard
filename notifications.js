@@ -1,4 +1,4 @@
-// ---------- Campana de notificaciones: nuevos jugadores registrados + alertas de riesgo (ACWR/TQR/dolor/RHIE) ----------
+// ---------- Campana de notificaciones: nuevos jugadores registrados + alertas de riesgo (ACWR/TQR/dolor — sin RHIE) ----------
 const SEEN_SIGNUPS_KEY = 'seen_player_signups';
 function getSeenSignups(){
   try{ return JSON.parse(localStorage.getItem(SEEN_SIGNUPS_KEY) || '[]'); }catch{ return []; }
@@ -13,7 +13,9 @@ function computeRiskAlerts(){
   const today = todayISO();
   const alerts = [];
   players.forEach(p=>{
-    const risk = computePlayerRisk(p);
+    // Sin RHIE a propósito: la alerta "RHIE muy por debajo de su promedio" aparecía casi siempre y tapaba
+    // las alertas importantes (ACWR, recuperación, dolor).
+    const risk = computePlayerRisk(p, {incluirRhie:false});
     if(risk.level==='red' || risk.level==='yellow'){
       alerts.push({ id:`risk:${today}:${p}`, player:p, level:risk.level, reasons:risk.reasons });
     }
