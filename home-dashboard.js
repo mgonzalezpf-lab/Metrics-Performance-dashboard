@@ -224,16 +224,17 @@ function getCyclePLComparison(){
     });
     return { total, days: count };
   };
-  // El ciclo ACTUAL siempre es el más reciente de verdad (aunque todavía no tenga datos cargados, ej.
-  // recién arrancó con un día libre tras el partido) — si no, esta tarjeta se quedaba pegada mostrando el
-  // total del último ciclo CERRADO (ej. el del partido anterior) en vez de reflejar que ya arrancó uno nuevo.
-  const currentArr = cycles[cycles.length-1];
+  // El ciclo ACTUAL es el más reciente que tenga al menos una sesión real. Un bloque formado solo por
+  // días libres (ej. marcar el día libre siguiente al partido) no tiene carga que mostrar: si se tomaba
+  // ese bloque, la tarjeta quedaba en "—" como si los datos se hubieran borrado. Apenas se carga el primer
+  // entreno del ciclo nuevo, ese pasa a ser el actual, así que la tarjeta no queda pegada en el anterior.
+  const curIdx = lastCycleWithDataIndex(cycles, byDate);
+  if(curIdx<0) return null;
+  const currentArr = cycles[curIdx];
   const current = sumCycle(currentArr);
-  // Para el ciclo de REFERENCIA (anterior) sí hay que saltar los ciclos "fantasma" (ej. un día libre suelto
-  // sin ningún entreno/partido) — si no, "el ciclo anterior" terminaba siendo ese día libre vacío en vez del
-  // ciclo real con partido, mostrando siempre "sin ciclo anterior para comparar" aunque sí hubiera uno.
+  // Para el ciclo de REFERENCIA (anterior) también se saltan los ciclos "fantasma" (solo días libres).
   const cycleHasData = (datesArr)=> datesArr.some(d=> (byDate[d]||[]).some(e=> !isRestDayEvent(e)));
-  const priorCyclesWithData = cycles.slice(0, -1).filter(cycleHasData);
+  const priorCyclesWithData = cycles.slice(0, curIdx).filter(cycleHasData);
   const prevArr = priorCyclesWithData.length ? priorCyclesWithData[priorCyclesWithData.length-1] : null;
   const prev = prevArr ? sumCycle(prevArr) : null;
   const currentPerDay = current.days ? current.total/current.days : null;
@@ -374,10 +375,11 @@ function buildWeeklyTarget(){
 
 // % de intensidad compuesta (dist+hsr+pl+m/min vs promedio de los últimos 3 partidos) de la sesión MÁS RECIENTE cargada
 function getCurrentSessionIntensity(){
-  const dates = [...new Set(categoryFilteredEvents().map(e=>e.fecha))].sort();
-  if(!dates.length) return null;
-  const lastDate = dates[dates.length-1];
   const catEvents = categoryFilteredEvents();
+  // Última sesión REAL: un día libre no tiene métricas, así que tomarlo como "sesión actual" dejaba la
+  // tarjeta en "—".
+  const lastDate = lastSessionDate(catEvents);
+  if(!lastDate) return null;
   const dayEvents = catEvents.filter(e=>e.fecha===lastDate);
   const lastMatch = getLastMatchInfo(catEvents);
   const distAvg = avgField(dayEvents,'dist');
@@ -395,8 +397,8 @@ function getCurrentSessionIntensity(){
 function buildKPIs(){
   const catEvents = categoryFilteredEvents();
   const avgPL = avg(catEvents,'pl');
-  const dates = [...new Set(catEvents.map(e=>e.fecha))].sort();
-  const lastDate = dates[dates.length-1];
+  // Fecha de la última sesión real (no un día libre marcado, que puede incluso ser a futuro y no trae datos).
+  const lastDate = lastSessionDate(catEvents);
   document.getElementById('lastDate').textContent = lastDate ? lastDate.split('-').reverse().join('/') : '—';
   const rangeMetaCountEl = document.getElementById('rangeMetaCount');
   if(rangeMetaCountEl) rangeMetaCountEl.textContent = players.length;

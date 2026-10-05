@@ -238,10 +238,28 @@ function computeCurrentCycleAvg(field='dist'){
 }
 // Igual que computeCurrentCycleAvg, pero sumando el promedio diario de cada sesión del ciclo
 // (el total acumulado del microciclo), en vez de promediar todo junto.
+// Índice del ciclo más reciente que tiene al menos una sesión REAL (no solo días libres). Un día libre
+// cierra un bloque en computeMicrocycles, así que marcar "día libre" después de un partido creaba un ciclo
+// nuevo compuesto solo por ese día, sin datos — y las tarjetas de arriba quedaban en "—" como si se hubieran
+// borrado. Un día libre por sí solo no tiene carga que mostrar: las tarjetas siguen con el último ciclo con
+// sesiones y recién pasan al nuevo cuando se carga su primer entreno/partido.
+function lastCycleWithDataIndex(cycles, byDate){
+  for(let i=cycles.length-1;i>=0;i--){
+    if(cycles[i].some(d=> (byDate[d]||[]).some(e=> !isRestDayEvent(e)))) return i;
+  }
+  return -1;
+}
+// Última fecha con una sesión real cargada (ignora días libres, que no tienen métricas).
+function lastSessionDate(events){
+  const dates = [...new Set(events.filter(e=> !isRestDayEvent(e)).map(e=>e.fecha))].sort();
+  return dates.length ? dates[dates.length-1] : null;
+}
 function computeCurrentCycleTotal(field='dist'){
   const {cycles, byDate} = computeMicrocycles(categoryFilteredEvents());
   if(!cycles.length) return null;
-  const lastCycle = cycles[cycles.length-1];
+  const idx = lastCycleWithDataIndex(cycles, byDate);
+  if(idx<0) return null;
+  const lastCycle = cycles[idx];
   let total = 0, count = 0;
   lastCycle.forEach(d=>{
     const withVal = (byDate[d]||[]).filter(e=> e[field]!==null && e[field]!==undefined && !isNaN(e[field]));
