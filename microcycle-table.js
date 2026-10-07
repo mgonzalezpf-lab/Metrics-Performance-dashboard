@@ -207,13 +207,27 @@ function generateMicrocycleReportPDF(cycleIndex){
 
   // ---- jugadores con más carga (Player Load acumulado) dentro de este ciclo puntual — ayuda a detectar
   // a quién le tocó más laburo real en estos días, más allá del promedio general del plantel ----
-  const cargaPorJugador = players.map(p=>{
-    const evsCiclo = (byPlayer[p]||[]).filter(e=> datesArr.includes(e.fecha) && e.pl!==null && e.pl!==undefined);
+  const TOP_N = 5;
+  const rankingCargaDe = (arr)=> players.map(p=>{
+    const evsCiclo = (byPlayer[p]||[]).filter(e=> arr.includes(e.fecha) && e.pl!==null && e.pl!==undefined && !isNaN(e.pl));
     if(!evsCiclo.length) return null;
     const plSum = evsCiclo.reduce((a,e)=>a+e.pl,0);
     return {jugador:p, pl:Math.round(plSum), sesiones:evsCiclo.length};
   }).filter(Boolean).sort((a,b)=>b.pl-a.pl);
-  const topCarga = cargaPorJugador.slice(0,5);
+  const topCarga = rankingCargaDe(datesArr).slice(0,TOP_N);
+
+  // Racha: en cuántos ciclos SEGUIDOS (contando este) el jugador estuvo entre los TOP_N de más carga.
+  // Se saltean los bloques que son solo días libres (no tienen carga que rankear).
+  const cicloTieneDatos = (arr)=> arr.some(d=> (byDate[d]||[]).some(e=> !isRestDayEvent(e)));
+  const ciclosPrevios = cycles.slice(0, cycleIndex).filter(cicloTieneDatos).reverse(); // del más reciente al más viejo
+  const topsPrevios = ciclosPrevios.map(arr=> new Set(rankingCargaDe(arr).slice(0,TOP_N).map(r=>r.jugador)));
+  const fechaRefAcwr = [...datesArr].reverse().find(d=> (byDate[d]||[]).some(e=> !isRestDayEvent(e))) || datesArr[datesArr.length-1];
+  topCarga.forEach(r=>{
+    let racha = 1;
+    for(const s of topsPrevios){ if(s.has(r.jugador)) racha++; else break; }
+    r.racha = racha;
+    r.acwr = computeACWR(byPlayer[r.jugador], fechaRefAcwr);
+  });
 
   // ---- récords personales alcanzados DURANTE este ciclo (no en general, solo los que caen en estas
   // fechas puntuales) — mismo criterio que el 🔥 de la lista de Plantel, pero mirando todo el ciclo en
@@ -224,7 +238,7 @@ function generateMicrocycleReportPDF(cycleIndex){
     if(!rec) return;
     METRIC_ORDER.forEach(m=>{
       if(rec[m] && datesArr.includes(rec[m].fecha)){
-        recordsDelCiclo.push({jugador:p, metrica:m, valor:rec[m].valor, fecha:rec[m].fecha});
+        recordsDelCiclo.push({jugador:p, metrica:m, valor:rec[m].valor, fecha:rec[m].fecha, tipo:rec[m].origen, detalle:rec[m].detalle});
       }
     });
   });
@@ -254,7 +268,7 @@ function generateMicrocycleReportPDF(cycleIndex){
   // ---- resumen narrativo: sintetiza el ciclo en texto antes de entrar a los números sueltos ----
   ensureSpace(20);
   doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
-  doc.text(t('informeResumenIntro'), marginX, y);
+  doc.text(t('informeMicrocicloResumenTitulo'), marginX, y);
   y += 5.5;
   const partesResumen = [];
   partesResumen.push(tf('informeMicrocicloResumen', {dias: datesArr.length, entrenos: diasConDatos, libres: diasLibres}));
@@ -342,51 +356,183 @@ function generateMicrocycleReportPDF(cycleIndex){
     });
     y += 6.2;
   });
-  y += 3;
-  doc.setDrawColor(220,220,220); doc.line(marginX, y, pageW-marginX, y);
+  y += 8;
+
+  // ---- gráfico de barras: intensidad de cada día del ciclo (% vs. promedio de los últimos 3 partidos) ----
+  ensureSpace(72);
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
+  doc.text(t('informeMicrocicloIntensidadTitulo'), marginX, y);
+  y += 5;
+  {
+    const chartX = marginX + 10, chartW = pageW - marginX*2 - 10, chartH = 42;
+    const top = y + 6, base = top + chartH;
+    const vals = dayRows.map(r=> r.intensidad);
+    const maxVal = Math.max(110, ...vals.filter(v=>v!==null).map(v=>v+10));
+    const yMax = Math.ceil(maxVal/20)*20;
+    const yOf = (v)=> base - (v/yMax)*chartH;
+    // grilla y eje
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(140,140,150);
+    for(let g=0; g<=yMax; g+=(yMax>140?40:20)){
+      doc.setDrawColor(232,234,240); doc.setLineWidth(0.2);
+      doc.line(chartX, yOf(g), chartX+chartW, yOf(g));
+      doc.text(`${g}%`, chartX-2, yOf(g)+1.2, {align:'right'});
+    }
+    // línea de referencia: 100% = carga de un partido
+    doc.setDrawColor(164,41,31); doc.setLineWidth(0.35); doc.setLineDashPattern([1.2,1],0);
+    doc.line(chartX, yOf(100), chartX+chartW, yOf(100));
+    doc.setLineDashPattern([],0);
+    doc.setFontSize(6.3); doc.setTextColor(164,41,31);
+    doc.text(t('informeMicrocicloRefPartido'), chartX+1, yOf(100)-1.2); // a la izquierda: a la derecha se pisaba con el valor de la barra del partido
+    // barras
+    const slot = chartW / dayRows.length;
+    const barW = Math.min(slot*0.58, 16);
+    dayRows.forEach((r,i)=>{
+      const cx = chartX + slot*i + slot/2;
+      if(r.isRest || r.intensidad===null){
+        doc.setFont('helvetica','italic'); doc.setFontSize(6.5); doc.setTextColor(160,160,170);
+        doc.text(r.isRest ? t('diaLibreMin') : '—', cx, base-2, {align:'center'});
+      } else {
+        const v = r.intensidad;
+        const col = r.match ? [124,92,252] : v>100 ? [220,38,38] : v>=70 ? [14,116,144] : [148,163,184];
+        doc.setFillColor(...col);
+        const h = Math.max(0.6, base - yOf(v));
+        doc.roundedRect(cx-barW/2, base-h, barW, h, 0.8, 0.8, 'F');
+        doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...col);
+        doc.text(`${v}%`, cx, base-h-1.5, {align:'center'});
+      }
+      doc.setFont('helvetica','bold'); doc.setFontSize(6.8); doc.setTextColor(18,33,59);
+      doc.text(r.md, cx, base+4, {align:'center'});
+      doc.setFont('helvetica','normal'); doc.setFontSize(6.2); doc.setTextColor(120,120,130);
+      doc.text(r.fecha.slice(5).split('-').reverse().join('/'), cx, base+7.5, {align:'center'});
+    });
+    doc.setDrawColor(200,200,210); doc.setLineWidth(0.3);
+    doc.line(chartX, base, chartX+chartW, base);
+    // leyenda
+    const ley = [[[124,92,252],t('informeMicrocicloLeyPartido')],[[220,38,38],'>100%'],[[14,116,144],'70–100%'],[[148,163,184],'<70%']];
+    let lx = chartX; const ly = base + 12.5;
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.6);
+    ley.forEach(([col,txt])=>{
+      doc.setFillColor(...col); doc.rect(lx, ly-2.2, 2.6, 2.6, 'F');
+      doc.setTextColor(90,90,100); doc.text(txt, lx+3.6, ly);
+      lx += 6 + doc.getTextWidth(txt) + 4;
+    });
+    y = ly + 6;
+  }
+  doc.setDrawColor(220,220,220); doc.setLineWidth(0.2); doc.line(marginX, y, pageW-marginX, y);
   y += 8;
 
   // ---- jugadores con más carga acumulada en este ciclo puntual ----
   if(topCarga.length){
-    ensureSpace(10 + topCarga.length*6);
+    ensureSpace(14 + topCarga.length*6);
     doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
     doc.text(t('informeMicrocicloTopCarga'), marginX, y);
-    y += 6;
+    y += 5;
+    doc.setFont('helvetica','bold'); doc.setFontSize(6.6); doc.setTextColor(130,130,140);
+    doc.text(t('informeMicrocicloColJugador').toUpperCase(), marginX+10, y+2);
+    doc.text(t('informeMicrocicloColSesiones').toUpperCase(), marginX+68, y+2);
+    doc.text(t('informeMicrocicloColRacha').toUpperCase(), marginX+92, y+2);
+    doc.text('ACWR', marginX+130, y+2);
+    doc.text('PLAYER LOAD', pageW-marginX-4, y+2, {align:'right'});
+    y += 4;
+    const acwrCol = {high:[220,38,38], caution:[202,138,4], optimal:[22,163,74], low:[37,99,235], insuf:[140,140,150]};
     topCarga.forEach((r,i)=>{
       ensureSpace(6);
-      if(i%2===1){ doc.setFillColor(245,246,250); doc.rect(marginX, y, pageW-marginX*2, 5.6, 'F'); }
+      if(i%2===1){ doc.setFillColor(245,246,250); doc.rect(marginX, y, pageW-marginX*2, 5.8, 'F'); }
       doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(18,33,59);
       doc.text(`${i+1}.`, marginX+2, y+4);
-      doc.text(r.jugador, marginX+10, y+4);
+      doc.text(doc.splitTextToSize(r.jugador, 56)[0], marginX+10, y+4);
       doc.setFont('helvetica','normal'); doc.setTextColor(90,90,90);
-      doc.text(tf('informeMicrocicloSesionesN',{n:r.sesiones}), marginX+90, y+4);
-      doc.setFont('helvetica','bold'); doc.setTextColor(14,98,94);
-      doc.text(`${fmt(r.pl)} PL`, pageW-marginX-4, y+4, {align:'right'});
-      y += 5.6;
+      doc.text(String(r.sesiones), marginX+68, y+4);
+      // racha: se resalta desde 2 ciclos seguidos, en rojo desde 3
+      const rachaCol = r.racha>=3 ? [220,38,38] : r.racha===2 ? [202,138,4] : [90,90,90];
+      doc.setFont('helvetica', r.racha>=2?'bold':'normal'); doc.setTextColor(...rachaCol);
+      doc.text(r.racha>=2 ? tf('informeMicrocicloRachaN',{n:r.racha}) : t('informeMicrocicloRachaPrimera'), marginX+92, y+4);
+      const st = (r.acwr && r.acwr.status) || 'insuf';
+      doc.setFont('helvetica','bold'); doc.setTextColor(...(acwrCol[st]||acwrCol.insuf));
+      doc.text(r.acwr && r.acwr.ratio!==null && r.acwr.ratio!==undefined ? `${r.acwr.ratio.toFixed(2)} · ${acwrLabel(st)}` : acwrLabel('insuf'), marginX+130, y+4);
+      doc.setTextColor(14,98,94);
+      doc.text(`${fmt(r.pl)}`, pageW-marginX-4, y+4, {align:'right'});
+      y += 5.8;
     });
-    y += 6;
+    y += 5;
+
+    // ---- cuidados ante carga alta + aviso de jugadores que repiten ----
+    const repetidos = topCarga.filter(r=> r.racha>=2);
+    const bullets = [t('informeMicrocicloCuidado1'), t('informeMicrocicloCuidado2'), t('informeMicrocicloCuidado3'), t('informeMicrocicloCuidado4'), t('informeMicrocicloCuidado5')];
+    const boxW = pageW - marginX*2, innerW = boxW - 10;
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.8);
+    const riesgoLines = doc.splitTextToSize(t('informeMicrocicloRiesgosTexto'), innerW);
+    const bulletLines = bullets.map(b=> doc.splitTextToSize(b, innerW-4));
+    doc.setFont('helvetica', repetidos.length?'bold':'normal'); // se mide con la misma fuente con la que se dibuja (la negrita es más ancha)
+    const repLines = repetidos.length
+      ? repetidos.map(r=> doc.splitTextToSize(tf(r.racha>=3?'informeMicrocicloRepiteFuerte':'informeMicrocicloRepite',{j:r.jugador, n:r.racha}), innerW-4))
+      : [doc.splitTextToSize(t('informeMicrocicloSinRepetidos'), innerW)];
+    const lh = 3.6;
+    const boxH = 8 + riesgoLines.length*lh + 4 + 5 + bulletLines.reduce((a,l)=>a+l.length*lh+0.8,0) + 4 + 5 + repLines.reduce((a,l)=>a+l.length*lh+0.8,0) + 3;
+    ensureSpace(boxH+4);
+    doc.setFillColor(255,247,237); doc.setDrawColor(234,179,8); doc.setLineWidth(0.4);
+    doc.roundedRect(marginX, y, boxW, boxH, 2, 2, 'FD');
+    let by = y + 6;
+    doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(146,64,14);
+    doc.text(t('informeMicrocicloCuidadosTitulo'), marginX+5, by); by += 5;
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.8); doc.setTextColor(70,60,50);
+    doc.text(riesgoLines, marginX+5, by); by += riesgoLines.length*lh + 3;
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(146,64,14);
+    doc.text(t('informeMicrocicloQueHacer'), marginX+5, by); by += 4.5;
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.8); doc.setTextColor(70,60,50);
+    bulletLines.forEach(lines=>{
+      doc.setFillColor(234,179,8); doc.circle(marginX+6.2, by-1.1, 0.7, 'F');
+      doc.text(lines, marginX+9, by); by += lines.length*lh + 0.8;
+    });
+    by += 3;
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(146,64,14);
+    doc.text(t('informeMicrocicloRepiteTitulo'), marginX+5, by); by += 4.5;
+    doc.setFont('helvetica', repetidos.length?'bold':'normal'); doc.setFontSize(7.8);
+    repLines.forEach((lines,idx)=>{
+      const r = repetidos[idx];
+      if(r){ doc.setTextColor(...(r.racha>=3?[185,28,28]:[161,98,7])); doc.setFillColor(...(r.racha>=3?[220,38,38]:[202,138,4])); doc.circle(marginX+6.2, by-1.1, 0.8, 'F'); doc.text(lines, marginX+9, by); }
+      else { doc.setTextColor(70,60,50); doc.text(lines, marginX+5, by); }
+      by += lines.length*lh + 0.8;
+    });
+    y += boxH + 4;
+    doc.setFont('helvetica','italic'); doc.setFontSize(6.6); doc.setTextColor(140,140,150);
+    doc.text(doc.splitTextToSize(t('informeMicrocicloCuidadosNota'), boxW), marginX, y);
+    y += 8;
   }
 
   // ---- récords personales alcanzados durante este ciclo (si hubo alguno) ----
   if(recordsDelCiclo.length){
-    ensureSpace(10 + recordsDelCiclo.length*6);
+    recordsDelCiclo.sort((a,b)=> a.fecha.localeCompare(b.fecha) || a.jugador.localeCompare(b.jugador));
+    ensureSpace(16);
     doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(18,33,59);
     doc.text(t('informeMicrocicloRecords'), marginX, y);
-    y += 6;
+    y += 5;
+    doc.setFont('helvetica','bold'); doc.setFontSize(6.6); doc.setTextColor(130,130,140);
+    doc.text(t('informeMicrocicloColJugador').toUpperCase(), marginX+10, y+2);
+    doc.text(t('informeMicrocicloColMetrica').toUpperCase(), marginX+58, y+2);
+    doc.text(t('colFecha').toUpperCase(), marginX+88, y+2);
+    doc.text(t('colSesion').toUpperCase(), marginX+107, y+2);
+    doc.text(t('informeMicrocicloColValor').toUpperCase(), pageW-marginX-4, y+2, {align:'right'});
+    y += 4;
     recordsDelCiclo.forEach((r,i)=>{
       ensureSpace(6);
       if(i%2===1){ doc.setFillColor(245,246,250); doc.rect(marginX, y, pageW-marginX*2, 5.6, 'F'); }
-      // jsPDF con Helvetica no soporta glyphs de emoji (salen como texto roto) — un pequeño círculo
-      // dorado dibujado a mano cumple la misma función de "destacar la fila" sin ese problema.
+      // jsPDF con Helvetica no soporta emoji: círculo dibujado a mano en su lugar.
       doc.setFillColor(192,87,15);
       doc.circle(marginX+2.3, y+3, 1.3, 'F');
-      doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(18,33,59);
-      doc.text(r.jugador, marginX+10, y+4);
+      doc.setFont('helvetica','bold'); doc.setFontSize(7.8); doc.setTextColor(18,33,59);
+      doc.text(doc.splitTextToSize(r.jugador, 46)[0], marginX+10, y+4);
       doc.setFont('helvetica','normal'); doc.setTextColor(90,90,90);
       const metLabel = (METRICS[r.metrica] && METRICS[r.metrica].label) ? METRICS[r.metrica].label : r.metrica;
-      doc.text(`${metLabel} · ${r.fecha.split('-').reverse().join('/')}`, marginX+70, y+4);
+      doc.text(doc.splitTextToSize(metLabel, 28)[0], marginX+58, y+4);
+      doc.text(r.fecha.split('-').reverse().join('/'), marginX+88, y+4);
+      const esPartido = r.tipo==='Partido';
+      const sesionTxt = r.detalle ? (esPartido ? `vs ${r.detalle}` : r.detalle) : (r.tipo || '—');
+      doc.setFont('helvetica', esPartido?'bold':'normal'); doc.setTextColor(...(esPartido?[108,52,131]:[90,90,90]));
+      doc.text(doc.splitTextToSize(sesionTxt, pageW-marginX-4-16-(marginX+107))[0] || '', marginX+107, y+4);
       doc.setFont('helvetica','bold'); doc.setTextColor(18,33,59);
-      doc.text(fmt(r.valor), pageW-marginX-4, y+4, {align:'right'});
+      const dec = (METRICS[r.metrica] && METRICS[r.metrica].dec) || 0;
+      doc.text(dec ? Number(r.valor).toFixed(dec) : fmt(r.valor), pageW-marginX-4, y+4, {align:'right'});
       y += 5.6;
     });
     y += 4;
