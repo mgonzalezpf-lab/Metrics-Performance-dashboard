@@ -68,7 +68,9 @@ function drawRadar(player){
   // side stats
   const side = document.getElementById('radarSide');
   const sesionesJugador = byPlayer[player] || [];
-  const ultimaSesion = sesionesJugador.length ? sesionesJugador[sesionesJugador.length-1] : null;
+  // Última sesión con datos reales: se saltean los días libres (no tienen distancia), si no la tarjeta
+  // mostraba la fecha del día libre con "— m".
+  const ultimaSesion = [...sesionesJugador].reverse().find(e=> !isRestDayEvent(e) && e.dist!==null && e.dist!==undefined && !isNaN(e.dist)) || null;
   side.innerHTML = `
     <div class="rs-item gold"><div class="k">${t('ultimaSesion')}${ultimaSesion?' · '+ultimaSesion.fecha.split('-').reverse().join('/'):''}</div><div class="v">${fmt(ultimaSesion?ultimaSesion.dist:0)}<span>m dist.</span></div></div>
     <div class="rs-item gold"><div class="k">${t('playerLoadProm')}</div><div class="v">${fmt(Math.round(pAvg.pl||0))}</div></div>
