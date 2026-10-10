@@ -565,3 +565,10 @@
     .live-dot{animation:none;}
     .lb-bar-fill{transition:none;}
   }
+
+  /* iPhone: evita el zoom automático al tocar campos (<16px) que quedaba pegado al entrar */
+  @media (max-width:820px), (pointer:coarse){
+    input:not([type=range]):not([type=checkbox]):not([type=radio]), select, textarea,
+    .auth-card input, .auth-card select{font-size:16px !important;}
+  }
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}
